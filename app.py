@@ -75,9 +75,20 @@ display_articles(articles)
 display_raises(raises)
 display_large_raises(raises, 200_000_000)
 
-response = requests.get("https://jsonplaceholder.typicode.com/posts/1")
+def fetch_test_article():
+    response = requests.get(
+        "https://jsonplaceholder.typicode.com/posts/1",
+        timeout=10,
+    )
+    print(response.status_code)
+    data = response.json()
+    return data
 
-print(response.status_code)
-print(response.json())
-
+def display_test_article(article):
+    print("-" * 50)
+    print(f"Title: {article['title']}")
+    print(f"Body: {article['title']}")
+          
+test_article = fetch_test_article()
+display_test_article(test_article)
 
