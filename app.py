@@ -1,94 +1,109 @@
-import requests
 
+import feedparser
+from email.utils import parsedate_to_datetime
 
-articles = [
-    {
-        "title": "Venture Studio goes bust after founder arrested for being too sexy",
-        "source": "TechCrunch",
-        "url": "www.techcrunch.com/article1",
-        "published_at": "2026-08-17",
-    }, 
-    {
-        "title": "Marcus raises $100 million at $550 million Series C",
-        "source": "SpastikVC",
-        "url": "www.spastikVC.com/article1",
-        "published_at": "2026-08-15",
-    },
-    {
-        "title": "Guy tries to learn Python, explodes",
-        "source": "SillyToday",
-        "url": "www.sillytoday.com/article1",
-        "published_at": "2026-08-13",
-    }
-]
+# Defining the RSS feed fetch
 
-raises = [
-    {
-        "company": "HumanEvolution",
-        "founding_year": 2022,
-        "series": "Series C",
-        "amount_raised_usd": 20_000_000,
-        "round_valuation_usd": 150_000_000,
-    },
-    {
-        "company": "CubeChain",
-        "founding_year": 2017,
-        "series": "Series E",
-        "amount_raised_usd": 250_000_000,
-        "round_valuation_usd": 1_200_000_000,
-    },
-    {
-        "company": "Straightening Forks",
-        "founding_year": 2019,
-        "series": "Series D",
-        "amount_raised_usd": 120_000_000,
-        "round_valuation_usd": 900_000_000,        
-    }
-]
+def fetch_rss_feed(feed_url):
+    feed = feedparser.parse(feed_url)
+    
+    print(feed.feed.title)
+    print(len(feed.entries))
+
+    return feed
+
+# Defining the normalize article function
+
+def normalize_articles(feed, source):
+    normalized_articles = []
+
+    for entry in feed.entries:
+        article = {
+            "title": entry["title"],
+            "source": source,
+            "url": entry["link"],
+            "published_at": entry["published"]
+        }
+
+        normalized_articles.append(article)
+
+    return normalized_articles
+
+# Sorting articles by date
+
+def sort_articles_by_date(articles):
+    return sorted(
+        articles,
+        key=lambda article: parsedate_to_datetime(article["published_at"]),
+        reverse=True
+    )
+
+# Filter for VC relevance
+
+def filter_vc_articles(articles):
+    keywords = [
+        "raises",
+        "raised",
+        "funding",
+        "fundraise",
+        "valuation",
+        "venture",
+        "vc",
+        "investor",
+        "investment",        
+        "series a",
+        "series b",
+        "series c",
+        "series d",
+        "series e",
+        "IPO",        
+        "seed",
+    ]
+
+    filtered_articles = []
+
+    for article in articles:
+        title = article["title"].lower()
+
+        for keyword in keywords:
+            if keyword in title:
+                filtered_articles.append(article)
+                break
+
+    return filtered_articles
+
+# Displaying articles
 
 def display_articles(articles):
     for article in articles:
         print("-" * 50)
-        print(f"Title: {article['title']}")
-        print(f"Source: {article['source']}")
-        print(f"URL: {article['url']}")
-        print(f"Published at: {article['published_at']}")
+        print(f"Title: {article['title']} ")
+        print(f"Source: {article['source']} ")
+        print(f"URL: {article['url']} ")
+        print(f"Published at: {article['published_at']} ")
 
-def display_raises(raises):
-    for funding_round in raises:
-        print("-" * 50)
-        print(f"Company: {funding_round['company']}")
-        print(f"Founded: {funding_round['founding_year']}") 
-        print(f"Series: {funding_round['series']}")
-        amount = funding_round["amount_raised_usd"]
-        print(f"Amount Raised (USD): ${amount:,}")
-        valuation = funding_round["round_valuation_usd"]
-        print(f"Valuation (USD): ${valuation:,}")
+# Fetching the RSS feeds
 
-def display_large_raises(raises, minimum_amount):
-    for funding_round in raises:
-        if funding_round["amount_raised_usd"] > minimum_amount:
-            print("-" * 50)
-            print(funding_round["company"])
+techcrunch_fetch_feed = fetch_rss_feed("https://techcrunch.com/feed")
+sifted_fetch_feed = fetch_rss_feed("https://sifted.eu/feed")
 
-display_articles(articles)
-display_raises(raises)
-display_large_raises(raises, 200_000_000)
+# Calling in normalization of articles function for each site
 
-def fetch_test_article():
-    response = requests.get(
-        "https://jsonplaceholder.typicode.com/posts/1",
-        timeout=10,
-    )
-    print(response.status_code)
-    data = response.json()
-    return data
+techcrunch_articles = normalize_articles(
+    techcrunch_fetch_feed,
+    "TechCrunch"
+)
+sifted_articles = normalize_articles(
+    sifted_fetch_feed,
+    "Sifted"
+)
 
-def display_test_article(article):
-    print("-" * 50)
-    print(f"Title: {article['title']}")
-    print(f"Body: {article['title']}")
-          
-test_article = fetch_test_article()
-display_test_article(test_article)
+# Calling displaying of articles
+
+all_articles = techcrunch_articles + sifted_articles
+sorted_articles = sort_articles_by_date(all_articles)
+vc_articles = filter_vc_articles(sorted_articles)
+
+display_articles(vc_articles)
+
 
