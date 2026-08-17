@@ -1,0 +1,32 @@
+# Certain weird syntaxes eg. squiglies and percentages, come from Flask's template engine Jinja
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VC News Aggregator</title>
+</head>
+<body>
+
+    <h1>VC News Aggregator</h1>
+
+    {% for article in articles %}
+        <hr>
+
+        <h2>{{ article.title }}</h2>
+
+        <p>
+            Source: {{ article.source }}
+        </p>
+
+        <p>
+            Published: {{ article.published_at }}
+        </p>
+
+        <a href="{{ article.url }}">
+            Read article
+        </a>
+
+    {% endfor %}
+
+</body>
+</html>
