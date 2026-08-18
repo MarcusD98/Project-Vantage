@@ -22,6 +22,10 @@ def fetch_rss_feed(feed_url):
     if feed.bozo:
         logger.warning("Problem parsing RSS feed: %s", feed_url)
         return None
+
+    if not feed.entries:
+        logger.warning("No entries found in RSS feed: %s", feed_url)
+        return None
     
     return feed
 
@@ -39,10 +43,15 @@ def normalize_articles(feed, source):
     normalized_articles = []
 
     for entry in feed.entries:
+        url = entry.get("link", "")
+
+        if not url:
+            continue
+
         article = {
             "title": entry.get("title", "Untitled article"),
             "source": source,
-            "url": entry.get("link", ""),
+            "url": url,
             "published_at": entry.get("published", ""),
             "summary": clean_summary(
                 entry.get("summary", "")
@@ -125,15 +134,6 @@ def filter_vc_articles(articles):
                 break
 
     return filtered_articles
-
-# Defining date conversion / standardisation
-
-def format_article_dates(articles):
-    for article in articles:
-        date = article["parsed_date"]
-        article["published_at"] = date.strftime("%d %b %Y · %H:%M")
-
-    return articles
 
 # Categorization of Articles into topics
 
@@ -276,12 +276,10 @@ def get_vc_articles():
 
     save_articles_to_database(categorized_articles)
 
-    formatted_articles = format_article_dates(categorized_articles)
-
-    _cached_articles = formatted_articles
+    _cached_articles = categorized_articles
     _cache_time = now
 
-    return formatted_articles
+    return categorized_articles
 
 
 

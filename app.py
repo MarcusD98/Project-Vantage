@@ -28,9 +28,6 @@ with app.app_context():
 @app.route("/")
 def home():
 
-    # Refresh the database from RSS feeds
-    get_vc_articles()
-
     # Read optional search, source and category filters from the URL query parameters
     search_query = request.args.get("q", "").lower()
     source_filter = request.args.get("source", "")
