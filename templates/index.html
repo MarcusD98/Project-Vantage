@@ -9,10 +9,44 @@
     <div class="container">
         <h1>VC News Aggregator</h1>
 
+        <form method="GET">
+            <input
+                type="text"
+                name="q"
+                placeholder="Search articles..."
+                value= "{{ search_query }}"
+            >
+
+            <select name="source">
+                <option value="">All sources</option>
+
+                <option
+                    value="TechCrunch"
+                    {% if source_filter == "TechCrunch"%}selected{% endif %}
+                >
+                    TechCrunch
+                </option>
+
+                <option 
+                    value="Sifted"
+                    {% if source_filter == "Sifted"%}selected{% endif %}
+                >
+                    Sifted
+                </option>
+
+            </select>
+
+            <button type="submit">
+                Search
+            </button>
+        </form>
+
         <div class="article-grid">
             {% for article in articles %}
                 <article class="article-card">
-                    <p class="source">{{ article.source }}</p>
+                    <span class="source-badge">
+                        {{ article.source }}
+                    </span>
 
                     <h2>{{ article.title }}</h2>
 

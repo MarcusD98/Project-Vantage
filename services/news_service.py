@@ -70,3 +70,13 @@ def filter_vc_articles(articles):
                 break
 
     return filtered_articles
+
+
+# Defining date conversion / standardisation
+
+def format_article_dates(articles):
+    for article in articles:
+        date = parsedate_to_datetime(article["published_at"])
+        article["published_at"] = date.strftime("%d %b %Y · %H:%M")
+
+    return articles
