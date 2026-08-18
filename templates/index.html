@@ -41,25 +41,43 @@
             </button>
         </form>
 
-        <div class="article-grid">
-            {% for article in articles %}
-                <article class="article-card">
-                    <span class="source-badge">
-                        {{ article.source }}
-                    </span>
+        {% if articles %}
 
-                    <h2>{{ article.title }}</h2>
+            <div class="article-grid">
+                {% for article in articles %}
+                    <article class="article-card">
+                        <span class="source-badge">
+                            {{ article.source }}
+                        </span>
 
-                    <p class="date">
-                        {{ article.published_at }}
-                    </p>
+                        <h2>{{ article.title }}</h2>
+                        
+                        {% if article.summary %}
+                            
+                            <p class="summary">
+                                {{ article.summary }}
+                            </p>
 
-                    <a href="{{ article.url }}" target="_blank">
-                        Read article
-                    </a>
-                </article>
-            {% endfor %}
-        </div>
+                        {% endif %}
+
+                        <p class="date">
+                            {{ article.published_at }}
+                        </p>
+
+                        <a href="{{ article.url }}" target="_blank">
+                            Read article
+                        </a>
+                    </article>
+                 {% endfor %}
+        
+            </div>
+        
+        {% else %}
+
+         <p>No articles found.</p>
+
+        {% endif %}
+
     </div>
 
 </body>

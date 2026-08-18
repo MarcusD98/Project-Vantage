@@ -1,8 +1,12 @@
+import logging
+
 from flask import Flask, render_template, request
 
 from services.news_service import (
     get_vc_articles,
 )
+
+logging.basicConfig(level=logging.INFO)
 
 # Create the Flask application
 app = Flask(__name__)
