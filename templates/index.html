@@ -1,32 +1,32 @@
-# Certain weird syntaxes eg. squiglies and percentages, come from Flask's template engine Jinja
-
 <!DOCTYPE html>
 <html>
 <head>
     <title>VC News Aggregator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
-    <h1>VC News Aggregator</h1>
+    <div class="container">
+        <h1>VC News Aggregator</h1>
 
-    {% for article in articles %}
-        <hr>
+        <div class="article-grid">
+            {% for article in articles %}
+                <article class="article-card">
+                    <p class="source">{{ article.source }}</p>
 
-        <h2>{{ article.title }}</h2>
+                    <h2>{{ article.title }}</h2>
 
-        <p>
-            Source: {{ article.source }}
-        </p>
+                    <p class="date">
+                        {{ article.published_at }}
+                    </p>
 
-        <p>
-            Published: {{ article.published_at }}
-        </p>
-
-        <a href="{{ article.url }}">
-            Read article
-        </a>
-
-    {% endfor %}
+                    <a href="{{ article.url }}" target="_blank">
+                        Read article
+                    </a>
+                </article>
+            {% endfor %}
+        </div>
+    </div>
 
 </body>
 </html>

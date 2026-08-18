@@ -1,0 +1,48 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    margin: 0;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+h1 {
+    margin-bottom: 30px;
+}
+
+.article-grid {
+    display: grid;
+    gap: 20px;
+}
+
+.article-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.article-card h2 {
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+
+.source {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.date {
+    font-size: 14px;
+    color: #666;
+}
+
+.article-card a {
+    display: ineline-block;
+    margin-top: 10px;
+    text-decoration: none;
+}
+
