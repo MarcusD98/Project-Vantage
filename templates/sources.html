@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Source Health</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div class="container">
+        <h1>Source Health</h1>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Source</th>
+                    <th>Status</th>
+                    <th>Feed entries</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for source in source_health %}
+                    <tr>
+                        <td>{{ source.name }}</td>
+                        <td>{{ source.status }}</td>
+                        <td>{{ source.entries }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <p>
+            <a href="/">Back to news</a>
+        </p>
+    </div>
+
+</body>
+</html>

@@ -6,6 +6,7 @@ from config import SOURCES
 from models.article import db, Article
 from services.news_service import (
     get_vc_articles,
+    get_source_health,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -66,6 +67,15 @@ def home():
         sources=SOURCES,
         category_filter=category_filter,
     )
+
+@app.route("/sources")
+def sources():
+        source_health = get_source_health
+
+        return render_template(
+             "sources.html",
+             source_health=source_health,
+        )
 
 # Run the Flask development server when this file is executed directly
 if __name__ == "__main__":

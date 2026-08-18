@@ -1,34 +1,86 @@
-# Configure RSS news sources (adding SOURCE dictionaries)
+# Configure external news sources
 
 SOURCES = [
     {
         "name": "TechCrunch",
         "url": "https://techcrunch.com/feed",
+        "type": "publication",
+        "region": "Global",
+        "method": "rss",
+        "enabled": True,
     },
     {
         "name": "Sifted",
         "url": "https://sifted.eu/feed",
+        "type": "publication",
+        "region": "Europe",
+        "method": "rss",
+        "enabled": True,
     },
     {
         "name": "Crunchbase News",
         "url": "https://news.crunchbase.com/feed/",
+        "type": "publication",
+        "region": "Global",
+        "method": "rss",
+        "enabled": True,
     },
     {
         "name": "Tech.eu",
         "url": "https://tech.eu/feed/",
+        "type": "publication",
+        "region": "Europe",
+        "method": "rss",
+        "enabled": True,
     },
     {
         "name": "EU-Startups",
         "url": "https://www.eu-startups.com/feed/",
+        "type": "publication",
+        "region": "Europe",
+        "method": "rss",
+        "enabled": True,
     },
     {
         "name": "VentureBeat",
         "url": "https://venturebeat.com/feed/",
+        "type": "publication",
+        "region": "Global",
+        "method": "rss",
+        "enabled": True,
     },
     {
         "name": "Silicon Canals",
         "url": "https://siliconcanals.com/news/startups/feed/",
+        "type": "publication",
+        "region": "Europe",
+        "method": "rss",
+        "enabled": False,
     },
+    {
+    "name": "LatAmList",
+    "url": "https://latamlist.com/feed",
+    "type": "publication",
+    "region": "Latin America",
+    "method": "rss",
+    "enabled": True,
+    },
+    {
+    "name": "Inc42",
+    "url": "https://inc42.com/feed/",
+    "type": "publication",
+    "region": "India",
+    "method": "rss",
+    "enabled": True,
+    },
+    {
+    "name": "TechCabal",
+    "url": "https://techcabal.com/feed/",
+    "type": "publication",
+    "region": "Africa",
+    "method": "rss",
+    "enabled": True,
+},
 ]
 
 CACHE_DURATION_MINUTES = 5

@@ -28,6 +28,41 @@ def fetch_rss_feed(feed_url):
     
     return feed
 
+# Source health tracker
+
+def get_source_health():
+    source_health = []
+
+    for source in SOURCES:
+        if not source.get("enabled", True):
+            source_health.append({
+                "name": source["name"],
+                "status": "disabled",
+                "entries": 0,
+            })
+            continue
+
+        feed = feedparser.parse(source["url"])
+
+        if not feed.entries:
+            source_health.append({
+                "name": source["name"],
+                "status": "failed",
+                "entries": 0,
+            })
+            continue
+
+        status = "warning" if feed.bozo else "healthy"
+
+        source.health.append({
+            "name": source["name"],
+            "status": status,
+            "entries": len(feed.entries),
+        })
+
+    return source_health
+
+
 # Defining the summary-cleaning function
 
 def clean_summary(summary):
@@ -255,6 +290,10 @@ def get_vc_articles():
     all_articles = []
 
     for source in SOURCES:
+
+        if not source["enabled"]:
+            continue
+
         feed = fetch_rss_feed(source["url"])
 
         if feed is None:
