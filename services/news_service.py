@@ -1,6 +1,19 @@
 import feedparser
 from email.utils import parsedate_to_datetime
 
+# Adding SOURCE dictionaries
+
+SOURCES = [
+    {
+        "name": "TechCrunch",
+        "url": "https://techcrunch.com/feed",
+    },
+    {
+        "name": "Sifted",
+        "url": "https://sifted.eu/feed",
+    },
+]
+
 # Defining the RSS feed fetch
 
 def fetch_rss_feed(feed_url):
@@ -80,3 +93,24 @@ def format_article_dates(articles):
         article["published_at"] = date.strftime("%d %b %Y · %H:%M")
 
     return articles
+
+# Defining a Get Articles function
+
+def get_vc_articles():
+    all_articles = []
+
+    for source in SOURCES:
+        feed = fetch_rss_feed(source["url"])
+        articles = normalize_articles(
+            feed,
+            source["name"]
+        )
+
+        all_articles.extend(articles)
+
+    # Combine, sort, filter, and format the articles
+    sorted_articles = sort_articles_by_date(all_articles)
+    vc_articles = filter_vc_articles(sorted_articles)
+    formatted_articles = format_article_dates(vc_articles)
+
+    return formatted_articles
