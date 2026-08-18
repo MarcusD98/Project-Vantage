@@ -37,6 +37,7 @@ def get_source_health():
         if not source.get("enabled", True):
             source_health.append({
                 "name": source["name"],
+                "region": source["region"],
                 "status": "disabled",
                 "entries": 0,
             })
@@ -47,6 +48,7 @@ def get_source_health():
         if not feed.entries:
             source_health.append({
                 "name": source["name"],
+                "region": source["region"],
                 "status": "failed",
                 "entries": 0,
             })
@@ -54,8 +56,9 @@ def get_source_health():
 
         status = "warning" if feed.bozo else "healthy"
 
-        source.health.append({
+        source_health.append({
             "name": source["name"],
+            "region": source["region"],
             "status": status,
             "entries": len(feed.entries),
         })

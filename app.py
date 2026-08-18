@@ -3,7 +3,12 @@ import logging
 from flask import Flask, render_template, request
 
 from config import SOURCES
+
 from models.article import db, Article
+from models.company import Company
+from models.investor import Investor
+from models.funding_round import FundingRound
+
 from services.news_service import (
     get_vc_articles,
     get_source_health,
@@ -70,7 +75,12 @@ def home():
 
 @app.route("/sources")
 def sources():
-        source_health = get_source_health
+        source_health = get_source_health()
+
+        for source in source_health:
+             source["stored_articles"] = Article.query.filter_by(
+                  source=source["name"]
+             ).count()
 
         return render_template(
              "sources.html",

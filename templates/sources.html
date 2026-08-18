@@ -13,8 +13,10 @@
             <thead>
                 <tr>
                     <th>Source</th>
+                    <th>Region</th>
                     <th>Status</th>
                     <th>Feed entries</th>
+                    <th>Stored VC articles</th>
                 </tr>
             </thead>
 
@@ -22,8 +24,10 @@
                 {% for source in source_health %}
                     <tr>
                         <td>{{ source.name }}</td>
+                        <td>{{ source.region }}</td>
                         <td>{{ source.status }}</td>
                         <td>{{ source.entries }}</td>
+                        <td>{{ source.stored_articles }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

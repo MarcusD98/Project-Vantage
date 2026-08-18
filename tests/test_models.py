@@ -1,0 +1,28 @@
+from models.article import db
+from models.company import Company
+from models.investor import Investor
+from models.funding_round import FundingRound
+
+
+def test_models_can_be_created():
+    company = Company(
+        name="Test Company"
+    )
+
+    investor = Investor(
+        name="Test Investor"
+    )
+
+    funding_round = FundingRound(
+        company=company,
+        amount=50_000_000,
+        currency="USD",
+        round_type="Series B",
+    )
+
+    funding_round.investors.append(investor)
+
+    assert funding_round.company.name == "Test Company"
+    assert funding_round.amount == 50_000_000
+    assert funding_round.round_type == "Series B"
+    assert funding_round.investors[0].name == "Test Investor"
