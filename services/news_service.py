@@ -21,7 +21,6 @@ def fetch_rss_feed(feed_url):
 
     if feed.bozo:
         logger.warning("Problem parsing RSS feed: %s", feed_url)
-        return None
 
     if not feed.entries:
         logger.warning("No entries found in RSS feed: %s", feed_url)
