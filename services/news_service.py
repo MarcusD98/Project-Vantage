@@ -2,6 +2,8 @@ import feedparser
 import logging
 
 from config import SOURCES, CACHE_DURATION_MINUTES
+from models.article import db, Article
+
 from bs4 import BeautifulSoup
 from email.utils import parsedate_to_datetime
 from datetime import datetime, timedelta
@@ -30,7 +32,6 @@ def clean_summary(summary):
     clean_text = soup.get_text(" ", strip=True)
 
     return clean_text
-
 
 # Defining the normalize article function
 
@@ -209,6 +210,34 @@ def categorize_articles(articles):
 
     return articles
 
+# Save articles to database via SQLite Article
+
+def save_articles_to_database(articles):
+    saved_count = 0
+
+    for article in articles:
+        existing_article = Article.query.filter_by(
+            url=article["url"]
+        ).first()
+
+        if existing_article:
+            continue
+
+        db_article = Article(
+            title=article["title"],
+            source=article["source"],
+            url=article["url"],
+            published_at=article["parsed_date"],
+            summary=article["summary"],
+            category=article["category"],
+        )
+
+        db.session.add(db_article)
+        saved_count += 1
+
+    db.session.commit()
+
+    return saved_count
 
 # Defining a Get Articles function --> Crucial function called into app.py, basically it is the orchestrator, bringing together all functions to this point
 
@@ -244,9 +273,20 @@ def get_vc_articles():
     sorted_articles = sort_articles_by_date(unique_articles)
     vc_articles = filter_vc_articles(sorted_articles)
     categorized_articles = categorize_articles(vc_articles)
+
+    save_articles_to_database(categorized_articles)
+
     formatted_articles = format_article_dates(categorized_articles)
 
     _cached_articles = formatted_articles
     _cache_time = now
 
     return formatted_articles
+
+
+
+
+
+
+
+

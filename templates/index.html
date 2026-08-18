@@ -92,7 +92,7 @@
                         {% endif %}
 
                         <p class="date">
-                            {{ article.published_at }}
+                            {{ article.published_at.strftime("%d %b %Y · %H:%M") }}
                         </p>
 
                         <a href="{{ article.url }}" target="_blank">
