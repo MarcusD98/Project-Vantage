@@ -20,18 +20,46 @@
             <select name="source">
                 <option value="">All sources</option>
 
+                {% for source in sources %}
+                    <option
+                        value="{{ source.name }}"
+                        {% if source_filter == source.name %}selected{% endif %}
+                    >
+                        {{ source.name }}
+                    </option>
+                {% endfor %}
+
+            </select>
+
+            <select name="category">
+                <option value="">All categories</option>
+
                 <option
-                    value="TechCrunch"
-                    {% if source_filter == "TechCrunch"%}selected{% endif %}
+                    value="Funding Round"
+                    {% if category_filter == "Funding Round"%}selected{% endif %}
                 >
-                    TechCrunch
+                    Funding Round
                 </option>
 
-                <option 
-                    value="Sifted"
-                    {% if source_filter == "Sifted"%}selected{% endif %}
+                <option
+                    value="Fund News"
+                    {% if category_filter == "Fund News"%}selected{% endif %}
                 >
-                    Sifted
+                    Fund News
+                </option>
+
+                <option
+                    value="M&A"
+                    {% if category_filter == "M&A"%}selected{% endif %}
+                >
+                    M&A
+                </option>
+
+                <option
+                    value="IPO"
+                    {% if category_filter == "IPO" %}selected{% endif %}
+                >
+                    IPO
                 </option>
 
             </select>
@@ -48,6 +76,9 @@
                     <article class="article-card">
                         <span class="source-badge">
                             {{ article.source }}
+                        </span>
+                        <span class="category-badge">
+                            {{ article.category }}
                         </span>
 
                         <h2>{{ article.title }}</h2>

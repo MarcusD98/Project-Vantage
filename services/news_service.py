@@ -134,6 +134,82 @@ def format_article_dates(articles):
 
     return articles
 
+# Categorization of Articles into topics
+
+def categorize_article(article):
+    title = article["title"].lower()
+
+    # Explicit fund-related phrases
+    fund_phrases = [
+        "fund i",
+        "fund ii",
+        "fund iii",
+        "fund iv",
+        "fund v",
+        "new fund",
+        "second fund",
+        "third fund",
+        "venture fund",
+        "vc fund",
+    ]
+
+    if any(phrase in title for phrase in fund_phrases):
+        return "Fund News"
+
+    # A firm raising, closing, or launching a fund
+    if (
+        "fund" in title
+        and any(action in title for action in [
+            "raises",
+            "raised",
+            "closes",
+            "closed",
+            "launches",
+            "launched",
+        ])
+        and "backed by" not in title
+    ):
+        return "Fund News"
+
+    if any(keyword in title for keyword in [
+        "acquires",
+        "acquired",
+        "acquisition",
+        "merger",
+        "buys",
+    ]):
+        return "M&A"
+
+    if "ipo" in title:
+        return "IPO"
+
+    if any(keyword in title for keyword in [
+        "series a",
+        "series b",
+        "series c",
+        "series d",
+        "series e",
+        "seed",
+        "raises",
+        "raised",
+        "funding",
+        "fundraise",
+        "valuation",
+        "investment",
+    ]):
+        return "Funding Round"
+
+    return "Other"
+
+# Categorisation of articles
+
+def categorize_articles(articles):
+    for article in articles:
+        article["category"] = categorize_article(article)
+
+    return articles
+
+
 # Defining a Get Articles function --> Crucial function called into app.py, basically it is the orchestrator, bringing together all functions to this point
 
 def get_vc_articles():
@@ -167,7 +243,8 @@ def get_vc_articles():
     unique_articles = deduplicate_articles(all_articles)
     sorted_articles = sort_articles_by_date(unique_articles)
     vc_articles = filter_vc_articles(sorted_articles)
-    formatted_articles = format_article_dates(vc_articles)
+    categorized_articles = categorize_articles(vc_articles)
+    formatted_articles = format_article_dates(categorized_articles)
 
     _cached_articles = formatted_articles
     _cache_time = now
