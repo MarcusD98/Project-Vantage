@@ -33,7 +33,9 @@
                         </span>
 
                         <h2>
-                            {{ round.company.name }}
+                            <a href="{{ url_for('company_profile', company_id=round.company.id) }}">
+                                {{ round.company.name }}
+                            </a>
                         </h2>
 
                         {% if round.amount %}
