@@ -11,6 +11,8 @@ from models.investor import Investor
 from models.funding_round import FundingRound
 from models.entity_alias import EntityAlias
 from models.entity_resolution_review import EntityResolutionReview
+from models.fund import Fund
+from models.fund_close import FundClose
 
 from services.news_service import (
     get_vc_articles,
@@ -134,10 +136,20 @@ def investor_profile(investor_id):
         FundingRound.announced_at.desc()
     ).all()
 
+    funds = sorted(
+        investor.funds,
+        key=lambda fund: (
+            fund.vintage_year or 0,
+            fund.id,
+        ),
+        reverse=True,
+    )
+
     return render_template(
         "investor.html",
         investor=investor,
         funding_rounds=funding_rounds,
+        funds=funds,
     )
 
 @app.route("/data-quality")

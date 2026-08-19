@@ -1561,3 +1561,48 @@ tbody tr:last-child td {
 
     color: var(--text);
 }
+
+.profile-section {
+    margin-top: 56px;
+}
+
+
+.fund-close-row {
+    margin-top: 18px;
+
+    padding-top: 16px;
+
+    border-top: 1px solid var(--border);
+}
+
+
+.fund-close-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    color: var(--text-secondary);
+
+    font-size: 12px;
+}
+
+
+.fund-close-main strong {
+    margin-left: 8px;
+
+    color: var(--text);
+}
+
+
+@media (max-width: 720px) {
+
+    .fund-close-main {
+        align-items: flex-start;
+        flex-direction: column;
+
+        gap: 6px;
+    }
+
+}

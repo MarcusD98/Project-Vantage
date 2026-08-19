@@ -1,16 +1,21 @@
+from datetime import datetime
+
 from models.article import db, Article
 from models.company import Company
 from models.investor import Investor
 from models.funding_round import FundingRound
 
 from services.funding_extractor import extract_funding_data
-from services.llm_extractor import extract_funding_with_llm
+from services.llm_extractor import (
+    extract_funding_with_llm,
+    extract_fund_close_with_llm,
+)
 from services.article_service import populate_article_content
 from services.entity_normalizer import normalize_entity_name
 from services.entity_resolution_service import resolve_entity_name
 from services.entity_review_service import record_entity_resolution_review
+from services.fund_service import save_fund_close_extraction
 
-from datetime import datetime
 
 def create_funding_event(
     article,
@@ -67,9 +72,12 @@ def create_funding_event(
 
     return funding_round
 
+
 def process_funding_article(article):
     # Try to extract structured funding data from the article title
-    funding_data = extract_funding_data(article.title)
+    funding_data = extract_funding_data(
+        article.title
+    )
 
     if funding_data is None:
         return None
@@ -91,6 +99,7 @@ def process_funding_article(article):
         investor_names=[],
     )
 
+
 def process_funding_articles():
     articles = Article.query.filter_by(
         category="Funding Round"
@@ -106,14 +115,20 @@ def process_funding_articles():
         if existing_round:
             continue
 
-        funding_round = process_funding_article(article)
+        funding_round = process_funding_article(
+            article
+        )
 
         if funding_round is not None:
             created_count += 1
 
     return created_count
 
-def save_funding_extraction(article, extraction):
+
+def save_funding_extraction(
+    article,
+    extraction,
+):
     if not extraction.is_funding_round:
         return None
 
@@ -205,7 +220,6 @@ def save_funding_extraction(article, extraction):
         if investor_resolution["status"] == "invalid":
             continue
 
-        # Persist uncertain investor resolutions for review
         record_entity_resolution_review(
             article=article,
             resolution=investor_resolution,
@@ -231,7 +245,9 @@ def save_funding_extraction(article, extraction):
             db.session.add(investor)
 
         if investor not in funding_round.investors:
-            funding_round.investors.append(investor)
+            funding_round.investors.append(
+                investor
+            )
 
     # Resolve and connect lead investors
     for investor_name in extraction.lead_investors:
@@ -243,7 +259,6 @@ def save_funding_extraction(article, extraction):
         if investor_resolution["status"] == "invalid":
             continue
 
-        # Persist uncertain lead-investor resolutions for review
         record_entity_resolution_review(
             article=article,
             resolution=investor_resolution,
@@ -269,16 +284,23 @@ def save_funding_extraction(article, extraction):
             db.session.add(investor)
 
         if investor not in funding_round.investors:
-            funding_round.investors.append(investor)
+            funding_round.investors.append(
+                investor
+            )
 
         if investor not in funding_round.lead_investors:
-            funding_round.lead_investors.append(investor)
+            funding_round.lead_investors.append(
+                investor
+            )
 
     db.session.commit()
 
     return funding_round
 
-def enrich_funding_articles_with_llm(limit=5):
+
+def enrich_funding_articles_with_llm(
+    limit=5,
+):
     articles = Article.query.filter(
         Article.category == "Funding Round",
         Article.content.is_not(None),
@@ -288,14 +310,17 @@ def enrich_funding_articles_with_llm(limit=5):
     enriched_count = 0
 
     for article in articles:
-        extraction = extract_funding_with_llm(article)
+        extraction = extract_funding_with_llm(
+            article
+        )
 
         if extraction is None:
             continue
 
-        # Record that this article has now been processed by the LLM
         article.llm_processed_at = datetime.now()
-        article.llm_is_funding_round = extraction.is_funding_round
+        article.llm_is_funding_round = (
+            extraction.is_funding_round
+        )
 
         funding_round = save_funding_extraction(
             article,
@@ -309,47 +334,104 @@ def enrich_funding_articles_with_llm(limit=5):
 
     return enriched_count
 
-def process_intelligence_batch(limit=5):
-    articles = Article.query.filter(
+
+def process_intelligence_batch(
+    funding_limit=5,
+    fund_news_limit=5,
+):
+    funding_articles = Article.query.filter(
         Article.category == "Funding Round",
         Article.llm_processed_at.is_(None),
-    ).limit(limit).all()
+    ).order_by(
+        Article.published_at.desc()
+    ).limit(
+        funding_limit
+    ).all()
+
+    fund_news_articles = Article.query.filter(
+        Article.category == "Fund News",
+        Article.llm_processed_at.is_(None),
+    ).order_by(
+        Article.published_at.desc()
+    ).limit(
+        fund_news_limit
+    ).all()
 
     processed_count = 0
     funding_count = 0
+    fund_close_count = 0
+    skipped_count = 0
 
-    for article in articles:
-        # Step 1: make sure we have full article content
+    # Process company financing events
+    for article in funding_articles:
         if not article.content:
-            content = populate_article_content(article)
+            content = populate_article_content(
+                article
+            )
 
             if not content:
+                skipped_count += 1
                 continue
 
-        # Step 2: use the LLM to understand the article
-        extraction = extract_funding_with_llm(article)
+        extraction = extract_funding_with_llm(
+            article
+        )
 
         if extraction is None:
+            skipped_count += 1
             continue
 
-        # Step 3: record that the LLM has processed the article
         article.llm_processed_at = datetime.now()
-        article.llm_is_funding_round = extraction.is_funding_round
+        article.llm_is_funding_round = (
+            extraction.is_funding_round
+        )
 
-        # Step 4: save structured VC data if this is a real funding event
         funding_round = save_funding_extraction(
             article,
             extraction,
         )
-
-        db.session.commit()
 
         processed_count += 1
 
         if funding_round is not None:
             funding_count += 1
 
+    # Process VC fund-close events
+    for article in fund_news_articles:
+        if not article.content:
+            content = populate_article_content(
+                article
+            )
+
+            if not content:
+                skipped_count += 1
+                continue
+
+        extraction = extract_fund_close_with_llm(
+            article
+        )
+
+        if extraction is None:
+            skipped_count += 1
+            continue
+
+        article.llm_processed_at = datetime.now()
+
+        fund_close = save_fund_close_extraction(
+            article,
+            extraction,
+        )
+
+        processed_count += 1
+
+        if fund_close is not None:
+            fund_close_count += 1
+
+    db.session.commit()
+
     return {
         "processed": processed_count,
         "funding_rounds": funding_count,
+        "fund_closes": fund_close_count,
+        "skipped": skipped_count,
     }
