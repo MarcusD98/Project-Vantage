@@ -2,6 +2,7 @@ from models.company import Company
 from models.investor import Investor
 from models.funding_round import FundingRound
 from models.entity_alias import EntityAlias
+from models.entity_resolution_review import EntityResolutionReview
 
 from services.entity_candidate_service import (
     find_company_duplicate_candidates,
@@ -13,6 +14,7 @@ def get_data_quality_summary():
     companies = Company.query.all()
     investors = Investor.query.all()
     funding_rounds = FundingRound.query.all()
+
     aliases = EntityAlias.query.order_by(
         EntityAlias.entity_type,
         EntityAlias.alias,
@@ -25,6 +27,12 @@ def get_data_quality_summary():
     investor_duplicate_candidates = (
         find_investor_duplicate_candidates()
     )
+
+    open_resolution_reviews = EntityResolutionReview.query.filter(
+        EntityResolutionReview.resolved_at.is_(None)
+    ).order_by(
+        EntityResolutionReview.created_at.desc()
+    ).all()
 
     companies_missing_sector = sum(
         1
@@ -75,6 +83,12 @@ def get_data_quality_summary():
             investor_duplicate_candidates,
 
         "aliases": aliases,
+
+        "open_resolution_reviews":
+            open_resolution_reviews,
+
+        "open_resolution_review_count":
+            len(open_resolution_reviews),
 
         "companies_missing_sector":
             companies_missing_sector,

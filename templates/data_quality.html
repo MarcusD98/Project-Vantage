@@ -18,7 +18,7 @@ Data Quality · Vantage
     </h1>
 
     <p class="hero-description">
-        Monitor entity consistency, canonicalization, and structured-data completeness across Vantage.
+        Monitor entity consistency, canonicalization, review cases, and structured-data completeness across Vantage.
     </p>
 
 </section>
@@ -61,12 +61,180 @@ Data Quality · Vantage
 
     <div class="quality-stat">
         <div class="quality-value">
-            {{ summary.alias_count }}
+            {{ summary.open_resolution_review_count }}
         </div>
 
         <div class="quality-label">
-            Canonical aliases
+            Open reviews
         </div>
+    </div>
+
+</section>
+
+
+<section class="quality-section">
+
+    <div class="section-header">
+
+        <div>
+            <div class="eyebrow">
+                RESOLUTION REVIEW
+            </div>
+
+            <h2>
+                Uncertain entity matches
+            </h2>
+        </div>
+
+        <div class="section-meta">
+            {{ summary.open_resolution_review_count }} open
+        </div>
+
+    </div>
+
+
+    <div class="quality-panel">
+
+        {% if summary.open_resolution_reviews %}
+
+            {% for review in summary.open_resolution_reviews %}
+
+                <div class="review-row">
+
+                    <div class="review-main">
+
+                        <div class="review-topline">
+
+                            <span class="entity-type-badge">
+                                {{ review.entity_type }}
+                            </span>
+
+                            <strong>
+                                {{ review.raw_name }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="review-path">
+
+                            <span class="review-label">
+                                Normalized
+                            </span>
+
+                            <span>
+                                {{ review.normalized_name or "—" }}
+                            </span>
+
+                        </div>
+
+
+                        <div class="review-path">
+
+                            <span class="review-label">
+                                Suggested match
+                            </span>
+
+                            <strong>
+                                {{ review.candidate_name or "No candidate" }}
+                            </strong>
+
+                        </div>
+
+
+                        {% if review.article %}
+
+                            <div class="review-source">
+
+                                <span class="review-label">
+                                    Evidence
+                                </span>
+
+                                <a
+                                    href="{{ review.article.url }}"
+                                    target="_blank"
+                                    class="text-link"
+                                >
+                                    {{ review.article.title }}
+                                    <span>↗</span>
+                                </a>
+
+                            </div>
+
+                        {% endif %}
+
+
+                        <div class="review-actions">
+
+                            {% if review.candidate_name %}
+
+                                <form
+                                    method="POST"
+                                    action="{{ url_for(
+                                        'approve_entity_review',
+                                        review_id=review.id
+                                    ) }}"
+                                >
+                                    <button
+                                        type="submit"
+                                        class="review-button review-button-primary"
+                                    >
+                                        Approve match
+                                    </button>
+                                </form>
+
+                            {% endif %}
+
+
+                            <form
+                                method="POST"
+                                action="{{ url_for(
+                                    'reject_entity_review',
+                                    review_id=review.id
+                                ) }}"
+                            >
+                                <button
+                                    type="submit"
+                                    class="review-button review-button-secondary"
+                                >
+                                    Keep separate
+                                </button>
+                            </form>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="review-score-block">
+
+                        <div class="similarity-score">
+                            {% if review.similarity_score is not none %}
+                                {{ "%.2f"|format(review.similarity_score) }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </div>
+
+                        <div class="review-status">
+                            {{ review.resolution_status }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+            {% endfor %}
+
+        {% else %}
+
+            <div class="quality-success">
+                <span class="quality-success-dot"></span>
+                No unresolved entity matches currently require review.
+            </div>
+
+        {% endif %}
+
     </div>
 
 </section>
@@ -98,6 +266,7 @@ Data Quality · Vantage
         <div class="quality-panel">
 
             <div class="quality-panel-header">
+
                 <div>
                     <div class="quality-panel-title">
                         Companies
@@ -107,6 +276,7 @@ Data Quality · Vantage
                         Missing profile metadata
                     </div>
                 </div>
+
             </div>
 
 
@@ -148,6 +318,7 @@ Data Quality · Vantage
         <div class="quality-panel">
 
             <div class="quality-panel-header">
+
                 <div>
                     <div class="quality-panel-title">
                         Funding rounds
@@ -157,6 +328,7 @@ Data Quality · Vantage
                         Missing event metadata
                     </div>
                 </div>
+
             </div>
 
 
@@ -225,6 +397,7 @@ Data Quality · Vantage
         <div class="quality-panel">
 
             <div class="quality-panel-header">
+
                 <div>
                     <div class="quality-panel-title">
                         Companies
@@ -238,6 +411,7 @@ Data Quality · Vantage
                 <span class="quality-count">
                     {{ summary.company_duplicate_candidates|length }}
                 </span>
+
             </div>
 
 
@@ -248,6 +422,7 @@ Data Quality · Vantage
                     <div class="duplicate-row">
 
                         <div class="duplicate-names">
+
                             <strong>
                                 {{ candidate.entity_a.name }}
                             </strong>
@@ -259,6 +434,7 @@ Data Quality · Vantage
                             <strong>
                                 {{ candidate.entity_b.name }}
                             </strong>
+
                         </div>
 
                         <div class="similarity-score">
@@ -284,6 +460,7 @@ Data Quality · Vantage
         <div class="quality-panel">
 
             <div class="quality-panel-header">
+
                 <div>
                     <div class="quality-panel-title">
                         Investors
@@ -297,6 +474,7 @@ Data Quality · Vantage
                 <span class="quality-count">
                     {{ summary.investor_duplicate_candidates|length }}
                 </span>
+
             </div>
 
 
@@ -307,6 +485,7 @@ Data Quality · Vantage
                     <div class="duplicate-row">
 
                         <div class="duplicate-names">
+
                             <strong>
                                 {{ candidate.entity_a.name }}
                             </strong>
@@ -318,6 +497,7 @@ Data Quality · Vantage
                             <strong>
                                 {{ candidate.entity_b.name }}
                             </strong>
+
                         </div>
 
                         <div class="similarity-score">
