@@ -15,7 +15,9 @@ from services.entity_normalizer import normalize_entity_name
 from services.entity_resolution_service import resolve_entity_name
 from services.entity_review_service import record_entity_resolution_review
 from services.fund_service import save_fund_close_extraction
-
+from services.event_resolution_service import (
+    find_matching_funding_round,
+)
 
 def create_funding_event(
     article,
@@ -125,10 +127,7 @@ def process_funding_articles():
     return created_count
 
 
-def save_funding_extraction(
-    article,
-    extraction,
-):
+def save_funding_extraction(article, extraction):
     if not extraction.is_funding_round:
         return None
 
@@ -171,6 +170,7 @@ def save_funding_extraction(
             name=company_name
         )
         db.session.add(company)
+        db.session.flush()
 
     # Enrich company metadata
     if extraction.sector:
@@ -185,10 +185,28 @@ def save_funding_extraction(
     if extraction.founded_year:
         company.founded_year = extraction.founded_year
 
-    # Find an existing funding round linked to this article
-    funding_round = FundingRound.query.filter_by(
-        article_id=article.id
-    ).first()
+    # ---------------------------------------------------------
+    # Resolve the real-world funding event
+    # ---------------------------------------------------------
+
+    funding_round = find_matching_funding_round(
+        company=company,
+        amount=extraction.amount,
+        currency=extraction.currency,
+        round_type=extraction.round_type,
+        announced_at=article.published_at,
+    )
+
+    # If no canonical event exists, fall back to the historical
+    # one-article-per-round lookup for backwards compatibility.
+    if funding_round is None:
+        funding_round = FundingRound.query.filter_by(
+            article_id=article.id
+        ).first()
+
+    # ---------------------------------------------------------
+    # Create a new canonical funding event when necessary
+    # ---------------------------------------------------------
 
     if funding_round is None:
         funding_round = FundingRound(
@@ -202,15 +220,56 @@ def save_funding_extraction(
         )
 
         db.session.add(funding_round)
+        db.session.flush()
 
     else:
+        # Enrich the existing canonical event rather than creating
+        # another FundingRound for the same real-world financing.
         funding_round.company = company
-        funding_round.event_evidence = extraction.event_evidence
-        funding_round.amount = extraction.amount
-        funding_round.currency = extraction.currency
-        funding_round.round_type = extraction.round_type
 
-    # Resolve and connect participating investors
+        if extraction.event_evidence:
+            funding_round.event_evidence = (
+                extraction.event_evidence
+            )
+
+        if extraction.amount is not None:
+            funding_round.amount = extraction.amount
+
+        if extraction.currency:
+            funding_round.currency = extraction.currency
+
+        if extraction.round_type:
+            funding_round.round_type = extraction.round_type
+
+        # Keep the earliest known announcement date where possible.
+        if article.published_at:
+            if (
+                funding_round.announced_at is None
+                or article.published_at
+                < funding_round.announced_at
+            ):
+                funding_round.announced_at = (
+                    article.published_at
+                )
+
+        # Preserve an existing primary article.
+        # Only set one if the round does not already have one.
+        if funding_round.article is None:
+            funding_round.article = article
+
+    # ---------------------------------------------------------
+    # Attach this article as supporting evidence
+    # ---------------------------------------------------------
+
+    if article not in funding_round.articles:
+        funding_round.articles.append(
+            article
+        )
+
+    # ---------------------------------------------------------
+    # Resolve participating investors
+    # ---------------------------------------------------------
+
     for investor_name in extraction.investors:
         investor_resolution = resolve_entity_name(
             investor_name,
@@ -249,7 +308,10 @@ def save_funding_extraction(
                 investor
             )
 
-    # Resolve and connect lead investors
+    # ---------------------------------------------------------
+    # Resolve lead investors
+    # ---------------------------------------------------------
+
     for investor_name in extraction.lead_investors:
         investor_resolution = resolve_entity_name(
             investor_name,

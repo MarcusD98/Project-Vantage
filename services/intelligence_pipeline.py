@@ -17,27 +17,58 @@ from services.fund_service import (
     save_fund_close_extraction,
 )
 
+from services.news_service import (
+    ingest_news_sources,
+)
+
 
 logger = logging.getLogger(__name__)
-
 
 def run_intelligence_pipeline(
     funding_limit=10,
     fund_news_limit=10,
 ):
     """
-    Process unprocessed venture-news articles into structured
-    Vantage knowledge-base records.
+    Run the end-to-end Vantage ingestion and intelligence
+    lifecycle.
 
-    Current event types:
-    - Company funding rounds
-    - VC fund closes
-
-    Individual article failures are isolated so that one
-    problematic article does not stop the entire pipeline.
+    1. Refresh public news sources.
+    2. Persist newly discovered relevant articles.
+    3. Process unprocessed company-funding articles.
+    4. Process unprocessed VC fund-news articles.
+    5. Return a consolidated pipeline report.
     """
 
+    ingestion_stats = (
+        ingest_news_sources()
+    )
+
     stats = {
+        "sources_checked":
+            ingestion_stats[
+                "sources_checked"
+            ],
+
+        "sources_failed":
+            ingestion_stats[
+                "sources_failed"
+            ],
+
+        "articles_discovered":
+            ingestion_stats[
+                "articles_discovered"
+            ],
+
+        "articles_relevant":
+            ingestion_stats[
+                "articles_relevant"
+            ],
+
+        "articles_saved":
+            ingestion_stats[
+                "articles_saved"
+            ],
+
         "articles_selected": 0,
         "content_retrieved": 0,
         "content_failed": 0,
@@ -50,8 +81,10 @@ def run_intelligence_pipeline(
 
     funding_articles = (
         Article.query.filter(
-            Article.category == "Funding Round",
-            Article.llm_processed_at.is_(None),
+            Article.category
+            == "Funding Round",
+            Article.llm_processed_at
+            .is_(None),
         )
         .order_by(
             Article.published_at.desc()
@@ -64,8 +97,10 @@ def run_intelligence_pipeline(
 
     fund_news_articles = (
         Article.query.filter(
-            Article.category == "Fund News",
-            Article.llm_processed_at.is_(None),
+            Article.category
+            == "Fund News",
+            Article.llm_processed_at
+            .is_(None),
         )
         .order_by(
             Article.published_at.desc()

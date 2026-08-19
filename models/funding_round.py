@@ -1,5 +1,6 @@
 from models.article import db
 
+
 funding_round_investors = db.Table(
     "funding_round_investors",
 
@@ -17,6 +18,7 @@ funding_round_investors = db.Table(
         primary_key=True,
     ),
 )
+
 
 funding_round_lead_investors = db.Table(
     "funding_round_lead_investors",
@@ -36,8 +38,31 @@ funding_round_lead_investors = db.Table(
     ),
 )
 
+
+funding_round_articles = db.Table(
+    "funding_round_articles",
+
+    db.Column(
+        "funding_round_id",
+        db.Integer,
+        db.ForeignKey("funding_round.id"),
+        primary_key=True,
+    ),
+
+    db.Column(
+        "article_id",
+        db.Integer,
+        db.ForeignKey("article.id"),
+        primary_key=True,
+    ),
+)
+
+
 class FundingRound(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(
+        db.Integer,
+        primary_key=True,
+    )
 
     company_id = db.Column(
         db.Integer,
@@ -45,12 +70,27 @@ class FundingRound(db.Model):
         nullable=False,
     )
 
-    event_evidence = db.Column(db.Text)
-    amount = db.Column(db.Float)
-    currency = db.Column(db.String(10))
-    round_type = db.Column(db.String(100))
-    announced_at = db.Column(db.DateTime)
+    event_evidence = db.Column(
+        db.Text
+    )
 
+    amount = db.Column(
+        db.Float
+    )
+
+    currency = db.Column(
+        db.String(10)
+    )
+
+    round_type = db.Column(
+        db.String(100)
+    )
+
+    announced_at = db.Column(
+        db.DateTime
+    )
+
+    # Primary/source article retained for backwards compatibility.
     article_id = db.Column(
         db.Integer,
         db.ForeignKey("article.id"),
@@ -73,10 +113,24 @@ class FundingRound(db.Model):
         backref="led_funding_rounds",
     )
 
+    # Existing primary source relationship.
     article = db.relationship(
         "Article",
-        backref="funding_rounds",
+        foreign_keys=[article_id],
+        backref="primary_funding_rounds",
+    )
+
+    # All articles that provide evidence for this event.
+    articles = db.relationship(
+        "Article",
+        secondary=funding_round_articles,
+        backref="supported_funding_rounds",
     )
 
     def __repr__(self):
-        return f"<FundingRound {self.company_id}>"
+        return (
+            f"<FundingRound "
+            f"{self.company_id} "
+            f"{self.amount} "
+            f"{self.currency}>"
+        )

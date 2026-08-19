@@ -8,137 +8,210 @@ from bs4 import BeautifulSoup
 from email.utils import parsedate_to_datetime
 from datetime import datetime, timedelta
 
+
 _cached_articles = None
 _cache_time = None
-CACHE_DURATION = timedelta(minutes=CACHE_DURATION_MINUTES)
+
+CACHE_DURATION = timedelta(
+    minutes=CACHE_DURATION_MINUTES
+)
 
 logger = logging.getLogger(__name__)
 
-# Defining the RSS feed fetch
+
+# ---------------------------------------------------------
+# RSS fetching
+# ---------------------------------------------------------
 
 def fetch_rss_feed(feed_url):
     feed = feedparser.parse(feed_url)
 
     if feed.bozo:
-        logger.warning("Problem parsing RSS feed: %s", feed_url)
+        logger.warning(
+            "Problem parsing RSS feed: %s",
+            feed_url,
+        )
 
     if not feed.entries:
-        logger.warning("No entries found in RSS feed: %s", feed_url)
+        logger.warning(
+            "No entries found in RSS feed: %s",
+            feed_url,
+        )
         return None
-    
+
     return feed
 
-# Source health tracker
+
+# ---------------------------------------------------------
+# Source health
+# ---------------------------------------------------------
 
 def get_source_health():
     source_health = []
 
     for source in SOURCES:
         if not source.get("enabled", True):
-            source_health.append({
-                "name": source["name"],
-                "region": source["region"],
-                "status": "disabled",
-                "entries": 0,
-            })
+            source_health.append(
+                {
+                    "name": source["name"],
+                    "region": source["region"],
+                    "status": "disabled",
+                    "entries": 0,
+                }
+            )
             continue
 
-        feed = feedparser.parse(source["url"])
+        feed = feedparser.parse(
+            source["url"]
+        )
 
         if not feed.entries:
-            source_health.append({
-                "name": source["name"],
-                "region": source["region"],
-                "status": "failed",
-                "entries": 0,
-            })
+            source_health.append(
+                {
+                    "name": source["name"],
+                    "region": source["region"],
+                    "status": "failed",
+                    "entries": 0,
+                }
+            )
             continue
 
-        status = "warning" if feed.bozo else "healthy"
+        status = (
+            "warning"
+            if feed.bozo
+            else "healthy"
+        )
 
-        source_health.append({
-            "name": source["name"],
-            "region": source["region"],
-            "status": status,
-            "entries": len(feed.entries),
-        })
+        source_health.append(
+            {
+                "name": source["name"],
+                "region": source["region"],
+                "status": status,
+                "entries": len(feed.entries),
+            }
+        )
 
     return source_health
 
 
-# Defining the summary-cleaning function
+# ---------------------------------------------------------
+# Article normalization helpers
+# ---------------------------------------------------------
 
 def clean_summary(summary):
-    soup = BeautifulSoup(summary, "html.parser")
-    clean_text = soup.get_text(" ", strip=True)
+    soup = BeautifulSoup(
+        summary,
+        "html.parser",
+    )
 
-    return clean_text
+    return soup.get_text(
+        " ",
+        strip=True,
+    )
 
-# Defining the normalize article function
 
-def normalize_articles(feed, source):
+def normalize_articles(
+    feed,
+    source,
+):
     normalized_articles = []
 
     for entry in feed.entries:
-        url = entry.get("link", "")
+        url = entry.get(
+            "link",
+            "",
+        )
 
         if not url:
             continue
 
         article = {
-            "title": entry.get("title", "Untitled article"),
+            "title": entry.get(
+                "title",
+                "Untitled article",
+            ),
             "source": source,
             "url": url,
-            "published_at": entry.get("published", ""),
+            "published_at": entry.get(
+                "published",
+                "",
+            ),
             "summary": clean_summary(
-                entry.get("summary", "")
+                entry.get(
+                    "summary",
+                    "",
+                )
             ),
         }
 
-        normalized_articles.append(article)
+        normalized_articles.append(
+            article
+        )
 
     return normalized_articles
 
-# Deduplication of articles
 
 def deduplicate_articles(articles):
     seen_urls = set()
     unique_articles = []
 
     for article in articles:
-        if article["url"] not in seen_urls:
-            seen_urls.add(article["url"])
-            unique_articles.append(article)
+        if article["url"] in seen_urls:
+            continue
+
+        seen_urls.add(
+            article["url"]
+        )
+
+        unique_articles.append(
+            article
+        )
 
     return unique_articles
 
-# Helper function to safely parse an article's publication date
 
 def parse_article_date(article):
     try:
-        return parsedate_to_datetime(article["published_at"])
-    except (TypeError, ValueError):
+        return parsedate_to_datetime(
+            article["published_at"]
+        )
+
+    except (
+        TypeError,
+        ValueError,
+    ):
         return None
 
-# Sorting articles by date
 
 def sort_articles_by_date(articles):
     dated_articles = []
 
     for article in articles:
-        date = parse_article_date(article)
+        date = parse_article_date(
+            article
+        )
 
-        if date is not None:
-            article["parsed_date"] = date
-            dated_articles.append(article)
+        if date is None:
+            continue
+
+        article["parsed_date"] = date
+
+        dated_articles.append(
+            article
+        )
 
     return sorted(
         dated_articles,
-        key=lambda article: article["parsed_date"],
+        key=lambda article: (
+            article["parsed_date"]
+        ),
         reverse=True,
     )
 
-# Filter for VC relevance
+
+# ---------------------------------------------------------
+# Relevance filtering
+# ---------------------------------------------------------
 
 def filter_vc_articles(articles):
     keywords = [
@@ -150,34 +223,43 @@ def filter_vc_articles(articles):
         "venture",
         "vc",
         "investor",
-        "investment",        
+        "investment",
         "series a",
         "series b",
         "series c",
         "series d",
         "series e",
-        "ipo",        
+        "ipo",
         "seed",
     ]
 
     filtered_articles = []
 
     for article in articles:
-        title = article["title"].lower()
+        title = article[
+            "title"
+        ].lower()
 
-        for keyword in keywords:
-            if keyword in title:
-                filtered_articles.append(article)
-                break
+        if any(
+            keyword in title
+            for keyword in keywords
+        ):
+            filtered_articles.append(
+                article
+            )
 
     return filtered_articles
 
-# Categorization of Articles into topics
+
+# ---------------------------------------------------------
+# Categorization
+# ---------------------------------------------------------
 
 def categorize_article(article):
-    title = article["title"].lower()
+    title = article[
+        "title"
+    ].lower()
 
-    # Explicit fund-related phrases
     fund_phrases = [
         "fund i",
         "fund ii",
@@ -191,71 +273,92 @@ def categorize_article(article):
         "vc fund",
     ]
 
-    if any(phrase in title for phrase in fund_phrases):
+    if any(
+        phrase in title
+        for phrase in fund_phrases
+    ):
         return "Fund News"
 
-    # A firm raising, closing, or launching a fund
     if (
         "fund" in title
-        and any(action in title for action in [
-            "raises",
-            "raised",
-            "closes",
-            "closed",
-            "launches",
-            "launched",
-        ])
+        and any(
+            action in title
+            for action in [
+                "raises",
+                "raised",
+                "closes",
+                "closed",
+                "launches",
+                "launched",
+            ]
+        )
         and "backed by" not in title
     ):
         return "Fund News"
 
-    if any(keyword in title for keyword in [
-        "acquires",
-        "acquired",
-        "acquisition",
-        "merger",
-        "buys",
-    ]):
+    if any(
+        keyword in title
+        for keyword in [
+            "acquires",
+            "acquired",
+            "acquisition",
+            "merger",
+            "buys",
+        ]
+    ):
         return "M&A"
 
     if "ipo" in title:
         return "IPO"
 
-    if any(keyword in title for keyword in [
-        "series a",
-        "series b",
-        "series c",
-        "series d",
-        "series e",
-        "seed",
-        "raises",
-        "raised",
-        "funding",
-        "fundraise",
-        "valuation",
-        "investment",
-    ]):
+    if any(
+        keyword in title
+        for keyword in [
+            "series a",
+            "series b",
+            "series c",
+            "series d",
+            "series e",
+            "seed",
+            "raises",
+            "raised",
+            "funding",
+            "fundraise",
+            "valuation",
+            "investment",
+        ]
+    ):
         return "Funding Round"
 
     return "Other"
 
-# Categorisation of articles
 
 def categorize_articles(articles):
     for article in articles:
-        article["category"] = categorize_article(article)
+        article["category"] = (
+            categorize_article(
+                article
+            )
+        )
 
     return articles
 
-# Save articles to database via SQLite Article
 
-def save_articles_to_database(articles):
+# ---------------------------------------------------------
+# Persistence
+# ---------------------------------------------------------
+
+def save_articles_to_database(
+    articles,
+):
     saved_count = 0
 
     for article in articles:
-        existing_article = Article.query.filter_by(
-            url=article["url"]
-        ).first()
+        existing_article = (
+            Article.query.filter_by(
+                url=article["url"]
+            ).first()
+        )
 
         if existing_article:
             continue
@@ -264,68 +367,196 @@ def save_articles_to_database(articles):
             title=article["title"],
             source=article["source"],
             url=article["url"],
-            published_at=article["parsed_date"],
+            published_at=article[
+                "parsed_date"
+            ],
             summary=article["summary"],
             category=article["category"],
         )
 
-        db.session.add(db_article)
+        db.session.add(
+            db_article
+        )
+
         saved_count += 1
 
     db.session.commit()
 
     return saved_count
 
-# Defining a Get Articles function --> Crucial function called into app.py, basically it is the orchestrator, bringing together all functions to this point
+
+# ---------------------------------------------------------
+# Core ingestion
+# ---------------------------------------------------------
+
+def ingest_news_sources():
+    """
+    Fetch enabled RSS sources, normalize and filter articles,
+    classify them, and persist only new records.
+
+    This function is intentionally independent of the
+    homepage cache so it can be safely called by the
+    Vantage ingestion pipeline.
+    """
+
+    all_articles = []
+
+    sources_checked = 0
+    sources_failed = 0
+
+    for source in SOURCES:
+        if not source.get(
+            "enabled",
+            True,
+        ):
+            continue
+
+        sources_checked += 1
+
+        feed = fetch_rss_feed(
+            source["url"]
+        )
+
+        if feed is None:
+            sources_failed += 1
+            continue
+
+        articles = normalize_articles(
+            feed,
+            source["name"],
+        )
+
+        all_articles.extend(
+            articles
+        )
+
+    discovered_count = len(
+        all_articles
+    )
+
+    unique_articles = (
+        deduplicate_articles(
+            all_articles
+        )
+    )
+
+    sorted_articles = (
+        sort_articles_by_date(
+            unique_articles
+        )
+    )
+
+    vc_articles = (
+        filter_vc_articles(
+            sorted_articles
+        )
+    )
+
+    categorized_articles = (
+        categorize_articles(
+            vc_articles
+        )
+    )
+
+    saved_count = (
+        save_articles_to_database(
+            categorized_articles
+        )
+    )
+
+    return {
+        "sources_checked":
+            sources_checked,
+
+        "sources_failed":
+            sources_failed,
+
+        "articles_discovered":
+            discovered_count,
+
+        "articles_relevant":
+            len(categorized_articles),
+
+        "articles_saved":
+            saved_count,
+    }
+
+
+# ---------------------------------------------------------
+# Web-app article feed
+# ---------------------------------------------------------
 
 def get_vc_articles():
-    global _cached_articles, _cache_time
+    global _cached_articles
+    global _cache_time
 
     now = datetime.now()
 
     if (
         _cached_articles is not None
         and _cache_time is not None
-        and now - _cache_time < CACHE_DURATION
+        and now - _cache_time
+        < CACHE_DURATION
     ):
         return _cached_articles
-    
+
     all_articles = []
 
     for source in SOURCES:
-
-        if not source["enabled"]:
+        if not source.get(
+            "enabled",
+            True,
+        ):
             continue
 
-        feed = fetch_rss_feed(source["url"])
+        feed = fetch_rss_feed(
+            source["url"]
+        )
 
         if feed is None:
             continue
 
         articles = normalize_articles(
             feed,
-            source["name"]
+            source["name"],
         )
 
-        all_articles.extend(articles)
+        all_articles.extend(
+            articles
+        )
 
-    # Combine, sort, filter, and format the articles (TIP: read right-to-left)
-    unique_articles = deduplicate_articles(all_articles)
-    sorted_articles = sort_articles_by_date(unique_articles)
-    vc_articles = filter_vc_articles(sorted_articles)
-    categorized_articles = categorize_articles(vc_articles)
+    unique_articles = (
+        deduplicate_articles(
+            all_articles
+        )
+    )
 
-    save_articles_to_database(categorized_articles)
+    sorted_articles = (
+        sort_articles_by_date(
+            unique_articles
+        )
+    )
 
-    _cached_articles = categorized_articles
+    vc_articles = (
+        filter_vc_articles(
+            sorted_articles
+        )
+    )
+
+    categorized_articles = (
+        categorize_articles(
+            vc_articles
+        )
+    )
+
+    save_articles_to_database(
+        categorized_articles
+    )
+
+    _cached_articles = (
+        categorized_articles
+    )
+
     _cache_time = now
 
     return categorized_articles
-
-
-
-
-
-
-
-

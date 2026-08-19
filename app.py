@@ -206,7 +206,6 @@ def vantage():
     """Project Vantage management commands."""
     pass
 
-
 @vantage.command("ingest")
 @click.option(
     "--funding-limit",
@@ -232,52 +231,94 @@ def ingest_command(
     click.echo("Vantage Intelligence Pipeline")
     click.echo("-----------------------------")
 
+    # Run the actual end-to-end pipeline first.
     result = run_intelligence_pipeline(
         funding_limit=funding_limit,
         fund_news_limit=fund_news_limit,
     )
 
+    # ---------------------------------------------------------
+    # Source ingestion
+    # ---------------------------------------------------------
+
     click.echo("")
+
     click.echo(
-        f"Articles selected:      "
+        f"Sources checked:         "
+        f"{result['sources_checked']}"
+    )
+
+    click.echo(
+        f"Source failures:         "
+        f"{result['sources_failed']}"
+    )
+
+    click.echo("")
+
+    click.echo(
+        f"Articles discovered:     "
+        f"{result['articles_discovered']}"
+    )
+
+    click.echo(
+        f"Relevant articles:       "
+        f"{result['articles_relevant']}"
+    )
+
+    click.echo(
+        f"New articles saved:      "
+        f"{result['articles_saved']}"
+    )
+
+    # ---------------------------------------------------------
+    # Intelligence processing
+    # ---------------------------------------------------------
+
+    click.echo("")
+
+    click.echo(
+        f"Articles selected:       "
         f"{result['articles_selected']}"
     )
 
     click.echo(
-        f"Content retrieved:      "
+        f"Content retrieved:       "
         f"{result['content_retrieved']}"
     )
 
     click.echo(
-        f"Content failures:       "
+        f"Content failures:        "
         f"{result['content_failed']}"
     )
 
     click.echo("")
+
     click.echo(
-        f"Funding processed:      "
+        f"Funding processed:       "
         f"{result['funding_processed']}"
     )
 
     click.echo(
-        f"Funding rounds saved:   "
+        f"Funding rounds saved:    "
         f"{result['funding_rounds']}"
     )
 
     click.echo("")
+
     click.echo(
-        f"Fund news processed:    "
+        f"Fund news processed:     "
         f"{result['fund_news_processed']}"
     )
 
     click.echo(
-        f"Fund closes saved:      "
+        f"Fund closes saved:       "
         f"{result['fund_closes']}"
     )
 
     click.echo("")
+
     click.echo(
-        f"Processing failures:    "
+        f"Processing failures:     "
         f"{result['processing_failed']}"
     )
 
