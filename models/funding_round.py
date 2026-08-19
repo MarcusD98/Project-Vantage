@@ -18,6 +18,24 @@ funding_round_investors = db.Table(
     ),
 )
 
+funding_round_lead_investors = db.Table(
+    "funding_round_lead_investors",
+
+    db.Column(
+        "funding_round_id",
+        db.Integer,
+        db.ForeignKey("funding_round.id"),
+        primary_key=True,
+    ),
+
+    db.Column(
+        "investor_id",
+        db.Integer,
+        db.ForeignKey("investor.id"),
+        primary_key=True,
+    ),
+)
+
 class FundingRound(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -46,6 +64,12 @@ class FundingRound(db.Model):
         "Investor",
         secondary=funding_round_investors,
         backref="funding_rounds",
+    )
+
+    lead_investors = db.relationship(
+        "Investor",
+        secondary=funding_round_lead_investors,
+        backref="led_funding_rounds",
     )
 
     article = db.relationship(

@@ -10,5 +10,9 @@ class Company(db.Model):
     sector = db.Column(db.String(200))
     headquarters = db.Column(db.String(200))
 
+    city = db.Column(db.String(200))
+    country = db.Column(db.String(200))
+    founded_year = db.Column(db.Integer)
+
     def __repr__(self):
         return f"<Company {self.name}>"
