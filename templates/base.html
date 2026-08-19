@@ -10,9 +10,7 @@
     >
 
     <title>
-        {% block title %}
-        Vantage
-        {% endblock %}
+        {% block title %}Vantage{% endblock %}
     </title>
 
     <link
@@ -21,30 +19,23 @@
     >
 </head>
 
-
 <body>
 
-    <header class="site-header">
+    <header class="app-header">
 
-        <div class="header-inner">
+        <div class="nav-container">
 
             <a
                 href="{{ url_for('home') }}"
                 class="brand"
             >
-                <div class="brand-mark">
+                <span class="brand-mark">
                     V
-                </div>
+                </span>
 
-                <div class="brand-text">
-                    <div class="brand-name">
-                        Vantage
-                    </div>
-
-                    <div class="brand-subtitle">
-                        Venture Intelligence
-                    </div>
-                </div>
+                <span class="brand-name">
+                    Vantage
+                </span>
             </a>
 
 
@@ -80,6 +71,12 @@
 
             </nav>
 
+
+            <div class="system-status">
+                <span class="status-dot"></span>
+                Knowledge base online
+            </div>
+
         </div>
 
     </header>
@@ -93,18 +90,14 @@
     </main>
 
 
-    <footer class="site-footer">
+    <footer class="app-footer">
 
-        <div class="footer-inner">
+        <div>
+            Vantage
+        </div>
 
-            <div>
-                Vantage
-            </div>
-
-            <div class="footer-meta">
-                Venture ecosystem intelligence
-            </div>
-
+        <div>
+            Venture ecosystem intelligence
         </div>
 
     </footer>
