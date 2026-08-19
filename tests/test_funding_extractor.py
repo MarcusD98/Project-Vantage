@@ -11,7 +11,6 @@ def test_extract_funding_data():
     assert result["currency"] == "EUR"
     assert result["round_type"] is None
 
-
 def test_extract_series_round():
     title = "Acme raises $50M Series B to expand globally"
 
@@ -21,7 +20,6 @@ def test_extract_series_round():
     assert result["amount"] == 50_000_000
     assert result["currency"] == "USD"
     assert result["round_type"] == "Series B"
-
 
 def test_returns_none_for_non_funding_article():
     title = "Startup ecosystem continues to grow across Europe"

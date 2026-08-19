@@ -1,6 +1,6 @@
 import logging
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 from flask_migrate import Migrate
 
 from config import SOURCES
@@ -10,6 +10,7 @@ from models.company import Company
 from models.investor import Investor
 from models.funding_round import FundingRound
 from models.entity_alias import EntityAlias
+from models.entity_resolution_review import EntityResolutionReview
 
 from services.news_service import (
     get_vc_articles,
@@ -18,6 +19,11 @@ from services.news_service import (
 
 from services.data_quality_service import (
     get_data_quality_summary,
+)
+
+from services.entity_review_service import (
+    approve_resolution_review,
+    reject_resolution_review,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -32,9 +38,6 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
 migrate = Migrate(app, db)
-
-with app.app_context():
-    db.create_all()
 
 # Define the homepage route.
 # When a user visits "/", Flask runs the home() function.
@@ -144,6 +147,28 @@ def data_quality():
     return render_template(
         "data_quality.html",
         summary=summary,
+    )
+
+@app.route(
+    "/data-quality/review/<int:review_id>/approve",
+    methods=["POST"],
+)
+def approve_entity_review(review_id):
+    approve_resolution_review(review_id)
+
+    return redirect(
+        url_for("data_quality")
+    )
+
+@app.route(
+    "/data-quality/review/<int:review_id>/reject",
+    methods=["POST"],
+)
+def reject_entity_review(review_id):
+    reject_resolution_review(review_id)
+
+    return redirect(
+        url_for("data_quality")
     )
 
 # Run the Flask development server when this file is executed directly

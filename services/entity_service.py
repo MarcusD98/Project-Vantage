@@ -7,6 +7,8 @@ from services.funding_extractor import extract_funding_data
 from services.llm_extractor import extract_funding_with_llm
 from services.article_service import populate_article_content
 from services.entity_normalizer import normalize_entity_name
+from services.entity_resolution_service import resolve_entity_name
+from services.entity_review_service import record_entity_resolution_review
 
 from datetime import datetime
 
@@ -121,14 +123,33 @@ def save_funding_extraction(article, extraction):
     if extraction.company_name is None:
         return None
 
-    company_name = normalize_entity_name(
+    # Resolve the extracted company against the knowledge base
+    company_resolution = resolve_entity_name(
         extraction.company_name,
+        "company",
+    )
+
+    if company_resolution["status"] == "invalid":
+        return None
+
+    # Persist uncertain company resolutions for review
+    record_entity_resolution_review(
+        article=article,
+        resolution=company_resolution,
         entity_type="company",
     )
 
-    company = Company.query.filter_by(
-        name=company_name
-    ).first()
+    company_name = (
+        company_resolution["canonical_name"]
+        or company_resolution["normalized_name"]
+    )
+
+    company = company_resolution["entity"]
+
+    if company is None:
+        company = Company.query.filter_by(
+            name=company_name
+        ).first()
 
     if company is None:
         company = Company(
@@ -136,6 +157,7 @@ def save_funding_extraction(article, extraction):
         )
         db.session.add(company)
 
+    # Enrich company metadata
     if extraction.sector:
         company.sector = extraction.sector
 
@@ -148,6 +170,7 @@ def save_funding_extraction(article, extraction):
     if extraction.founded_year:
         company.founded_year = extraction.founded_year
 
+    # Find an existing funding round linked to this article
     funding_round = FundingRound.query.filter_by(
         article_id=article.id
     ).first()
@@ -172,38 +195,76 @@ def save_funding_extraction(article, extraction):
         funding_round.currency = extraction.currency
         funding_round.round_type = extraction.round_type
 
+    # Resolve and connect participating investors
     for investor_name in extraction.investors:
-        investor_name = normalize_entity_name(
+        investor_resolution = resolve_entity_name(
             investor_name,
+            "investor",
+        )
+
+        if investor_resolution["status"] == "invalid":
+            continue
+
+        # Persist uncertain investor resolutions for review
+        record_entity_resolution_review(
+            article=article,
+            resolution=investor_resolution,
             entity_type="investor",
         )
 
-        investor = Investor.query.filter_by(
-            name=investor_name
-        ).first()
+        resolved_name = (
+            investor_resolution["canonical_name"]
+            or investor_resolution["normalized_name"]
+        )
+
+        investor = investor_resolution["entity"]
+
+        if investor is None:
+            investor = Investor.query.filter_by(
+                name=resolved_name
+            ).first()
 
         if investor is None:
             investor = Investor(
-                name=investor_name
+                name=resolved_name
             )
             db.session.add(investor)
 
         if investor not in funding_round.investors:
             funding_round.investors.append(investor)
 
+    # Resolve and connect lead investors
     for investor_name in extraction.lead_investors:
-        investor_name = normalize_entity_name(
+        investor_resolution = resolve_entity_name(
             investor_name,
+            "investor",
+        )
+
+        if investor_resolution["status"] == "invalid":
+            continue
+
+        # Persist uncertain lead-investor resolutions for review
+        record_entity_resolution_review(
+            article=article,
+            resolution=investor_resolution,
             entity_type="investor",
         )
 
-        investor = Investor.query.filter_by(
-            name=investor_name
-        ).first()
+        resolved_name = (
+            investor_resolution["canonical_name"]
+            or investor_resolution["normalized_name"]
+        )
+
+        investor = investor_resolution["entity"]
+
+        if investor is None:
+            investor = Investor.query.filter_by(
+                name=resolved_name
+            ).first()
 
         if investor is None:
             investor = Investor(
-                name=investor_name
+                name=resolved_name
             )
             db.session.add(investor)
 
