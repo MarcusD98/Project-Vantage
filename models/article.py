@@ -17,5 +17,11 @@ class Article(db.Model):
     content = db.Column(db.Text)
     category = db.Column(db.String(100))
 
+    # Track whether the LLM has processed this article
+    llm_processed_at = db.Column(db.DateTime)
+
+    # Store the LLM's event classification
+    llm_is_funding_round = db.Column(db.Boolean)
+
     def __repr__(self):
         return f"<Article {self.title}>"

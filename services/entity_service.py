@@ -5,7 +5,9 @@ from models.funding_round import FundingRound
 
 from services.funding_extractor import extract_funding_data
 from services.llm_extractor import extract_funding_with_llm
+from services.article_service import populate_article_content
 
+from datetime import datetime
 
 def create_funding_event(
     article,
@@ -140,6 +142,7 @@ def save_funding_extraction(article, extraction):
     if funding_round is None:
         funding_round = FundingRound(
             company=company,
+            event_evidence=extraction.event_evidence,
             amount=extraction.amount,
             currency=extraction.currency,
             round_type=extraction.round_type,
@@ -194,6 +197,7 @@ def enrich_funding_articles_with_llm(limit=5):
     articles = Article.query.filter(
         Article.category == "Funding Round",
         Article.content.is_not(None),
+        Article.llm_processed_at.is_(None),
     ).limit(limit).all()
 
     enriched_count = 0
@@ -204,12 +208,63 @@ def enrich_funding_articles_with_llm(limit=5):
         if extraction is None:
             continue
 
+        # Record that this article has now been processed by the LLM
+        article.llm_processed_at = datetime.now()
+        article.llm_is_funding_round = extraction.is_funding_round
+
         funding_round = save_funding_extraction(
             article,
             extraction,
         )
 
+        db.session.commit()
+
         if funding_round is not None:
             enriched_count += 1
 
     return enriched_count
+
+def process_intelligence_batch(limit=5):
+    articles = Article.query.filter(
+        Article.category == "Funding Round",
+        Article.llm_processed_at.is_(None),
+    ).limit(limit).all()
+
+    processed_count = 0
+    funding_count = 0
+
+    for article in articles:
+        # Step 1: make sure we have full article content
+        if not article.content:
+            content = populate_article_content(article)
+
+            if not content:
+                continue
+
+        # Step 2: use the LLM to understand the article
+        extraction = extract_funding_with_llm(article)
+
+        if extraction is None:
+            continue
+
+        # Step 3: record that the LLM has processed the article
+        article.llm_processed_at = datetime.now()
+        article.llm_is_funding_round = extraction.is_funding_round
+
+        # Step 4: save structured VC data if this is a real funding event
+        funding_round = save_funding_extraction(
+            article,
+            extraction,
+        )
+
+        db.session.commit()
+
+        processed_count += 1
+
+        if funding_round is not None:
+            funding_count += 1
+
+    return {
+        "processed": processed_count,
+        "funding_rounds": funding_count,
+    }

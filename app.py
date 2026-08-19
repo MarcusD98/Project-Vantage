@@ -92,3 +92,14 @@ def sources():
 # Run the Flask development server when this file is executed directly
 if __name__ == "__main__":
     app.run(debug=True)
+
+@app.route("/funding")
+def funding():
+    funding_rounds = FundingRound.query.order_by(
+        FundingRound.announced_at.desc()
+    ).all()
+
+    return render_template(
+        "funding.html",
+        funding_rounds=funding_rounds,
+    )

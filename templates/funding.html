@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Funding Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div class="container">
+
+        <h1>Funding Intelligence</h1>
+
+        <p>
+            Structured funding events extracted from venture news.
+        </p>
+
+        <p>
+            <a href="/">News</a>
+            |
+            <a href="/sources">Sources</a>
+        </p>
+
+        {% if funding_rounds %}
+
+            <div class="article-grid">
+
+                {% for round in funding_rounds %}
+
+                    <article class="article-card">
+
+                        <span class="category-badge">
+                            {{ round.round_type or "Funding Round" }}
+                        </span>
+
+                        <h2>
+                            {{ round.company.name }}
+                        </h2>
+
+                        {% if round.amount %}
+                            <p>
+                                <strong>
+                                    {% if round.currency == "USD" %}$
+                                    {% elif round.currency == "EUR" %}€
+                                    {% elif round.currency == "GBP" %}£
+                                    {% endif %}
+
+                                    {{ "{:,.0f}".format(round.amount) }}
+                                </strong>
+                            </p>
+                        {% endif %}
+
+                        {% if round.company.sector %}
+                            <p>
+                                Sector: {{ round.company.sector }}
+                            </p>
+                        {% endif %}
+
+                        {% if round.company.city or round.company.country %}
+                            <p>
+                                Location:
+                                {% if round.company.city %}
+                                    {{ round.company.city }}
+                                {% endif %}
+
+                                {% if round.company.city and round.company.country %}
+                                    ·
+                                {% endif %}
+
+                                {% if round.company.country %}
+                                    {{ round.company.country }}
+                                {% endif %}
+                            </p>
+                        {% endif %}
+
+                        {% if round.investors %}
+                            <p>
+                                <strong>Investors:</strong>
+
+                                {% for investor in round.investors %}
+                                    {{ investor.name }}{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            </p>
+                        {% endif %}
+
+                        {% if round.lead_investors %}
+                            <p>
+                                <strong>Lead:</strong>
+
+                                {% for investor in round.lead_investors %}
+                                    {{ investor.name }}{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            </p>
+                        {% endif %}
+
+                        {% if round.event_evidence %}
+                            <p class="summary">
+                                {{ round.event_evidence }}
+                            </p>
+                        {% endif %}
+
+                        {% if round.announced_at %}
+                            <p class="date">
+                                {{ round.announced_at.strftime("%d %b %Y") }}
+                            </p>
+                        {% endif %}
+
+                        {% if round.article %}
+                            <a href="{{ round.article.url }}" target="_blank">
+                                Source article
+                            </a>
+                        {% endif %}
+
+                    </article>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <p>No structured funding rounds found.</p>
+
+        {% endif %}
+
+    </div>
+
+</body>
+</html>
