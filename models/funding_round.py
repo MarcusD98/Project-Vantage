@@ -45,6 +45,7 @@ class FundingRound(db.Model):
         nullable=False,
     )
 
+    event_evidence = db.Column(db.Text)
     amount = db.Column(db.Float)
     currency = db.Column(db.String(10))
     round_type = db.Column(db.String(100))

@@ -101,6 +101,9 @@ def save_funding_extraction(article, extraction):
     if not extraction.is_funding_round:
         return None
 
+    if not extraction.event_evidence:
+        return None
+
     if extraction.company_name is None:
         return None
 
@@ -149,6 +152,7 @@ def save_funding_extraction(article, extraction):
     else:
         # Upgrade our existing round with the better AI extraction
         funding_round.company = company
+        funding_round.event_evidence = extraction.event_evidence
         funding_round.amount = extraction.amount
         funding_round.currency = extraction.currency
         funding_round.round_type = extraction.round_type
@@ -200,11 +204,12 @@ def enrich_funding_articles_with_llm(limit=5):
         if extraction is None:
             continue
 
-        save_funding_extraction(
+        funding_round = save_funding_extraction(
             article,
             extraction,
         )
 
-        enriched_count += 1
+        if funding_round is not None:
+            enriched_count += 1
 
     return enriched_count
