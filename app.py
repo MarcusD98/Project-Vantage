@@ -100,6 +100,38 @@ def funding():
         funding_rounds=funding_rounds,
     )
 
+@app.route("/company/<int:company_id>")
+def company_profile(company_id):
+    company = Company.query.get_or_404(company_id)
+
+    funding_rounds = FundingRound.query.filter_by(
+        company_id=company.id
+    ).order_by(
+        FundingRound.announced_at.desc()
+    ).all()
+
+    return render_template(
+        "company.html",
+        company=company,
+        funding_rounds=funding_rounds,
+    )
+
+@app.route("/investor/<int:investor_id>")
+def investor_profile(investor_id):
+    investor = Investor.query.get_or_404(investor_id)
+
+    funding_rounds = FundingRound.query.filter(
+        FundingRound.investors.any(id=investor.id)
+    ).order_by(
+        FundingRound.announced_at.desc()
+    ).all()
+
+    return render_template(
+        "investor.html",
+        investor=investor,
+        funding_rounds=funding_rounds,
+    )
+
 # Run the Flask development server when this file is executed directly
 if __name__ == "__main__":
     app.run(debug=True)

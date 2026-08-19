@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>
+        {% block title %}Vantage{% endblock %}
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+
+<body>
+
+    <header class="app-header">
+        <div class="nav-container">
+
+            <a href="/" class="brand">
+                <span class="brand-mark">V</span>
+
+                <span class="brand-name">
+                    Vantage
+                </span>
+            </a>
+
+            <nav class="main-nav">
+                <a
+                    href="/"
+                    class="{% if request.path == '/' %}active{% endif %}"
+                >
+                    News
+                </a>
+
+                <a
+                    href="/funding"
+                    class="{% if request.path.startswith('/funding') %}active{% endif %}"
+                >
+                    Funding
+                </a>
+
+                <a
+                    href="/sources"
+                    class="{% if request.path.startswith('/sources') %}active{% endif %}"
+                >
+                    Sources
+                </a>
+            </nav>
+
+            <div class="system-status">
+                <span class="status-dot"></span>
+                Live intelligence
+            </div>
+
+        </div>
+    </header>
+
+
+    <main class="page-shell">
+
+        {% block content %}
+        {% endblock %}
+
+    </main>
+
+
+    <footer class="app-footer">
+        <div>
+            Vantage
+        </div>
+
+        <div>
+            Venture intelligence from public market signals.
+        </div>
+    </footer>
+
+</body>
+</html>

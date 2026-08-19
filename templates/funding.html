@@ -1,130 +1,245 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Funding Intelligence</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
 
-    <div class="container">
+{% block title %}
+Funding Intelligence · Vantage
+{% endblock %}
 
-        <h1>Funding Intelligence</h1>
 
-        <p>
-            Structured funding events extracted from venture news.
-        </p>
+{% block content %}
 
-        <p>
-            <a href="/">News</a>
-            |
-            <a href="/sources">Sources</a>
-        </p>
+<section class="hero compact">
 
-        {% if funding_rounds %}
+    <div class="eyebrow">
+        STRUCTURED INTELLIGENCE
+    </div>
 
-            <div class="article-grid">
+    <h1>
+        Funding activity
+    </h1>
 
-                {% for round in funding_rounds %}
+    <p class="hero-description">
+        Structured financing events extracted and enriched from venture news.
+    </p>
 
-                    <article class="article-card">
+</section>
+
+
+<div class="section-header">
+
+    <div>
+        <h2>
+            Recent rounds
+        </h2>
+    </div>
+
+    <div class="section-meta">
+        {{ funding_rounds|length }} events
+    </div>
+
+</div>
+
+
+{% if funding_rounds %}
+
+    <div class="funding-list">
+
+        {% for round in funding_rounds %}
+
+            <article class="funding-card">
+
+                <div class="funding-main">
+
+                    <div class="funding-company">
 
                         <span class="category-badge">
                             {{ round.round_type or "Funding Round" }}
                         </span>
 
                         <h2>
-                            <a href="{{ url_for('company_profile', company_id=round.company.id) }}">
+                            <a
+                                href="{{ url_for(
+                                    'company_profile',
+                                    company_id=round.company.id
+                                ) }}"
+                            >
                                 {{ round.company.name }}
                             </a>
                         </h2>
 
-                        {% if round.amount %}
-                            <p>
-                                <strong>
-                                    {% if round.currency == "USD" %}$
-                                    {% elif round.currency == "EUR" %}€
-                                    {% elif round.currency == "GBP" %}£
-                                    {% endif %}
 
-                                    {{ "{:,.0f}".format(round.amount) }}
-                                </strong>
-                            </p>
-                        {% endif %}
+                        <div class="company-meta">
 
-                        {% if round.company.sector %}
-                            <p>
-                                Sector: {{ round.company.sector }}
-                            </p>
-                        {% endif %}
+                            {% if round.company.sector %}
+                                <span>
+                                    {{ round.company.sector }}
+                                </span>
+                            {% endif %}
 
-                        {% if round.company.city or round.company.country %}
-                            <p>
-                                Location:
-                                {% if round.company.city %}
-                                    {{ round.company.city }}
-                                {% endif %}
-
-                                {% if round.company.city and round.company.country %}
-                                    ·
-                                {% endif %}
-
-                                {% if round.company.country %}
+                            {% if round.company.country %}
+                                <span>
                                     {{ round.company.country }}
+                                </span>
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="funding-value">
+
+                        {% if round.amount %}
+
+                            <div class="amount">
+
+                                {% if round.currency == "USD" %}$
+                                {% elif round.currency == "EUR" %}€
+                                {% elif round.currency == "GBP" %}£
                                 {% endif %}
-                            </p>
+
+                                {{ "{:,.0f}".format(round.amount) }}
+
+                            </div>
+
+                            <div class="amount-label">
+                                ROUND SIZE
+                            </div>
+
+                        {% else %}
+
+                            <div class="amount unknown">
+                                —
+                            </div>
+
                         {% endif %}
 
-                        {% if round.investors %}
-                            <p>
-                                <strong>Investors:</strong>
+                    </div>
 
-                                {% for investor in round.investors %}
-                                    {{ investor.name }}{% if not loop.last %}, {% endif %}
-                                {% endfor %}
-                            </p>
-                        {% endif %}
+                </div>
 
-                        {% if round.lead_investors %}
-                            <p>
-                                <strong>Lead:</strong>
 
-                                {% for investor in round.lead_investors %}
-                                    {{ investor.name }}{% if not loop.last %}, {% endif %}
-                                {% endfor %}
-                            </p>
-                        {% endif %}
+                {% if round.lead_investors %}
 
-                        {% if round.event_evidence %}
-                            <p class="summary">
-                                {{ round.event_evidence }}
-                            </p>
-                        {% endif %}
+                    <div class="funding-row">
+
+                        <span class="field-label">
+                            Lead
+                        </span>
+
+                        <div>
+
+                            {% for investor in round.lead_investors %}
+
+                                <a
+                                    href="{{ url_for(
+                                        'investor_profile',
+                                        investor_id=investor.id
+                                    ) }}"
+                                    class="entity-link"
+                                >
+                                    {{ investor.name }}
+                                </a>{% if not loop.last %}, {% endif %}
+
+                            {% endfor %}
+
+                        </div>
+
+                    </div>
+
+                {% endif %}
+
+
+                {% if round.investors %}
+
+                    <div class="funding-row">
+
+                        <span class="field-label">
+                            Investors
+                        </span>
+
+                        <div>
+
+                            {% for investor in round.investors %}
+
+                                <a
+                                    href="{{ url_for(
+                                        'investor_profile',
+                                        investor_id=investor.id
+                                    ) }}"
+                                    class="entity-link"
+                                >
+                                    {{ investor.name }}
+                                </a>{% if not loop.last %}, {% endif %}
+
+                            {% endfor %}
+
+                        </div>
+
+                    </div>
+
+                {% endif %}
+
+
+                {% if round.event_evidence %}
+
+                    <div class="evidence-box">
+
+                        <div class="evidence-label">
+                            AI EVENT SUMMARY
+                        </div>
+
+                        {{ round.event_evidence }}
+
+                    </div>
+
+                {% endif %}
+
+
+                <div class="funding-footer">
+
+                    <span class="date">
 
                         {% if round.announced_at %}
-                            <p class="date">
-                                {{ round.announced_at.strftime("%d %b %Y") }}
-                            </p>
+                            {{ round.announced_at.strftime("%d %b %Y") }}
                         {% endif %}
 
-                        {% if round.article %}
-                            <a href="{{ round.article.url }}" target="_blank">
-                                Source article
-                            </a>
-                        {% endif %}
+                    </span>
 
-                    </article>
+                    {% if round.article %}
 
-                {% endfor %}
+                        <a
+                            href="{{ round.article.url }}"
+                            target="_blank"
+                            class="text-link"
+                        >
+                            Source
+                            <span>↗</span>
+                        </a>
 
-            </div>
+                    {% endif %}
 
-        {% else %}
+                </div>
 
-            <p>No structured funding rounds found.</p>
+            </article>
 
-        {% endif %}
+        {% endfor %}
 
     </div>
 
-</body>
-</html>
+{% else %}
+
+    <div class="empty-state">
+
+        <h3>
+            No structured rounds yet
+        </h3>
+
+        <p>
+            Process additional funding articles to expand the intelligence dataset.
+        </p>
+
+    </div>
+
+{% endif %}
+
+{% endblock %}

@@ -1,42 +1,88 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Source Health</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
 
-    <div class="container">
-        <h1>Source Health</h1>
+{% block title %}
+Sources · Vantage
+{% endblock %}
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Source</th>
-                    <th>Region</th>
-                    <th>Status</th>
-                    <th>Feed entries</th>
-                    <th>Stored VC articles</th>
-                </tr>
-            </thead>
 
-            <tbody>
-                {% for source in source_health %}
-                    <tr>
-                        <td>{{ source.name }}</td>
-                        <td>{{ source.region }}</td>
-                        <td>{{ source.status }}</td>
-                        <td>{{ source.entries }}</td>
-                        <td>{{ source.stored_articles }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+{% block content %}
 
-        <p>
-            <a href="/">Back to news</a>
-        </p>
+<section class="hero compact">
+
+    <div class="eyebrow">
+        INGESTION NETWORK
     </div>
 
-</body>
-</html>
+    <h1>
+        Source coverage
+    </h1>
+
+    <p class="hero-description">
+        Monitor the publications and feeds powering the intelligence pipeline.
+    </p>
+
+</section>
+
+
+<div class="source-table-wrapper">
+
+    <table>
+
+        <thead>
+
+            <tr>
+                <th>Source</th>
+                <th>Region</th>
+                <th>Status</th>
+                <th>Feed</th>
+                <th>Stored</th>
+            </tr>
+
+        </thead>
+
+
+        <tbody>
+
+            {% for source in source_health %}
+
+                <tr>
+
+                    <td class="source-name">
+                        {{ source.name }}
+                    </td>
+
+                    <td>
+                        {{ source.region }}
+                    </td>
+
+                    <td>
+
+                        <span class="health health-{{ source.status }}">
+
+                            <span class="health-dot"></span>
+
+                            {{ source.status }}
+
+                        </span>
+
+                    </td>
+
+                    <td>
+                        {{ source.entries }}
+                    </td>
+
+                    <td>
+                        {{ source.stored_articles }}
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% endblock %}

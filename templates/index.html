@@ -1,123 +1,201 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>VC News Aggregator</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
 
-    <div class="container">
-        <h1>VC News Aggregator</h1>
-        
-            <p>
-                <a href="/">News</a>
-                |
-                <a href="/funding">Funding Intelligence</a>
-                |
-                <a href="/sources">Sources</a>
-            </p>
+{% block title %}
+News · Vantage
+{% endblock %}
 
-        <form method="GET">
+
+{% block content %}
+
+<section class="hero">
+
+    <div class="eyebrow">
+        MARKET INTELLIGENCE
+    </div>
+
+    <h1>
+        Venture intelligence,
+        <span class="hero-muted">without the noise.</span>
+    </h1>
+
+    <p class="hero-description">
+        Track funding, investors and startup activity across the global venture ecosystem.
+    </p>
+
+</section>
+
+
+<section class="control-panel">
+
+    <form method="GET">
+
+        <div class="search-field">
+            <span class="search-icon">⌕</span>
+
             <input
                 type="text"
                 name="q"
-                placeholder="Search articles..."
-                value= "{{ search_query }}"
+                placeholder="Search news..."
+                value="{{ search_query }}"
             >
+        </div>
 
-            <select name="source">
-                <option value="">All sources</option>
 
-                {% for source in sources %}
-                    <option
-                        value="{{ source.name }}"
-                        {% if source_filter == source.name %}selected{% endif %}
-                    >
-                        {{ source.name }}
-                    </option>
-                {% endfor %}
+        <select name="source">
+            <option value="">
+                All sources
+            </option>
 
-            </select>
-
-            <select name="category">
-                <option value="">All categories</option>
-
+            {% for source in sources %}
                 <option
-                    value="Funding Round"
-                    {% if category_filter == "Funding Round"%}selected{% endif %}
+                    value="{{ source.name }}"
+                    {% if source_filter == source.name %}selected{% endif %}
                 >
-                    Funding Round
+                    {{ source.name }}
                 </option>
+            {% endfor %}
+        </select>
 
-                <option
-                    value="Fund News"
-                    {% if category_filter == "Fund News"%}selected{% endif %}
-                >
-                    Fund News
-                </option>
 
-                <option
-                    value="M&A"
-                    {% if category_filter == "M&A"%}selected{% endif %}
-                >
-                    M&A
-                </option>
+        <select name="category">
 
-                <option
-                    value="IPO"
-                    {% if category_filter == "IPO" %}selected{% endif %}
-                >
-                    IPO
-                </option>
+            <option value="">
+                All activity
+            </option>
 
-            </select>
+            <option
+                value="Funding Round"
+                {% if category_filter == "Funding Round" %}selected{% endif %}
+            >
+                Funding
+            </option>
 
-            <button type="submit">
-                Search
-            </button>
-        </form>
+            <option
+                value="Fund News"
+                {% if category_filter == "Fund News" %}selected{% endif %}
+            >
+                Fund News
+            </option>
 
-        {% if articles %}
+            <option
+                value="M&A"
+                {% if category_filter == "M&A" %}selected{% endif %}
+            >
+                M&A
+            </option>
 
-            <div class="article-grid">
-                {% for article in articles %}
-                    <article class="article-card">
-                        <span class="source-badge">
-                            {{ article.source }}
-                        </span>
-                        <span class="category-badge">
-                            {{ article.category }}
-                        </span>
+            <option
+                value="IPO"
+                {% if category_filter == "IPO" %}selected{% endif %}
+            >
+                IPO
+            </option>
 
-                        <h2>{{ article.title }}</h2>
-                        
-                        {% if article.summary %}
-                            
-                            <p class="summary">
-                                {{ article.summary }}
-                            </p>
+        </select>
 
-                        {% endif %}
 
-                        <p class="date">
-                            {{ article.published_at.strftime("%d %b %Y · %H:%M") }}
-                        </p>
+        <button type="submit">
+            Apply
+        </button>
 
-                        <a href="{{ article.url }}" target="_blank">
-                            Read article
-                        </a>
-                    </article>
-                 {% endfor %}
-        
+    </form>
+
+</section>
+
+
+<section>
+
+    <div class="section-header">
+
+        <div>
+            <div class="eyebrow">
+                LIVE FEED
             </div>
-        
-        {% else %}
 
-         <p>No articles found.</p>
+            <h2>
+                Latest signals
+            </h2>
+        </div>
 
-        {% endif %}
+        <div class="section-meta">
+            {{ articles|length }} articles
+        </div>
 
     </div>
 
-</body>
-</html>
+
+    {% if articles %}
+
+        <div class="news-feed">
+
+            {% for article in articles %}
+
+                <article class="signal-card">
+
+                    <div class="signal-top">
+
+                        <div class="signal-labels">
+
+                            <span class="source-badge">
+                                {{ article.source }}
+                            </span>
+
+                            <span class="category-badge">
+                                {{ article.category }}
+                            </span>
+
+                        </div>
+
+                        <span class="date">
+                            {{ article.published_at.strftime("%d %b %Y") if article.published_at else "" }}
+                        </span>
+
+                    </div>
+
+
+                    <h3 class="signal-title">
+                        {{ article.title }}
+                    </h3>
+
+
+                    {% if article.summary %}
+                        <p class="summary">
+                            {{ article.summary }}
+                        </p>
+                    {% endif %}
+
+
+                    <div class="signal-footer">
+
+                        <a
+                            href="{{ article.url }}"
+                            target="_blank"
+                            class="text-link"
+                        >
+                            Read source
+                            <span>↗</span>
+                        </a>
+
+                    </div>
+
+                </article>
+
+            {% endfor %}
+
+        </div>
+
+    {% else %}
+
+        <div class="empty-state">
+            <h3>No matching signals</h3>
+
+            <p>
+                Adjust the search or filters to broaden the results.
+            </p>
+        </div>
+
+    {% endif %}
+
+</section>
+
+{% endblock %}
