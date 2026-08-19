@@ -9,10 +9,15 @@ from models.article import db, Article
 from models.company import Company
 from models.investor import Investor
 from models.funding_round import FundingRound
+from models.entity_alias import EntityAlias
 
 from services.news_service import (
     get_vc_articles,
     get_source_health,
+)
+
+from services.data_quality_service import (
+    get_data_quality_summary,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -130,6 +135,15 @@ def investor_profile(investor_id):
         "investor.html",
         investor=investor,
         funding_rounds=funding_rounds,
+    )
+
+@app.route("/data-quality")
+def data_quality():
+    summary = get_data_quality_summary()
+
+    return render_template(
+        "data_quality.html",
+        summary=summary,
     )
 
 # Run the Flask development server when this file is executed directly

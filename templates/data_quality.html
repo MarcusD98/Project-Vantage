@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}
+Data Quality · Vantage
+{% endblock %}
+
+
+{% block content %}
+
+<section class="hero compact">
+
+    <div class="eyebrow">
+        KNOWLEDGE BASE HEALTH
+    </div>
+
+    <h1>
+        Data quality
+    </h1>
+
+    <p class="hero-description">
+        Review entity consistency, duplicate candidates, aliases, and data completeness across the Vantage knowledge base.
+    </p>
+
+</section>
+
+
+<section class="quality-stats">
+
+    <div class="quality-stat">
+        <div class="quality-value">
+            {{ summary.company_count }}
+        </div>
+        <div class="quality-label">
+            Companies
+        </div>
+    </div>
+
+    <div class="quality-stat">
+        <div class="quality-value">
+            {{ summary.investor_count }}
+        </div>
+        <div class="quality-label">
+            Investors
+        </div>
+    </div>
+
+    <div class="quality-stat">
+        <div class="quality-value">
+            {{ summary.funding_round_count }}
+        </div>
+        <div class="quality-label">
+            Funding rounds
+        </div>
+    </div>
+
+    <div class="quality-stat">
+        <div class="quality-value">
+            {{ summary.alias_count }}
+        </div>
+        <div class="quality-label">
+            Aliases
+        </div>
+    </div>
+
+</section>
+
+
+<section class="quality-section">
+
+    <div class="section-header">
+        <div>
+            <div class="eyebrow">
+                ENTITY RESOLUTION
+            </div>
+
+            <h2>
+                Potential duplicates
+            </h2>
+        </div>
+    </div>
+
+
+    <div class="quality-grid">
+
+        <div class="quality-panel">
+
+            <h3>
+                Companies
+            </h3>
+
+            {% if summary.company_duplicate_candidates %}
+
+                {% for candidate in summary.company_duplicate_candidates %}
+
+                    <div class="duplicate-row">
+
+                        <div>
+                            <strong>
+                                {{ candidate.entity_a.name }}
+                            </strong>
+
+                            <span>
+                                ↔
+                            </span>
+
+                            <strong>
+                                {{ candidate.entity_b.name }}
+                            </strong>
+                        </div>
+
+                        <div class="similarity-score">
+                            {{ candidate.score }}
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            {% else %}
+
+                <div class="quality-empty">
+                    No likely company duplicates detected.
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <div class="quality-panel">
+
+            <h3>
+                Investors
+            </h3>
+
+            {% if summary.investor_duplicate_candidates %}
+
+                {% for candidate in summary.investor_duplicate_candidates %}
+
+                    <div class="duplicate-row">
+
+                        <div>
+                            <strong>
+                                {{ candidate.entity_a.name }}
+                            </strong>
+
+                            <span>
+                                ↔
+                            </span>
+
+                            <strong>
+                                {{ candidate.entity_b.name }}
+                            </strong>
+                        </div>
+
+                        <div class="similarity-score">
+                            {{ candidate.score }}
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            {% else %}
+
+                <div class="quality-empty">
+                    No likely investor duplicates detected.
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<section class="quality-section">
+
+    <div class="section-header">
+        <div>
+            <div class="eyebrow">
+                CANONICALIZATION
+            </div>
+
+            <h2>
+                Entity aliases
+            </h2>
+        </div>
+    </div>
+
+
+    <div class="quality-panel">
+
+        {% if summary.aliases %}
+
+            {% for alias in summary.aliases %}
+
+                <div class="alias-row">
+
+                    <div>
+                        <span class="entity-type-badge">
+                            {{ alias.entity_type }}
+                        </span>
+
+                        <strong>
+                            {{ alias.alias }}
+                        </strong>
+                    </div>
+
+                    <div class="alias-arrow">
+                        →
+                    </div>
+
+                    <div>
+                        {{ alias.canonical_name }}
+                    </div>
+
+                </div>
+
+            {% endfor %}
+
+        {% else %}
+
+            <div class="quality-empty">
+                No entity aliases configured.
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</section>
+
+
+<section class="quality-section">
+
+    <div class="section-header">
+        <div>
+            <div class="eyebrow">
+                COMPLETENESS
+            </div>
+
+            <h2>
+                Missing structured data
+            </h2>
+        </div>
+    </div>
+
+
+    <div class="quality-grid">
+
+        <div class="quality-panel">
+
+            <h3>
+                Companies
+            </h3>
+
+            <div class="completeness-row">
+                <span>
+                    Missing sector
+                </span>
+                <strong>
+                    {{ summary.companies_missing_sector }}
+                </strong>
+            </div>
+
+            <div class="completeness-row">
+                <span>
+                    Missing country
+                </span>
+                <strong>
+                    {{ summary.companies_missing_country }}
+                </strong>
+            </div>
+
+            <div class="completeness-row">
+                <span>
+                    Missing founded year
+                </span>
+                <strong>
+                    {{ summary.companies_missing_founded_year }}
+                </strong>
+            </div>
+
+        </div>
+
+
+        <div class="quality-panel">
+
+            <h3>
+                Funding rounds
+            </h3>
+
+            <div class="completeness-row">
+                <span>
+                    Missing round type
+                </span>
+                <strong>
+                    {{ summary.rounds_missing_round_type }}
+                </strong>
+            </div>
+
+            <div class="completeness-row">
+                <span>
+                    No investors
+                </span>
+                <strong>
+                    {{ summary.rounds_without_investors }}
+                </strong>
+            </div>
+
+            <div class="completeness-row">
+                <span>
+                    Missing event evidence
+                </span>
+                <strong>
+                    {{ summary.rounds_without_evidence }}
+                </strong>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+{% endblock %}

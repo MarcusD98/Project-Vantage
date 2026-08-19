@@ -6,6 +6,7 @@ from models.funding_round import FundingRound
 from services.funding_extractor import extract_funding_data
 from services.llm_extractor import extract_funding_with_llm
 from services.article_service import populate_article_content
+from services.entity_normalizer import normalize_entity_name
 
 from datetime import datetime
 
@@ -17,16 +18,21 @@ def create_funding_event(
     round_type,
     investor_names,
 ):
-    # Find existing company or create it
+    company_name = normalize_entity_name(
+        company_name,
+        entity_type="company",
+    )
+
     company = Company.query.filter_by(
         name=company_name
     ).first()
 
     if company is None:
-        company = Company(name=company_name)
+        company = Company(
+            name=company_name
+        )
         db.session.add(company)
 
-    # Create the funding round
     funding_round = FundingRound(
         company=company,
         amount=amount,
@@ -36,14 +42,20 @@ def create_funding_event(
         article=article,
     )
 
-    # Find/create each investor and connect it to the round
     for investor_name in investor_names:
+        investor_name = normalize_entity_name(
+            investor_name,
+            entity_type="investor",
+        )
+
         investor = Investor.query.filter_by(
             name=investor_name
         ).first()
 
         if investor is None:
-            investor = Investor(name=investor_name)
+            investor = Investor(
+                name=investor_name
+            )
             db.session.add(investor)
 
         funding_round.investors.append(investor)
@@ -109,18 +121,21 @@ def save_funding_extraction(article, extraction):
     if extraction.company_name is None:
         return None
 
-    # Find or create the company
+    company_name = normalize_entity_name(
+        extraction.company_name,
+        entity_type="company",
+    )
+
     company = Company.query.filter_by(
-        name=extraction.company_name
+        name=company_name
     ).first()
 
     if company is None:
         company = Company(
-            name=extraction.company_name
+            name=company_name
         )
         db.session.add(company)
 
-    # Enrich company metadata
     if extraction.sector:
         company.sector = extraction.sector
 
@@ -133,12 +148,10 @@ def save_funding_extraction(article, extraction):
     if extraction.founded_year:
         company.founded_year = extraction.founded_year
 
-    # Find an existing round linked to this article
     funding_round = FundingRound.query.filter_by(
         article_id=article.id
     ).first()
 
-    # Create it only if we don't already have one
     if funding_round is None:
         funding_round = FundingRound(
             company=company,
@@ -153,34 +166,45 @@ def save_funding_extraction(article, extraction):
         db.session.add(funding_round)
 
     else:
-        # Upgrade our existing round with the better AI extraction
         funding_round.company = company
         funding_round.event_evidence = extraction.event_evidence
         funding_round.amount = extraction.amount
         funding_round.currency = extraction.currency
         funding_round.round_type = extraction.round_type
 
-    # Create/connect all participating investors
     for investor_name in extraction.investors:
+        investor_name = normalize_entity_name(
+            investor_name,
+            entity_type="investor",
+        )
+
         investor = Investor.query.filter_by(
             name=investor_name
         ).first()
 
         if investor is None:
-            investor = Investor(name=investor_name)
+            investor = Investor(
+                name=investor_name
+            )
             db.session.add(investor)
 
         if investor not in funding_round.investors:
             funding_round.investors.append(investor)
 
-    # Mark lead investors separately
     for investor_name in extraction.lead_investors:
+        investor_name = normalize_entity_name(
+            investor_name,
+            entity_type="investor",
+        )
+
         investor = Investor.query.filter_by(
             name=investor_name
         ).first()
 
         if investor is None:
-            investor = Investor(name=investor_name)
+            investor = Investor(
+                name=investor_name
+            )
             db.session.add(investor)
 
         if investor not in funding_round.investors:

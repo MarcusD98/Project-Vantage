@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1"
+        content="width=device-width, initial-scale=1.0"
     >
 
     <title>
-        {% block title %}Vantage{% endblock %}
+        {% block title %}
+        Vantage
+        {% endblock %}
     </title>
 
     <link
@@ -18,48 +21,67 @@
     >
 </head>
 
+
 <body>
 
-    <header class="app-header">
-        <div class="nav-container">
+    <header class="site-header">
 
-            <a href="/" class="brand">
-                <span class="brand-mark">V</span>
+        <div class="header-inner">
 
-                <span class="brand-name">
-                    Vantage
-                </span>
+            <a
+                href="{{ url_for('home') }}"
+                class="brand"
+            >
+                <div class="brand-mark">
+                    V
+                </div>
+
+                <div class="brand-text">
+                    <div class="brand-name">
+                        Vantage
+                    </div>
+
+                    <div class="brand-subtitle">
+                        Venture Intelligence
+                    </div>
+                </div>
             </a>
 
+
             <nav class="main-nav">
+
                 <a
-                    href="/"
+                    href="{{ url_for('home') }}"
                     class="{% if request.path == '/' %}active{% endif %}"
                 >
                     News
                 </a>
 
                 <a
-                    href="/funding"
+                    href="{{ url_for('funding') }}"
                     class="{% if request.path.startswith('/funding') %}active{% endif %}"
                 >
                     Funding
                 </a>
 
                 <a
-                    href="/sources"
+                    href="{{ url_for('sources') }}"
                     class="{% if request.path.startswith('/sources') %}active{% endif %}"
                 >
                     Sources
                 </a>
+
+                <a
+                    href="{{ url_for('data_quality') }}"
+                    class="{% if request.path.startswith('/data-quality') %}active{% endif %}"
+                >
+                    Data Quality
+                </a>
+
             </nav>
 
-            <div class="system-status">
-                <span class="status-dot"></span>
-                Live intelligence
-            </div>
-
         </div>
+
     </header>
 
 
@@ -71,15 +93,22 @@
     </main>
 
 
-    <footer class="app-footer">
-        <div>
-            Vantage
+    <footer class="site-footer">
+
+        <div class="footer-inner">
+
+            <div>
+                Vantage
+            </div>
+
+            <div class="footer-meta">
+                Venture ecosystem intelligence
+            </div>
+
         </div>
 
-        <div>
-            Venture intelligence from public market signals.
-        </div>
     </footer>
 
 </body>
+
 </html>
