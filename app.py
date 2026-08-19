@@ -89,10 +89,6 @@ def sources():
              source_health=source_health,
         )
 
-# Run the Flask development server when this file is executed directly
-if __name__ == "__main__":
-    app.run(debug=True)
-
 @app.route("/funding")
 def funding():
     funding_rounds = FundingRound.query.order_by(
@@ -103,3 +99,7 @@ def funding():
         "funding.html",
         funding_rounds=funding_rounds,
     )
+
+# Run the Flask development server when this file is executed directly
+if __name__ == "__main__":
+    app.run(debug=True)
