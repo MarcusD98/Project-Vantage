@@ -1,4 +1,5 @@
 import logging
+import click
 
 from flask import Flask, render_template, request, redirect, url_for
 from flask_migrate import Migrate
@@ -30,6 +31,10 @@ from services.entity_review_service import (
 
 from services.intelligence_service import (
     get_intelligence_summary,
+)
+
+from services.intelligence_pipeline import (
+    run_intelligence_pipeline,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -195,6 +200,89 @@ def intelligence():
         "intelligence.html",
         summary=summary,
     )
+
+@app.cli.group()
+def vantage():
+    """Project Vantage management commands."""
+    pass
+
+
+@vantage.command("ingest")
+@click.option(
+    "--funding-limit",
+    default=10,
+    type=int,
+    show_default=True,
+    help="Maximum Funding Round articles to process.",
+)
+@click.option(
+    "--fund-news-limit",
+    default=10,
+    type=int,
+    show_default=True,
+    help="Maximum Fund News articles to process.",
+)
+def ingest_command(
+    funding_limit,
+    fund_news_limit,
+):
+    """Run the Vantage structured-intelligence pipeline."""
+
+    click.echo("")
+    click.echo("Vantage Intelligence Pipeline")
+    click.echo("-----------------------------")
+
+    result = run_intelligence_pipeline(
+        funding_limit=funding_limit,
+        fund_news_limit=fund_news_limit,
+    )
+
+    click.echo("")
+    click.echo(
+        f"Articles selected:      "
+        f"{result['articles_selected']}"
+    )
+
+    click.echo(
+        f"Content retrieved:      "
+        f"{result['content_retrieved']}"
+    )
+
+    click.echo(
+        f"Content failures:       "
+        f"{result['content_failed']}"
+    )
+
+    click.echo("")
+    click.echo(
+        f"Funding processed:      "
+        f"{result['funding_processed']}"
+    )
+
+    click.echo(
+        f"Funding rounds saved:   "
+        f"{result['funding_rounds']}"
+    )
+
+    click.echo("")
+    click.echo(
+        f"Fund news processed:    "
+        f"{result['fund_news_processed']}"
+    )
+
+    click.echo(
+        f"Fund closes saved:      "
+        f"{result['fund_closes']}"
+    )
+
+    click.echo("")
+    click.echo(
+        f"Processing failures:    "
+        f"{result['processing_failed']}"
+    )
+
+    click.echo("")
+    click.echo("Pipeline complete.")
 
 # Run the Flask development server when this file is executed directly
 if __name__ == "__main__":
