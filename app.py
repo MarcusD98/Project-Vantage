@@ -1,6 +1,7 @@
 import logging
 
 from flask import Flask, render_template, request
+from flask_migrate import Migrate
 
 from config import SOURCES
 
@@ -25,6 +26,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///vc_news.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
+migrate = Migrate(app, db)
 
 with app.app_context():
     db.create_all()

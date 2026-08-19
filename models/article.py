@@ -14,6 +14,7 @@ class Article(db.Model):
 
     published_at = db.Column(db.DateTime)
     summary = db.Column(db.Text)
+    content = db.Column(db.Text)
     category = db.Column(db.String(100))
 
     def __repr__(self):
