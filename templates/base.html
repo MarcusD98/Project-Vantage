@@ -56,6 +56,13 @@
                 </a>
 
                 <a
+                    href="{{ url_for('intelligence') }}"
+                    class="{% if request.path.startswith('/intelligence') %}active{% endif %}"
+                >
+                    Intelligence
+                </a>
+
+                <a
                     href="{{ url_for('sources') }}"
                     class="{% if request.path.startswith('/sources') %}active{% endif %}"
                 >

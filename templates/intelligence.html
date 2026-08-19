@@ -1,0 +1,520 @@
+{% extends "base.html" %}
+
+{% block title %}
+Intelligence · Vantage
+{% endblock %}
+
+
+{% block content %}
+
+<section class="hero compact">
+
+    <div class="eyebrow">
+        MARKET INTELLIGENCE
+    </div>
+
+    <h1>
+        Venture intelligence
+    </h1>
+
+    <p class="hero-description">
+        Structured signals from financing activity, investor participation, sector momentum, and fund formation across the Vantage knowledge base.
+    </p>
+
+</section>
+
+
+<section class="quality-stats">
+
+    <div class="quality-stat">
+
+        <div class="quality-value">
+            {{ summary.company_count }}
+        </div>
+
+        <div class="quality-label">
+            Companies
+        </div>
+
+    </div>
+
+
+    <div class="quality-stat">
+
+        <div class="quality-value">
+            {{ summary.investor_count }}
+        </div>
+
+        <div class="quality-label">
+            Investors
+        </div>
+
+    </div>
+
+
+    <div class="quality-stat">
+
+        <div class="quality-value">
+            {{ summary.funding_round_count }}
+        </div>
+
+        <div class="quality-label">
+            Financing events
+        </div>
+
+    </div>
+
+
+    <div class="quality-stat">
+
+        <div class="quality-value">
+            {{ summary.recent_fund_closes|length }}
+        </div>
+
+        <div class="quality-label">
+            Recorded fund closes
+        </div>
+
+    </div>
+
+</section>
+
+
+<section class="quality-section">
+
+    <div class="section-header">
+
+        <div>
+
+            <div class="eyebrow">
+                INVESTOR ACTIVITY
+            </div>
+
+            <h2>
+                Most active investors
+            </h2>
+
+        </div>
+
+        <div class="section-meta">
+            Based on recorded financing participation
+        </div>
+
+    </div>
+
+
+    <div class="quality-panel">
+
+        {% if summary.investor_activity %}
+
+            {% for item in summary.investor_activity %}
+
+                <div class="intelligence-rank-row">
+
+                    <div class="intelligence-rank">
+                        {{ loop.index }}
+                    </div>
+
+
+                    <div class="intelligence-rank-main">
+
+                        <a
+                            href="{{ url_for(
+                                'investor_profile',
+                                investor_id=item.investor.id
+                            ) }}"
+                            class="entity-link"
+                        >
+                            <strong>
+                                {{ item.investor.name }}
+                            </strong>
+                        </a>
+
+                    </div>
+
+
+                    <div class="intelligence-metric">
+
+                        <strong>
+                            {{ item.round_count }}
+                        </strong>
+
+                        <span>
+                            rounds
+                        </span>
+
+                    </div>
+
+
+                    <div class="intelligence-metric">
+
+                        <strong>
+                            {{ item.lead_count }}
+                        </strong>
+
+                        <span>
+                            lead
+                        </span>
+
+                    </div>
+
+                </div>
+
+            {% endfor %}
+
+        {% else %}
+
+            <div class="quality-empty">
+                No investor activity data available.
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</section>
+
+
+<section class="quality-section">
+
+    <div class="section-header">
+
+        <div>
+
+            <div class="eyebrow">
+                SECTOR ACTIVITY
+            </div>
+
+            <h2>
+                Financing by sector
+            </h2>
+
+        </div>
+
+        <div class="section-meta">
+            Recorded financing-event count
+        </div>
+
+    </div>
+
+
+    <div class="quality-panel">
+
+        {% if summary.sector_activity %}
+
+            {% for item in summary.sector_activity %}
+
+                <div class="completeness-row">
+
+                    <span>
+                        {{ item.sector }}
+                    </span>
+
+                    <strong>
+                        {{ item.round_count }}
+                    </strong>
+
+                </div>
+
+            {% endfor %}
+
+        {% else %}
+
+            <div class="quality-empty">
+                No sector data available.
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</section>
+
+
+<section class="quality-section">
+
+    <div class="section-header">
+
+        <div>
+
+            <div class="eyebrow">
+                CAPITAL FORMATION
+            </div>
+
+            <h2>
+                Recent fund closes
+            </h2>
+
+        </div>
+
+        <div class="section-meta">
+            VC fund activity
+        </div>
+
+    </div>
+
+
+    {% if summary.recent_fund_closes %}
+
+        <div class="funding-list">
+
+            {% for close in summary.recent_fund_closes %}
+
+                <article class="funding-card">
+
+                    <div class="funding-main">
+
+                        <div>
+
+                            <div class="category-badge">
+                                Fund close
+                            </div>
+
+                            <h2>
+
+                                <a
+                                    href="{{ url_for(
+                                        'investor_profile',
+                                        investor_id=close.fund.investor.id
+                                    ) }}"
+                                >
+                                    {{ close.fund.investor.name }}
+                                </a>
+
+                            </h2>
+
+                            <div class="company-meta">
+
+                                <span>
+                                    {{ close.fund.name }}
+                                </span>
+
+                                {% if close.fund.geography %}
+                                    <span>
+                                        {{ close.fund.geography }}
+                                    </span>
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                        {% if close.amount %}
+
+                            <div class="funding-value">
+
+                                <div class="amount">
+
+                                    {% if close.currency == "USD" %}$
+                                    {% elif close.currency == "EUR" %}€
+                                    {% elif close.currency == "GBP" %}£
+                                    {% endif %}
+
+                                    {{ "{:,.0f}".format(close.amount) }}
+
+                                </div>
+
+                                <div class="amount-label">
+                                    FUND CLOSE
+                                </div>
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    {% if close.event_evidence %}
+
+                        <div class="evidence-box">
+                            {{ close.event_evidence }}
+                        </div>
+
+                    {% endif %}
+
+
+                    <div class="funding-footer">
+
+                        <span class="date">
+
+                            {% if close.announced_at %}
+                                {{ close.announced_at.strftime("%d %b %Y") }}
+                            {% endif %}
+
+                        </span>
+
+
+                        {% if close.article %}
+
+                            <a
+                                href="{{ close.article.url }}"
+                                target="_blank"
+                                class="text-link"
+                            >
+                                Source ↗
+                            </a>
+
+                        {% endif %}
+
+                    </div>
+
+                </article>
+
+            {% endfor %}
+
+        </div>
+
+    {% else %}
+
+        <div class="empty-state">
+            No recorded fund-close activity.
+        </div>
+
+    {% endif %}
+
+</section>
+
+
+<section class="quality-section">
+
+    <div class="section-header">
+
+        <div>
+
+            <div class="eyebrow">
+                COMPANY FINANCING
+            </div>
+
+            <h2>
+                Recent financing activity
+            </h2>
+
+        </div>
+
+        <div class="section-meta">
+            Latest structured events
+        </div>
+
+    </div>
+
+
+    {% if summary.recent_funding_rounds %}
+
+        <div class="funding-list">
+
+            {% for round in summary.recent_funding_rounds %}
+
+                <article class="funding-card">
+
+                    <div class="funding-main">
+
+                        <div>
+
+                            <h2>
+
+                                <a
+                                    href="{{ url_for(
+                                        'company_profile',
+                                        company_id=round.company.id
+                                    ) }}"
+                                >
+                                    {{ round.company.name }}
+                                </a>
+
+                            </h2>
+
+
+                            <div class="company-meta">
+
+                                {% if round.company.sector %}
+                                    <span>
+                                        {{ round.company.sector }}
+                                    </span>
+                                {% endif %}
+
+                                {% if round.round_type %}
+                                    <span>
+                                        {{ round.round_type }}
+                                    </span>
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                        {% if round.amount %}
+
+                            <div class="funding-value">
+
+                                <div class="amount">
+
+                                    {% if round.currency == "USD" %}$
+                                    {% elif round.currency == "EUR" %}€
+                                    {% elif round.currency == "GBP" %}£
+                                    {% endif %}
+
+                                    {{ "{:,.0f}".format(round.amount) }}
+
+                                </div>
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    {% if round.event_evidence %}
+
+                        <div class="evidence-box">
+                            {{ round.event_evidence }}
+                        </div>
+
+                    {% endif %}
+
+
+                    <div class="funding-footer">
+
+                        <span class="date">
+
+                            {% if round.announced_at %}
+                                {{ round.announced_at.strftime("%d %b %Y") }}
+                            {% endif %}
+
+                        </span>
+
+
+                        {% if round.article %}
+
+                            <a
+                                href="{{ round.article.url }}"
+                                target="_blank"
+                                class="text-link"
+                            >
+                                Source ↗
+                            </a>
+
+                        {% endif %}
+
+                    </div>
+
+                </article>
+
+            {% endfor %}
+
+        </div>
+
+    {% else %}
+
+        <div class="empty-state">
+            No recorded financing activity.
+        </div>
+
+    {% endif %}
+
+</section>
+
+{% endblock %}

@@ -1606,3 +1606,94 @@ tbody tr:last-child td {
     }
 
 }
+
+/* INTELLIGENCE */
+
+.intelligence-rank-row {
+    min-height: 54px;
+
+    display: grid;
+    grid-template-columns:
+        36px
+        minmax(0, 1fr)
+        90px
+        90px;
+
+    align-items: center;
+
+    gap: 14px;
+
+    padding: 10px 0;
+
+    border-bottom: 1px solid var(--border);
+}
+
+
+.intelligence-rank-row:last-child {
+    border-bottom: none;
+}
+
+
+.intelligence-rank {
+    width: 26px;
+    height: 26px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 7px;
+
+    background: var(--surface-soft);
+
+    color: var(--text-muted);
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+
+.intelligence-rank-main {
+    min-width: 0;
+
+    font-size: 13px;
+}
+
+
+.intelligence-metric {
+    text-align: right;
+}
+
+
+.intelligence-metric strong {
+    display: block;
+
+    color: var(--text);
+
+    font-size: 14px;
+}
+
+
+.intelligence-metric span {
+    color: var(--text-muted);
+
+    font-size: 9px;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.06em;
+}
+
+
+@media (max-width: 720px) {
+
+    .intelligence-rank-row {
+        grid-template-columns:
+            32px
+            minmax(0, 1fr)
+            60px
+            60px;
+
+        gap: 8px;
+    }
+
+}

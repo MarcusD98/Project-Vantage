@@ -28,6 +28,10 @@ from services.entity_review_service import (
     reject_resolution_review,
 )
 
+from services.intelligence_service import (
+    get_intelligence_summary,
+)
+
 logging.basicConfig(level=logging.INFO)
 
 # Create the Flask application
@@ -181,6 +185,15 @@ def reject_entity_review(review_id):
 
     return redirect(
         url_for("data_quality")
+    )
+
+@app.route("/intelligence")
+def intelligence():
+    summary = get_intelligence_summary()
+
+    return render_template(
+        "intelligence.html",
+        summary=summary,
     )
 
 # Run the Flask development server when this file is executed directly
