@@ -1058,6 +1058,510 @@ This simplicity is intentional.
 
 Infrastructure should become more sophisticated only when product or engineering requirements justify it.
 
+
+# Market Position & Differentiation
+
+Vantage operates in an established private-market and venture-intelligence landscape.
+
+Major platforms already provide substantial coverage of companies, investors, funds, financing events, markets, and private-company activity.
+
+Relevant platforms include:
+
+- PitchBook
+- Dealroom
+- Tracxn
+- CB Insights
+- Harmonic
+
+These products demonstrate that there is significant demand for structured private-market intelligence.
+
+They also make an important strategic point clear:
+
+> **Vantage should not attempt to win by simply becoming another startup or funding database.**
+
+The individual components of Vantage are not unique in isolation.
+
+Existing platforms already provide combinations of:
+
+- Company databases
+- Investor databases
+- Funding-round data
+- Fund data
+- Market maps
+- Startup discovery
+- News and event monitoring
+- Investor activity
+- AI-assisted research
+- Market analytics
+
+The opportunity for Vantage therefore lies in how these components are combined and what question the product is designed to answer.
+
+---
+
+## The Traditional Private-Market Model
+
+Many established private-market platforms can be simplified conceptually as:
+
+```text
+Large proprietary dataset
+        ↓
+Companies / investors / deals
+        ↓
+Search & filtering
+        ↓
+Profiles
+        ↓
+Analytics
+        ↓
+Research
+```
+
+These platforms are exceptionally strong at answering questions such as:
+
+```text
+Who invested in this company?
+
+How much has this company raised?
+
+Which investors invest in European fintech?
+
+What funds has this VC firm raised?
+
+Which companies raised Series A rounds this year?
+```
+
+This is valuable and Vantage will inevitably overlap with parts of this functionality.
+
+However, reproducing the breadth and historical depth of large incumbent private-market databases is not the primary objective.
+
+---
+
+## The Vantage Thesis
+
+Vantage is increasingly being designed around a different starting point:
+
+> **Continuously observe what important participants in the venture ecosystem are actually doing, convert that activity into structured historical knowledge, and identify meaningful changes in behaviour over time.**
+
+Conceptually:
+
+```text
+LIVE PUBLIC INFORMATION UNIVERSE
+
+Editorial reporting
+Investor / VC websites
+Investment announcements
+VC thesis content
+Fund announcements
+Accelerators
+Ecosystem sources
+Selected company sources
+Selected structured sources
+        ↓
+Evidence acquisition
+        ↓
+AI understanding
+        ↓
+Entity resolution
+        ↓
+Event resolution
+        ↓
+Evidence-backed knowledge base
+        ↓
+Historical activity
+        ↓
+Behavioural change
+        ↓
+Venture intelligence
+```
+
+This creates a subtly different product orientation.
+
+Rather than beginning with:
+
+```text
+"What information exists about this company?"
+```
+
+Vantage increasingly begins with:
+
+```text
+"What are important venture-market participants doing?"
+```
+
+and ultimately:
+
+```text
+"How is that behaviour changing,
+and what might that tell us about the market?"
+```
+
+---
+
+## Investor Behaviour as a First-Class Signal
+
+This is why investor / VC intelligence is strategically important to Vantage.
+
+A venture firm produces multiple observable signals.
+
+### Investment Activity
+
+```text
+Investor
+   ↓
+Investment
+   ↓
+Company
+```
+
+Signals include:
+
+- New investments
+- Lead investments
+- Follow-on investments
+- Stage exposure
+- Sector exposure
+- Geographic exposure
+- Co-investor relationships
+
+### Capital Formation
+
+```text
+Investor
+   ↓
+Fund
+   ↓
+Fund Close
+```
+
+Signals include:
+
+- New funds
+- Fund size
+- Strategy
+- Geography
+- Vintage
+- Changes in capital formation
+
+### Thesis Activity
+
+```text
+Investor
+   ↓
+Public writing
+   ↓
+Themes / sectors / technologies
+```
+
+Signals may eventually include:
+
+- Repeated discussion of a technology
+- New sector theses
+- New specialist partners
+- Changes in strategic language
+- Increasing attention to particular markets
+
+Individually, these observations are useful.
+
+Combined historically, they become much more interesting.
+
+For example:
+
+```text
+Several AI infrastructure investments
+        +
+multiple AI infrastructure essays
+        +
+new specialist partner
+        +
+increasing lead-investment activity
+        ↓
+possible emerging investor conviction
+```
+
+Vantage should not immediately turn these observations into opaque AI-generated scores.
+
+The first objective is to build the underlying evidence and historical record reliably.
+
+---
+
+## From Investor Profiles to Investor Intelligence
+
+A conventional investor profile might answer:
+
+```text
+Accel
+
+Founded: ...
+Headquarters: ...
+Investments: ...
+Funds: ...
+Portfolio: ...
+```
+
+A mature Vantage investor profile could increasingly answer:
+
+```text
+ACCEL
+
+Observed activity
+─────────────────
+
+Recent investments
+Lead investments
+Follow-on investments
+
+Stage exposure
+Sector exposure
+Geographic exposure
+
+Frequent co-investors
+
+Recent fund activity
+
+Recent thesis activity
+
+Changes in activity over time
+
+Underlying evidence
+```
+
+Eventually this could evolve toward questions such as:
+
+```text
+Which sectors is Accel increasing exposure to?
+
+Which investors are becoming more active
+in European defence technology?
+
+Which firms are increasingly leading
+AI infrastructure rounds?
+
+Which investors are moving earlier
+or later in funding stage?
+
+Which VC firms are repeatedly investing
+and publishing around the same emerging theme?
+```
+
+This is the direction in which Vantage becomes more than a database.
+
+---
+
+## From Records to Signals
+
+The long-term analytical progression is:
+
+```text
+Evidence
+   ↓
+Event
+   ↓
+Entity
+   ↓
+Relationship
+   ↓
+Historical activity
+   ↓
+Change over time
+   ↓
+Signal
+```
+
+For example:
+
+```text
+Accel invests in Company A
+Index invests in Company B
+Lightspeed invests in Company C
+        ↓
+All three companies are European defence software
+        ↓
+Additional related investments appear
+        ↓
+Investor activity increases over multiple periods
+        ↓
+Potential ecosystem signal
+```
+
+A future Vantage intelligence surface might therefore identify:
+
+```text
+VANTAGE SIGNAL
+
+Observed investment activity among tracked
+venture firms in European defence technology
+has increased materially over recent periods.
+
+Active investors:
+Accel
+Index Ventures
+Lightspeed
+...
+
+Supporting events:
+...
+
+Supporting evidence:
+...
+```
+
+The important principle is that the signal should remain traceable back to the underlying evidence.
+
+---
+
+## Evidence-Backed Intelligence
+
+Evidence provenance is therefore an important potential differentiator.
+
+Vantage should preserve the chain:
+
+```text
+Intelligence
+     ↓
+Metric / pattern
+     ↓
+Canonical events
+     ↓
+Entities
+     ↓
+Supporting evidence
+     ↓
+Original public sources
+```
+
+This means users should increasingly be able to move from:
+
+```text
+"European defence investment appears to be accelerating."
+```
+
+to:
+
+```text
+Why?
+```
+
+and inspect:
+
+- Which investors changed behaviour
+- Which financing events contributed
+- Which companies were involved
+- Which source documents support those events
+
+The objective is not merely to generate conclusions.
+
+It is to build **inspectable intelligence**.
+
+---
+
+## Competitive Positioning
+
+Vantage should therefore avoid positioning itself simply as:
+
+```text
+A cheaper PitchBook
+```
+
+or:
+
+```text
+Another startup database
+```
+
+or:
+
+```text
+An AI news aggregator
+```
+
+The more interesting long-term positioning is:
+
+> **An evidence-backed venture intelligence system that continuously observes companies, investors and ecosystems, builds a historical model of their activity, and identifies meaningful changes in venture behaviour.**
+
+This positioning will continue to evolve as the product and dataset mature.
+
+Existing platforms already provide increasingly sophisticated real-time signals, AI research and investor intelligence.
+
+Vantage should therefore assume that this is a competitive market rather than claim an entirely new category.
+
+Its differentiation must ultimately come from execution:
+
+- Source coverage
+- Evidence quality
+- Entity and event integrity
+- Investor-centric intelligence
+- Historical behavioural analysis
+- Transparency of underlying evidence
+- Speed of detecting meaningful changes
+
+---
+
+## Strategic Wedge
+
+The initial wedge should remain narrower than the ultimate product vision.
+
+Vantage should first become exceptionally good at understanding:
+
+> **What are important venture investors actually doing?**
+
+This includes:
+
+```text
+What are they investing in?
+
+What are they leading?
+
+What sectors are they entering?
+
+What stages are they targeting?
+
+Where are they investing?
+
+Who are they investing alongside?
+
+What funds are they raising?
+
+What are they writing about?
+
+How is all of this changing?
+```
+
+This is why Source Network V2 prioritizes direct investor / VC sources.
+
+Editorial reporting tells Vantage:
+
+```text
+"What became news?"
+```
+
+Investor first-party sources additionally tell Vantage:
+
+```text
+"What did this investor choose to do?"
+```
+
+Ecosystem sources can increasingly tell Vantage:
+
+```text
+"What may be emerging before it becomes major news?"
+```
+
+Together:
+
+```text
+Editorial evidence
+        +
+Investor behaviour
+        +
+Ecosystem signals
+        +
+Historical structured data
+        ↓
+Venture intelligence
+```
+
+That is the strategic direction Vantage should test.
+
 ---
 
 # Development Philosophy
@@ -1700,7 +2204,7 @@ The next product stage is:
 companies and ecosystems are actually doing."
 ```
 
-And the longer-term ambition is:
+The longer-term ambition is:
 
 ```text
 "Tell me what is changing across the venture ecosystem,
@@ -1708,7 +2212,7 @@ who is driving that change, and where meaningful
 new signals are beginning to emerge."
 ```
 
-That is the path from:
+That creates the progression:
 
 ```text
 NEWS AGGREGATOR
@@ -1720,6 +2224,38 @@ VENTURE INTELLIGENCE SYSTEM
 VENTURE SIGNAL PLATFORM
 ```
 
+Vantage is not attempting simply to recreate an incumbent private-market database.
+
+The objective is to build a system that continuously converts a broad public evidence universe into structured historical knowledge and then uses that history to understand **behaviour and change**.
+
+The central strategic question becomes:
+
+> **What are important venture-market participants doing, how is that behaviour changing, and what can those changes tell us?**
+
+The immediate focus is deliberately narrower:
+
+> **Build the best possible observable model of investor / VC behaviour using editorial reporting, investor first-party evidence, ecosystem signals, and structured historical activity.**
+
+If that foundation becomes sufficiently broad and trustworthy, increasingly valuable intelligence follows naturally:
+
+```text
+Source coverage
+      ↓
+Evidence
+      ↓
+Canonical entities & events
+      ↓
+Historical behaviour
+      ↓
+Metrics
+      ↓
+Change
+      ↓
+Signals
+      ↓
+Intelligence
+```
+
 The objective is not merely to collect venture information.
 
-It is to build a trustworthy system that continuously converts a broad public evidence universe into structured market knowledge and increasingly useful signals.
+It is to build a trustworthy, evidence-backed system for understanding how the venture ecosystem is moving.
