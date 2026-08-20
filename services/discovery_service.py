@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from xml.etree import ElementTree
 
@@ -94,9 +94,6 @@ def parse_iso_datetime(value):
         return None
 
     try:
-        # Python's fromisoformat() does not use "Z" directly
-        # in all supported environments, so normalize it to
-        # an explicit UTC offset.
         if value.endswith("Z"):
             value = (
                 value[:-1]
@@ -233,20 +230,6 @@ def discover_rss_source(source):
 # Sitemap discovery
 # ---------------------------------------------------------
 
-def _xml_local_name(tag):
-    """
-    Return an XML tag name without any namespace prefix.
-    """
-
-    if tag is None:
-        return ""
-
-    return (
-        tag.name
-        .split("}")[-1]
-        .lower()
-    )
-
 def _extract_sitemap_urls(xml):
     """
     Extract URL records from one XML sitemap.
@@ -256,8 +239,8 @@ def _extract_sitemap_urls(xml):
     - standard <urlset> sitemaps
     - <sitemapindex> files that point to child sitemaps
 
-    Uses Python's standard-library XML parser so sitemap
-    discovery does not require an additional XML dependency.
+    Sitemap <lastmod> is retained only as discovery metadata.
+    It is not treated as the publication date of the page.
 
     Returns:
         {
@@ -372,7 +355,7 @@ def _extract_sitemap_urls(xml):
             records.append(
                 {
                     "url": loc,
-                    "published_at": (
+                    "lastmod": (
                         parse_iso_datetime(
                             lastmod
                         )
@@ -399,20 +382,6 @@ def _url_matches_source_rules(
 ):
     """
     Apply optional generic URL inclusion/exclusion rules.
-
-    Example configuration:
-
-        "include_url_patterns": [
-            "/insights/",
-            "/companies/",
-        ]
-
-        "exclude_url_patterns": [
-            "/team/",
-            "/jobs/",
-        ]
-
-    No rules means keep the URL.
     """
 
     include_patterns = source.get(
@@ -443,13 +412,58 @@ def _url_matches_source_rules(
     return True
 
 
+def _sitemap_record_is_recent(
+    record,
+    source,
+):
+    """
+    Apply an optional sitemap recency window.
+
+    Sitemap lastmod is used only as a discovery hint.
+    It is not treated as the document's publication date.
+
+    Records without lastmod are retained because absence of
+    sitemap metadata should not cause potentially useful
+    evidence to disappear.
+    """
+
+    max_age_days = source.get(
+        "max_age_days"
+    )
+
+    if max_age_days is None:
+        return True
+
+    lastmod = record.get(
+        "lastmod"
+    )
+
+    if lastmod is None:
+        return True
+
+    if lastmod.tzinfo is None:
+        lastmod = lastmod.replace(
+            tzinfo=timezone.utc
+        )
+
+    cutoff = (
+        datetime.now(
+            timezone.utc
+        )
+        - timedelta(
+            days=max_age_days
+        )
+    )
+
+    return lastmod >= cutoff
+
+
 def _title_from_url(url):
     """
     Produce a lightweight fallback title from the URL path.
 
-    Full page titles will eventually be available when content
-    is fetched. This title exists mainly so sitemap-discovered
-    items have a usable normalized shape immediately.
+    Full page titles may later be available when the page
+    itself is retrieved.
     """
 
     path = (
@@ -474,6 +488,72 @@ def _title_from_url(url):
     return title
 
 
+def _build_sitemap_evidence_item(
+    record,
+    source,
+):
+    """
+    Convert one accepted sitemap record into the normalized
+    Vantage evidence contract.
+
+    Sitemap lastmod deliberately does not populate
+    published_at.
+    """
+
+    url = record["url"]
+
+    return {
+        "title": _title_from_url(
+            url
+        ),
+        "url": url,
+        "published_at": None,
+        "summary": "",
+        "source": source["name"],
+        "source_type": source.get(
+            "type",
+            "publication",
+        ),
+        "discovery_method": "sitemap",
+    }
+
+
+def _records_to_sitemap_evidence(
+    records,
+    source,
+):
+    """
+    Apply generic recency and URL rules to sitemap records
+    and normalize accepted records into evidence items.
+    """
+
+    items = []
+
+    for record in records:
+        if not _sitemap_record_is_recent(
+            record,
+            source,
+        ):
+            continue
+
+        url = record["url"]
+
+        if not _url_matches_source_rules(
+            url,
+            source,
+        ):
+            continue
+
+        items.append(
+            _build_sitemap_evidence_item(
+                record,
+                source,
+            )
+        )
+
+    return items
+
+
 def _discover_sitemap_urlset(
     source,
     sitemap_url,
@@ -496,37 +576,10 @@ def _discover_sitemap_urlset(
     if parsed["type"] != "urlset":
         return None
 
-    items = []
-
-    for record in parsed["items"]:
-        url = record["url"]
-
-        if not _url_matches_source_rules(
-            url,
-            source,
-        ):
-            continue
-
-        items.append(
-            {
-                "title": _title_from_url(
-                    url
-                ),
-                "url": url,
-                "published_at": record[
-                    "published_at"
-                ],
-                "summary": "",
-                "source": source["name"],
-                "source_type": source.get(
-                    "type",
-                    "publication",
-                ),
-                "discovery_method": "sitemap",
-            }
-        )
-
-    return items
+    return _records_to_sitemap_evidence(
+        parsed["items"],
+        source,
+    )
 
 
 def discover_sitemap_source(source):
@@ -538,8 +591,11 @@ def discover_sitemap_source(source):
     - a direct URL-set sitemap
     - a sitemap index containing child sitemaps
 
-    Optional source configuration can limit which child
-    sitemaps and discovered URLs are considered.
+    Optional source configuration can limit:
+
+    - which child sitemaps are traversed
+    - which page URLs are retained
+    - how old sitemap records may be
     """
 
     sitemap_url = source["url"]
@@ -556,37 +612,10 @@ def discover_sitemap_source(source):
     )
 
     if parsed["type"] == "urlset":
-        items = []
-
-        for record in parsed["items"]:
-            url = record["url"]
-
-            if not _url_matches_source_rules(
-                url,
-                source,
-            ):
-                continue
-
-            items.append(
-                {
-                    "title": _title_from_url(
-                        url
-                    ),
-                    "url": url,
-                    "published_at": record[
-                        "published_at"
-                    ],
-                    "summary": "",
-                    "source": source["name"],
-                    "source_type": source.get(
-                        "type",
-                        "publication",
-                    ),
-                    "discovery_method": "sitemap",
-                }
-            )
-
-        return items
+        return _records_to_sitemap_evidence(
+            parsed["items"],
+            source,
+        )
 
     if parsed["type"] == "sitemapindex":
         all_items = []

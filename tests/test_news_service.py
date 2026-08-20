@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from services.discovery_service import (
     _extract_sitemap_urls,
+    _sitemap_record_is_recent,
     _title_from_url,
     _url_matches_source_rules,
     clean_summary,
@@ -43,10 +44,7 @@ def test_parse_rss_date_returns_datetime():
         datetime,
     )
 
-    assert (
-        result.year
-        == 2026
-    )
+    assert result.year == 2026
 
 
 def test_parse_rss_date_returns_none_for_invalid_date():
@@ -123,14 +121,14 @@ def test_extract_urlset_sitemap():
 
     assert isinstance(
         result["items"][0][
-            "published_at"
+            "lastmod"
         ],
         datetime,
     )
 
     assert (
         result["items"][1][
-            "published_at"
+            "lastmod"
         ]
         is None
     )
@@ -210,6 +208,58 @@ def test_url_rules_apply_exclusions():
     )
 
 
+def test_sitemap_recency_keeps_recent_record():
+    source = {
+        "max_age_days": 180,
+    }
+
+    record = {
+        "lastmod": datetime.now(
+            timezone.utc
+        ),
+    }
+
+    assert _sitemap_record_is_recent(
+        record,
+        source,
+    )
+
+
+def test_sitemap_recency_rejects_old_record():
+    source = {
+        "max_age_days": 180,
+    }
+
+    record = {
+        "lastmod": datetime(
+            2020,
+            1,
+            1,
+            tzinfo=timezone.utc,
+        ),
+    }
+
+    assert not _sitemap_record_is_recent(
+        record,
+        source,
+    )
+
+
+def test_sitemap_recency_keeps_unknown_date():
+    source = {
+        "max_age_days": 180,
+    }
+
+    record = {
+        "lastmod": None,
+    }
+
+    assert _sitemap_record_is_recent(
+        record,
+        source,
+    )
+
+
 def test_title_from_url():
     result = _title_from_url(
         "https://example.com/"
@@ -275,6 +325,19 @@ def test_filter_vc_articles_keeps_relevant_publication_articles():
     )
 
     assert len(result) == 2
+
+    assert (
+        result[0]["title"]
+        == "Startup raises $100M Series C"
+    )
+
+    assert (
+        result[1]["title"]
+        == (
+            "New VC fund targets "
+            "European fintech"
+        )
+    )
 
 
 def test_filter_vc_articles_keeps_investor_evidence():
