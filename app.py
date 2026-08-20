@@ -1,7 +1,14 @@
 import logging
 import click
 
-from flask import Flask, render_template, request, redirect, url_for
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+)
+
 from flask_migrate import Migrate
 
 from config import SOURCES
@@ -11,7 +18,9 @@ from models.company import Company
 from models.investor import Investor
 from models.funding_round import FundingRound
 from models.entity_alias import EntityAlias
-from models.entity_resolution_review import EntityResolutionReview
+from models.entity_resolution_review import (
+    EntityResolutionReview,
+)
 from models.fund import Fund
 from models.fund_close import FundClose
 
@@ -41,36 +50,76 @@ from services.data_cleanup_service import (
     reconcile_historical_funding_rounds,
 )
 
-logging.basicConfig(level=logging.INFO)
+from services.source_measurement_service import (
+    format_source_measurement_report,
+    get_source_measurements,
+)
 
-# Create the Flask application
+
+logging.basicConfig(
+    level=logging.INFO
+)
+
+
+# ---------------------------------------------------------
+# Application setup
+# ---------------------------------------------------------
+
 app = Flask(__name__)
 
-# After Flask app starts, connects to SQLite and creates tables if they don't exist
+app.config[
+    "SQLALCHEMY_DATABASE_URI"
+] = "sqlite:///vc_news.db"
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///vc_news.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config[
+    "SQLALCHEMY_TRACK_MODIFICATIONS"
+] = False
 
 db.init_app(app)
-migrate = Migrate(app, db)
 
-# Define the homepage route.
-# When a user visits "/", Flask runs the home() function.
+migrate = Migrate(
+    app,
+    db,
+)
+
+
+# ---------------------------------------------------------
+# Home
+# ---------------------------------------------------------
+
 @app.route("/")
 def home():
+    search_query = (
+        request.args.get(
+            "q",
+            "",
+        )
+        .lower()
+    )
 
-    # Read optional search, source and category filters from the URL query parameters
-    search_query = request.args.get("q", "").lower()
-    source_filter = request.args.get("source", "")
-    category_filter = request.args.get("category", "")
+    source_filter = (
+        request.args.get(
+            "source",
+            "",
+        )
+    )
 
-    # Start a database query
+    category_filter = (
+        request.args.get(
+            "category",
+            "",
+        )
+    )
+
     query = Article.query
 
     if search_query:
         query = query.filter(
-            Article.title.ilike(f"%{search_query}%")
+            Article.title.ilike(
+                f"%{search_query}%"
+            )
         )
+
     if source_filter:
         query = query.filter_by(
             source=source_filter
@@ -81,11 +130,14 @@ def home():
             category=category_filter
         )
 
-    articles = query.order_by(
-        Article.published_at.desc()
-    ).all()
+    articles = (
+        query
+        .order_by(
+            Article.published_at.desc()
+        )
+        .all()
+    )
 
-    # Render index.html and pass the article/filter data into the template
     return render_template(
         "index.html",
         articles=articles,
@@ -95,40 +147,83 @@ def home():
         category_filter=category_filter,
     )
 
+
+# ---------------------------------------------------------
+# Sources
+# ---------------------------------------------------------
+
 @app.route("/sources")
 def sources():
-        source_health = get_source_health()
+    source_health = (
+        get_source_health()
+    )
 
-        for source in source_health:
-             source["stored_articles"] = Article.query.filter_by(
-                  source=source["name"]
-             ).count()
-
-        return render_template(
-             "sources.html",
-             source_health=source_health,
+    for source in source_health:
+        source[
+            "stored_articles"
+        ] = (
+            Article.query
+            .filter_by(
+                source=source["name"]
+            )
+            .count()
         )
+
+    return render_template(
+        "sources.html",
+        source_health=source_health,
+    )
+
+
+# ---------------------------------------------------------
+# Funding
+# ---------------------------------------------------------
 
 @app.route("/funding")
 def funding():
-    funding_rounds = FundingRound.query.order_by(
-        FundingRound.announced_at.desc()
-    ).all()
+    funding_rounds = (
+        FundingRound.query
+        .order_by(
+            FundingRound
+            .announced_at
+            .desc()
+        )
+        .all()
+    )
 
     return render_template(
         "funding.html",
         funding_rounds=funding_rounds,
     )
 
-@app.route("/company/<int:company_id>")
-def company_profile(company_id):
-    company = Company.query.get_or_404(company_id)
 
-    funding_rounds = FundingRound.query.filter_by(
-        company_id=company.id
-    ).order_by(
-        FundingRound.announced_at.desc()
-    ).all()
+# ---------------------------------------------------------
+# Company
+# ---------------------------------------------------------
+
+@app.route(
+    "/company/<int:company_id>"
+)
+def company_profile(company_id):
+    company = (
+        Company.query
+        .get_or_404(
+            company_id
+        )
+    )
+
+    funding_rounds = (
+        FundingRound.query
+        .filter_by(
+            company_id=company.id
+        )
+        .order_by(
+            FundingRound
+            .announced_at
+            .desc()
+        )
+        .all()
+    )
 
     return render_template(
         "company.html",
@@ -136,15 +231,36 @@ def company_profile(company_id):
         funding_rounds=funding_rounds,
     )
 
-@app.route("/investor/<int:investor_id>")
-def investor_profile(investor_id):
-    investor = Investor.query.get_or_404(investor_id)
 
-    funding_rounds = FundingRound.query.filter(
-        FundingRound.investors.any(id=investor.id)
-    ).order_by(
-        FundingRound.announced_at.desc()
-    ).all()
+# ---------------------------------------------------------
+# Investor
+# ---------------------------------------------------------
+
+@app.route(
+    "/investor/<int:investor_id>"
+)
+def investor_profile(investor_id):
+    investor = (
+        Investor.query
+        .get_or_404(
+            investor_id
+        )
+    )
+
+    funding_rounds = (
+        FundingRound.query
+        .filter(
+            FundingRound.investors.any(
+                id=investor.id
+            )
+        )
+        .order_by(
+            FundingRound
+            .announced_at
+            .desc()
+        )
+        .all()
+    )
 
     funds = sorted(
         investor.funds,
@@ -162,50 +278,92 @@ def investor_profile(investor_id):
         funds=funds,
     )
 
+
+# ---------------------------------------------------------
+# Data quality
+# ---------------------------------------------------------
+
 @app.route("/data-quality")
 def data_quality():
-    summary = get_data_quality_summary()
+    summary = (
+        get_data_quality_summary()
+    )
 
     return render_template(
         "data_quality.html",
         summary=summary,
     )
 
-@app.route(
-    "/data-quality/review/<int:review_id>/approve",
-    methods=["POST"],
-)
-def approve_entity_review(review_id):
-    approve_resolution_review(review_id)
-
-    return redirect(
-        url_for("data_quality")
-    )
 
 @app.route(
-    "/data-quality/review/<int:review_id>/reject",
+    "/data-quality/review/"
+    "<int:review_id>/approve",
     methods=["POST"],
 )
-def reject_entity_review(review_id):
-    reject_resolution_review(review_id)
+def approve_entity_review(
+    review_id,
+):
+    approve_resolution_review(
+        review_id
+    )
 
     return redirect(
-        url_for("data_quality")
+        url_for(
+            "data_quality"
+        )
     )
+
+
+@app.route(
+    "/data-quality/review/"
+    "<int:review_id>/reject",
+    methods=["POST"],
+)
+def reject_entity_review(
+    review_id,
+):
+    reject_resolution_review(
+        review_id
+    )
+
+    return redirect(
+        url_for(
+            "data_quality"
+        )
+    )
+
+
+# ---------------------------------------------------------
+# Intelligence
+# ---------------------------------------------------------
 
 @app.route("/intelligence")
 def intelligence():
-    summary = get_intelligence_summary()
+    summary = (
+        get_intelligence_summary()
+    )
 
     return render_template(
         "intelligence.html",
         summary=summary,
     )
 
+
+# ---------------------------------------------------------
+# CLI
+# ---------------------------------------------------------
+
 @app.cli.group()
 def vantage():
-    """Project Vantage management commands."""
+    """
+    Project Vantage management commands.
+    """
     pass
+
+
+# ---------------------------------------------------------
+# CLI: intelligence ingestion
+# ---------------------------------------------------------
 
 @vantage.command("ingest")
 @click.option(
@@ -213,29 +371,44 @@ def vantage():
     default=10,
     type=int,
     show_default=True,
-    help="Maximum Funding Round articles to process.",
+    help=(
+        "Maximum Funding Round "
+        "articles to process."
+    ),
 )
 @click.option(
     "--fund-news-limit",
     default=10,
     type=int,
     show_default=True,
-    help="Maximum Fund News articles to process.",
+    help=(
+        "Maximum Fund News "
+        "articles to process."
+    ),
 )
 def ingest_command(
     funding_limit,
     fund_news_limit,
 ):
-    """Run the Vantage structured-intelligence pipeline."""
+    """
+    Run the Vantage structured-intelligence pipeline.
+    """
 
     click.echo("")
-    click.echo("Vantage Intelligence Pipeline")
-    click.echo("-----------------------------")
+    click.echo(
+        "Vantage Intelligence Pipeline"
+    )
+    click.echo(
+        "-----------------------------"
+    )
 
-    # Run the actual end-to-end pipeline first.
-    result = run_intelligence_pipeline(
-        funding_limit=funding_limit,
-        fund_news_limit=fund_news_limit,
+    result = (
+        run_intelligence_pipeline(
+            funding_limit=funding_limit,
+            fund_news_limit=(
+                fund_news_limit
+            ),
+        )
     )
 
     # ---------------------------------------------------------
@@ -283,6 +456,11 @@ def ingest_command(
     )
 
     click.echo(
+        f"Stale articles skipped:  "
+        f"{result['stale_articles_skipped']}"
+    )
+
+    click.echo(
         f"Content retrieved:       "
         f"{result['content_retrieved']}"
     )
@@ -324,7 +502,58 @@ def ingest_command(
     )
 
     click.echo("")
-    click.echo("Pipeline complete.")
+    click.echo(
+        "Pipeline complete."
+    )
+
+
+# ---------------------------------------------------------
+# CLI: source measurement
+# ---------------------------------------------------------
+
+@vantage.command("sources")
+def source_measurement_command():
+    """
+    Report persisted source contribution and yield.
+    """
+
+    measurements = (
+        get_source_measurements()
+    )
+
+    click.echo("")
+    click.echo(
+        "Vantage Source Measurement"
+    )
+    click.echo(
+        "--------------------------"
+    )
+    click.echo("")
+
+    click.echo(
+        format_source_measurement_report(
+            measurements
+        )
+    )
+
+    click.echo("")
+
+    click.echo(
+        "Confirmation % = confirmed funding evidence "
+        "/ processed funding evidence"
+    )
+
+    click.echo(
+        "Yield % = canonical funding events "
+        "/ stored evidence documents"
+    )
+
+    click.echo("")
+
+
+# ---------------------------------------------------------
+# CLI: funding reconciliation
+# ---------------------------------------------------------
 
 @vantage.command("reconcile")
 @click.option(
@@ -358,8 +587,10 @@ def reconcile_command(
     )
 
     click.echo("")
+
     click.echo(
-        f"Mode:                    {mode}"
+        f"Mode:                    "
+        f"{mode}"
     )
 
     try:
@@ -382,6 +613,7 @@ def reconcile_command(
         raise
 
     click.echo("")
+
     click.echo(
         f"Initial candidates:      "
         f"{result['initial_candidates']}"
@@ -401,12 +633,11 @@ def reconcile_command(
         for candidate in result[
             "candidates"
         ]:
-            click.echo(
-                ""
-            )
+            click.echo("")
 
             click.echo(
-                f"  {candidate['company_name']}"
+                f"  "
+                f"{candidate['company_name']}"
             )
 
             click.echo(
@@ -428,6 +659,7 @@ def reconcile_command(
             )
 
         click.echo("")
+
         click.echo(
             "No database changes were made."
         )
@@ -455,7 +687,9 @@ def reconcile_command(
             "Applied merges:"
         )
 
-        for merge in result["merges"]:
+        for merge in result[
+            "merges"
+        ]:
             click.echo(
                 "  "
                 f"{merge['company_name']}: "
@@ -470,6 +704,12 @@ def reconcile_command(
         "Reconciliation complete."
     )
 
-# Run the Flask development server when this file is executed directly
+
+# ---------------------------------------------------------
+# Development server
+# ---------------------------------------------------------
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(
+        debug=True
+    )
