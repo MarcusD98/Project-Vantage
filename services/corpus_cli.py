@@ -5,6 +5,10 @@ from services.corpus_operations_service import (
     run_stored_intelligence,
 )
 
+from services.fleet_cli import (
+    sync_command,
+)
+
 
 @click.command(
     "backfill"
@@ -66,6 +70,7 @@ def backfill_command(
     )
 
     click.echo("")
+
     click.echo(
         f"Articles discovered:     "
         f"{result['articles_discovered']}"
@@ -82,6 +87,7 @@ def backfill_command(
     )
 
     click.echo("")
+
     click.echo(
         f"Dates populated:         "
         f"{result['dates_populated']}"
@@ -172,6 +178,7 @@ def process_command(
     )
 
     click.echo("")
+
     click.echo(
         f"Articles selected:       "
         f"{result['articles_selected']}"
@@ -198,6 +205,7 @@ def process_command(
     )
 
     click.echo("")
+
     click.echo(
         f"Funding processed:       "
         f"{result['funding_processed']}"
@@ -209,6 +217,7 @@ def process_command(
     )
 
     click.echo("")
+
     click.echo(
         f"Fund news processed:     "
         f"{result['fund_news_processed']}"
@@ -220,6 +229,7 @@ def process_command(
     )
 
     click.echo("")
+
     click.echo(
         f"Processing failures:     "
         f"{result['processing_failed']}"
@@ -235,8 +245,8 @@ def register_corpus_commands(
     vantage_group,
 ):
     """
-    Register corpus-management commands under the existing
-    Vantage Flask CLI group.
+    Register corpus and source-platform commands under the
+    existing Vantage Flask CLI group.
     """
 
     vantage_group.add_command(
@@ -245,4 +255,8 @@ def register_corpus_commands(
 
     vantage_group.add_command(
         process_command
+    )
+
+    vantage_group.add_command(
+        sync_command
     )

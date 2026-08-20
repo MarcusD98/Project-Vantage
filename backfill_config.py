@@ -1,32 +1,24 @@
-BACKFILL_SOURCES = [
-    {
-        "name": "TechCrunch",
-        "url": "https://techcrunch.com/2026/",
-        "type": "publication",
-        "region": "Global",
-        "method": "html",
-        "enabled": True,
+from source_registry import (
+    get_discovery_sources,
+)
 
-        "link_selector": "h3 a",
 
-        "pagination_url_pattern": (
-            "https://techcrunch.com/"
-            "2026/page/{page}/"
-        ),
+# ---------------------------------------------------------
+# Historical source compatibility view
+# ---------------------------------------------------------
+#
+# Existing corpus/backfill services currently expect a flat
+# BACKFILL_SOURCES collection.
+#
+# Historical discovery is now defined on the same canonical
+# source object as incremental discovery.
+#
+# This compatibility view can disappear once fleet operations
+# consume the unified registry directly.
+# ---------------------------------------------------------
 
-        "include_url_patterns": [
-            "techcrunch.com/2026/",
-        ],
-
-        "exclude_url_patterns": [
-            "/page/",
-        ],
-
-        # Around one month of archive depth
-        # based on the live pilot.
-        "max_discovery_pages": 20,
-
-        # Hard discovery safety bound.
-        "max_discovery_items": 500,
-    },
-]
+BACKFILL_SOURCES = (
+    get_discovery_sources(
+        mode="historical",
+    )
+)
