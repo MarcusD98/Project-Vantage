@@ -101,21 +101,11 @@ SOURCES = [
         "method": "sitemap",
         "enabled": True,
 
-        # Discovery guard:
-        #
-        # Limit sitemap traversal using <lastmod>. This keeps
-        # large historical sitemaps operationally manageable.
-        #
-        # lastmod is NOT treated as publication date.
+        # Sitemap modification age is only a discovery hint.
         "max_age_days": 180,
 
-        # Intelligence guard:
-        #
-        # After the real page is retrieved and its actual
-        # publication date is known, only recent evidence is
-        # eligible for current intelligence processing.
-        #
-        # Older evidence remains stored in the corpus.
+        # Actual page publication date controls whether the
+        # evidence is eligible for current intelligence.
         "max_published_age_days": 180,
 
         "include_url_patterns": [
@@ -127,6 +117,47 @@ SOURCES = [
             "/news/portfolio",
             "/news/podcasts",
         ],
+    },
+
+    {
+        "name": "Index Ventures",
+        "url": "https://www.indexventures.com/sitemap.xml",
+        "type": "investor",
+        "region": "Global",
+        "method": "sitemap",
+        "enabled": True,
+
+        # Only traverse Index's Perspectives sitemap rather
+        # than companies, team, jobs, guides, etc.
+        "sitemap_include_patterns": [
+            "sitemap-perspectives.xml",
+        ],
+
+        # Candidate pages must belong to the Perspectives
+        # corpus.
+        "include_url_patterns": [
+            "/perspectives/",
+        ],
+
+        # Remove archive, taxonomy and relationship pages.
+        "exclude_url_regex_patterns": [
+            r"/perspectives/$",
+            r"/perspectives/\d+/$",
+            r"/perspectives/news(?:/\d+)?/$",
+            r"/perspectives/insights(?:/\d+)?/$",
+            r"/perspectives/relationship/",
+            r"/perspectives/team-member/",
+        ],
+
+        # Sitemap lastmod is only a discovery-priority signal.
+        "max_age_days": 180,
+
+        # Bound very large or heavily rewritten sitemaps.
+        "max_discovery_items": 100,
+
+        # The actual HTML publication date determines whether
+        # evidence is current enough for intelligence.
+        "max_published_age_days": 180,
     },
 ]
 

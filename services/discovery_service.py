@@ -1,6 +1,16 @@
+import re
 import logging
-from datetime import datetime, timedelta, timezone
-from email.utils import parsedate_to_datetime
+
+from datetime import (
+    datetime,
+    timedelta,
+    timezone,
+)
+
+from email.utils import (
+    parsedate_to_datetime,
+)
+
 from xml.etree import ElementTree
 
 import feedparser
@@ -202,24 +212,29 @@ def discover_rss_source(source):
                     "Untitled article",
                 ),
                 "url": url,
-                "published_at": parse_rss_date(
-                    entry.get(
-                        "published",
-                        "",
-                    )
-                ),
-                "summary": clean_summary(
-                    entry.get(
-                        "summary",
-                        "",
-                    )
-                ),
-                "source": source["name"],
-                "source_type": source.get(
-                    "type",
-                    "publication",
-                ),
-                "discovery_method": "rss",
+                "published_at":
+                    parse_rss_date(
+                        entry.get(
+                            "published",
+                            "",
+                        )
+                    ),
+                "summary":
+                    clean_summary(
+                        entry.get(
+                            "summary",
+                            "",
+                        )
+                    ),
+                "source":
+                    source["name"],
+                "source_type":
+                    source.get(
+                        "type",
+                        "publication",
+                    ),
+                "discovery_method":
+                    "rss",
             }
         )
 
@@ -244,8 +259,10 @@ def _extract_sitemap_urls(xml):
 
     Returns:
         {
-            "type": "urlset" | "sitemapindex" | None,
-            "items": [...]
+            "type":
+                "urlset" | "sitemapindex" | None,
+            "items":
+                [...]
         }
     """
 
@@ -308,8 +325,10 @@ def _extract_sitemap_urls(xml):
                 break
 
         return {
-            "type": "sitemapindex",
-            "items": sitemap_urls,
+            "type":
+                "sitemapindex",
+            "items":
+                sitemap_urls,
         }
 
     if root_name == "urlset":
@@ -375,13 +394,17 @@ def _extract_sitemap_urls(xml):
         "items": [],
     }
 
-
 def _url_matches_source_rules(
     url,
     source,
 ):
     """
     Apply optional generic URL inclusion/exclusion rules.
+
+    Supports:
+    - substring inclusion
+    - substring exclusion
+    - regex exclusion
     """
 
     include_patterns = source.get(
@@ -394,18 +417,36 @@ def _url_matches_source_rules(
         [],
     )
 
+    exclude_regex_patterns = source.get(
+        "exclude_url_regex_patterns",
+        [],
+    )
+
     if include_patterns:
         if not any(
             pattern.lower()
             in url.lower()
-            for pattern in include_patterns
+            for pattern
+            in include_patterns
         ):
             return False
 
     if any(
         pattern.lower()
         in url.lower()
-        for pattern in exclude_patterns
+        for pattern
+        in exclude_patterns
+    ):
+        return False
+
+    if any(
+        re.search(
+            pattern,
+            url,
+            flags=re.IGNORECASE,
+        )
+        for pattern
+        in exclude_regex_patterns
     ):
         return False
 
@@ -417,7 +458,7 @@ def _sitemap_record_is_recent(
     source,
 ):
     """
-    Apply an optional sitemap recency window.
+    Apply an optional sitemap modification-age window.
 
     Sitemap lastmod is used only as a discovery hint.
     It is not treated as the document's publication date.
@@ -456,6 +497,132 @@ def _sitemap_record_is_recent(
     )
 
     return lastmod >= cutoff
+
+
+def _normalize_sitemap_datetime(
+    value,
+):
+    """
+    Normalize sitemap timestamps to timezone-aware UTC.
+
+    Missing timestamps sort behind timestamped records.
+    """
+
+    if value is None:
+        return datetime.min.replace(
+            tzinfo=timezone.utc
+        )
+
+    if value.tzinfo is None:
+        return value.replace(
+            tzinfo=timezone.utc
+        )
+
+    return value.astimezone(
+        timezone.utc
+    )
+
+
+def _sort_sitemap_records(
+    records,
+):
+    """
+    Sort sitemap candidates by lastmod newest-first.
+
+    lastmod remains only a discovery-priority signal.
+    """
+
+    return sorted(
+        records,
+        key=lambda record:
+            _normalize_sitemap_datetime(
+                record.get(
+                    "lastmod"
+                )
+            ),
+        reverse=True,
+    )
+
+
+def _limit_sitemap_records(
+    records,
+    source,
+):
+    """
+    Apply an optional source-level sitemap candidate cap.
+
+    max_discovery_items limits how many candidate URLs leave
+    sitemap discovery after filtering and priority ordering.
+
+    This protects Vantage from very large or heavily modified
+    historical sitemaps without confusing sitemap lastmod with
+    actual publication recency.
+    """
+
+    max_items = source.get(
+        "max_discovery_items"
+    )
+
+    if max_items is None:
+        return records
+
+    try:
+        max_items = int(
+            max_items
+        )
+
+    except (
+        TypeError,
+        ValueError,
+    ):
+        return records
+
+    if max_items <= 0:
+        return []
+
+    return records[
+        :max_items
+    ]
+
+
+def _filter_sitemap_records(
+    records,
+    source,
+):
+    """
+    Apply generic sitemap discovery rules before evidence
+    normalization.
+    """
+
+    accepted = []
+
+    for record in records:
+        if not _sitemap_record_is_recent(
+            record,
+            source,
+        ):
+            continue
+
+        url = record["url"]
+
+        if not _url_matches_source_rules(
+            url,
+            source,
+        ):
+            continue
+
+        accepted.append(
+            record
+        )
+
+    accepted = _sort_sitemap_records(
+        accepted
+    )
+
+    return _limit_sitemap_records(
+        accepted,
+        source,
+    )
 
 
 def _title_from_url(url):
@@ -503,18 +670,31 @@ def _build_sitemap_evidence_item(
     url = record["url"]
 
     return {
-        "title": _title_from_url(
-            url
-        ),
-        "url": url,
-        "published_at": None,
-        "summary": "",
-        "source": source["name"],
-        "source_type": source.get(
-            "type",
-            "publication",
-        ),
-        "discovery_method": "sitemap",
+        "title":
+            _title_from_url(
+                url
+            ),
+
+        "url":
+            url,
+
+        "published_at":
+            None,
+
+        "summary":
+            "",
+
+        "source":
+            source["name"],
+
+        "source_type":
+            source.get(
+                "type",
+                "publication",
+            ),
+
+        "discovery_method":
+            "sitemap",
     }
 
 
@@ -523,43 +703,33 @@ def _records_to_sitemap_evidence(
     source,
 ):
     """
-    Apply generic recency and URL rules to sitemap records
-    and normalize accepted records into evidence items.
+    Apply generic sitemap filtering, priority ordering and
+    candidate limits, then normalize accepted records into
+    evidence items.
     """
 
-    items = []
+    accepted_records = (
+        _filter_sitemap_records(
+            records,
+            source,
+        )
+    )
 
-    for record in records:
-        if not _sitemap_record_is_recent(
+    return [
+        _build_sitemap_evidence_item(
             record,
             source,
-        ):
-            continue
-
-        url = record["url"]
-
-        if not _url_matches_source_rules(
-            url,
-            source,
-        ):
-            continue
-
-        items.append(
-            _build_sitemap_evidence_item(
-                record,
-                source,
-            )
         )
+        for record
+        in accepted_records
+    ]
 
-    return items
 
-
-def _discover_sitemap_urlset(
-    source,
+def _fetch_sitemap_urlset_records(
     sitemap_url,
 ):
     """
-    Discover normalized evidence from one URL-set sitemap.
+    Fetch one child URL-set sitemap and return its raw records.
     """
 
     xml = fetch_source_document(
@@ -576,13 +746,12 @@ def _discover_sitemap_urlset(
     if parsed["type"] != "urlset":
         return None
 
-    return _records_to_sitemap_evidence(
-        parsed["items"],
-        source,
-    )
+    return parsed["items"]
 
 
-def discover_sitemap_source(source):
+def discover_sitemap_source(
+    source,
+):
     """
     Discover normalized evidence from a sitemap.
 
@@ -595,7 +764,11 @@ def discover_sitemap_source(source):
 
     - which child sitemaps are traversed
     - which page URLs are retained
-    - how old sitemap records may be
+    - how old sitemap modifications may be
+    - how many sitemap candidates are returned
+
+    Candidate limits are applied globally across selected
+    child sitemaps rather than independently per child.
     """
 
     sitemap_url = source["url"]
@@ -618,7 +791,7 @@ def discover_sitemap_source(source):
         )
 
     if parsed["type"] == "sitemapindex":
-        all_items = []
+        all_records = []
 
         child_patterns = source.get(
             "sitemap_include_patterns",
@@ -630,25 +803,28 @@ def discover_sitemap_source(source):
                 if not any(
                     pattern.lower()
                     in child_url.lower()
-                    for pattern in child_patterns
+                    for pattern
+                    in child_patterns
                 ):
                     continue
 
-            child_items = (
-                _discover_sitemap_urlset(
-                    source,
-                    child_url,
+            child_records = (
+                _fetch_sitemap_urlset_records(
+                    child_url
                 )
             )
 
-            if child_items is None:
+            if child_records is None:
                 continue
 
-            all_items.extend(
-                child_items
+            all_records.extend(
+                child_records
             )
 
-        return all_items
+        return _records_to_sitemap_evidence(
+            all_records,
+            source,
+        )
 
     logger.warning(
         "Unsupported or invalid sitemap for source '%s': %s",
