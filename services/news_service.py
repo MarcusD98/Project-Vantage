@@ -1,6 +1,6 @@
 import logging
 
-from email.utils import parsedate_to_datetime
+from datetime import datetime, timezone
 
 from config import SOURCES
 
@@ -24,9 +24,8 @@ def get_source_health():
     """
     Perform live diagnostic checks of configured sources.
 
-    Source-health monitoring remains RSS-oriented during the
-    first Source Network V2 refactor. It will be generalized
-    once additional discovery adapters exist.
+    Source health remains RSS-oriented until additional
+    discovery adapters are implemented.
     """
 
     source_health = []
@@ -133,42 +132,41 @@ def deduplicate_articles(articles):
 # Date handling
 # ---------------------------------------------------------
 
-def parse_article_date(article):
-    try:
-        return parsedate_to_datetime(
-            article["published_at"]
+def _sortable_datetime(value):
+    """
+    Return a timezone-aware datetime suitable for sorting.
+
+    Naive datetimes are treated as UTC.
+
+    Missing dates sort behind dated evidence.
+    """
+
+    if value is None:
+        return datetime.min.replace(
+            tzinfo=timezone.utc
         )
 
-    except (
-        TypeError,
-        ValueError,
-    ):
-        return None
+    if value.tzinfo is None:
+        return value.replace(
+            tzinfo=timezone.utc
+        )
+
+    return value
 
 
 def sort_articles_by_date(articles):
-    dated_articles = []
-
-    for article in articles:
-        parsed_date = parse_article_date(
-            article
-        )
-
-        if parsed_date is None:
-            continue
-
-        article["parsed_date"] = (
-            parsed_date
-        )
-
-        dated_articles.append(
-            article
-        )
+    """
+    Sort evidence newest-first without dropping undated items.
+    """
 
     return sorted(
-        dated_articles,
+        articles,
         key=lambda article: (
-            article["parsed_date"]
+            _sortable_datetime(
+                article.get(
+                    "published_at"
+                )
+            )
         ),
         reverse=True,
     )
@@ -317,16 +315,11 @@ def process_news_sources():
     """
     Discover and process all enabled Vantage sources.
 
-    Discovery-method-specific acquisition now happens behind
+    Acquisition-specific discovery happens behind
     discover_source().
 
-    The downstream pipeline remains responsible for:
-    - cross-source URL deduplication
-    - sorting
-    - relevance filtering
-    - categorization
-
-    This function does not persist anything.
+    All discovered evidence should already conform to the
+    normalized evidence contract.
     """
 
     all_articles = []
@@ -408,8 +401,7 @@ def save_articles_to_database(
     articles,
 ):
     """
-    Add previously unseen articles to the current database
-    session.
+    Persist previously unseen normalized evidence.
 
     Transaction ownership belongs to the caller.
     """
@@ -429,11 +421,19 @@ def save_articles_to_database(
         db_article = Article(
             title=article["title"],
             source=article["source"],
+            source_type=article.get(
+                "source_type"
+            ),
+            discovery_method=article.get(
+                "discovery_method"
+            ),
             url=article["url"],
-            published_at=article[
-                "parsed_date"
-            ],
-            summary=article["summary"],
+            published_at=article.get(
+                "published_at"
+            ),
+            summary=article.get(
+                "summary"
+            ),
             category=article["category"],
         )
 
@@ -454,8 +454,8 @@ def save_articles_to_database(
 
 def ingest_news_sources():
     """
-    Run the canonical Vantage source-processing flow and add
-    new relevant evidence to the current database session.
+    Run the canonical Vantage discovery-processing flow and
+    persist new relevant evidence.
 
     Transaction ownership belongs to the caller.
     """

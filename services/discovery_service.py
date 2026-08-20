@@ -1,5 +1,7 @@
 import logging
 
+from email.utils import parsedate_to_datetime
+
 import feedparser
 
 from bs4 import BeautifulSoup
@@ -31,6 +33,31 @@ def clean_summary(summary):
     )
 
 
+def parse_rss_date(value):
+    """
+    Convert an RSS-style publication date into a Python
+    datetime.
+
+    Invalid or missing dates return None rather than causing
+    the evidence item to be discarded.
+    """
+
+    if not value:
+        return None
+
+    try:
+        return parsedate_to_datetime(
+            value
+        )
+
+    except (
+        TypeError,
+        ValueError,
+        OverflowError,
+    ):
+        return None
+
+
 # ---------------------------------------------------------
 # RSS discovery
 # ---------------------------------------------------------
@@ -39,7 +66,7 @@ def fetch_rss_feed(feed_url):
     """
     Fetch and parse an RSS feed.
 
-    Returns the parsed feed when usable, otherwise None.
+    A malformed-but-readable feed may still be usable.
     """
 
     feed = feedparser.parse(
@@ -65,10 +92,10 @@ def fetch_rss_feed(feed_url):
 
 def discover_rss_source(source):
     """
-    Discover evidence items from one RSS-configured source.
+    Discover normalized evidence items from one RSS source.
 
-    The returned dictionaries use the normalized discovery
-    shape expected by the rest of the Vantage ingestion layer.
+    Dates are normalized here so downstream services do not
+    need to understand RSS-specific date formats.
     """
 
     feed = fetch_rss_feed(
@@ -95,16 +122,12 @@ def discover_rss_source(source):
                     "title",
                     "Untitled article",
                 ),
-                "source": source["name"],
-                "source_type": source.get(
-                    "type",
-                    "publication",
-                ),
-                "discovery_method": "rss",
                 "url": url,
-                "published_at": entry.get(
-                    "published",
-                    "",
+                "published_at": parse_rss_date(
+                    entry.get(
+                        "published",
+                        "",
+                    )
                 ),
                 "summary": clean_summary(
                     entry.get(
@@ -112,6 +135,12 @@ def discover_rss_source(source):
                         "",
                     )
                 ),
+                "source": source["name"],
+                "source_type": source.get(
+                    "type",
+                    "publication",
+                ),
+                "discovery_method": "rss",
             }
         )
 
@@ -126,12 +155,8 @@ def discover_source(source):
     """
     Discover normalized evidence from one configured source.
 
-    Source-specific acquisition logic belongs behind this
+    Acquisition-method-specific logic belongs behind this
     boundary.
-
-    Source Network V2 initially supports RSS only through the
-    generic interface. Sitemap and HTML adapters will be added
-    next without requiring the caller to change.
     """
 
     method = (

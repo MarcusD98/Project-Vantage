@@ -1,9 +1,12 @@
+from datetime import datetime, timezone
+
 from services.discovery_service import (
+    clean_summary,
     discover_source,
+    parse_rss_date,
 )
 
 from services.news_service import (
-    clean_summary,
     deduplicate_articles,
     filter_vc_articles,
     sort_articles_by_date,
@@ -24,6 +27,30 @@ def test_clean_summary_removes_html():
         result
         == "Startup raises $50M."
     )
+
+
+def test_parse_rss_date_returns_datetime():
+    result = parse_rss_date(
+        "Mon, 17 Aug 2026 10:00:00 +0000"
+    )
+
+    assert isinstance(
+        result,
+        datetime,
+    )
+
+    assert (
+        result.year
+        == 2026
+    )
+
+
+def test_parse_rss_date_returns_none_for_invalid_date():
+    result = parse_rss_date(
+        "not a real date"
+    )
+
+    assert result is None
 
 
 def test_deduplicate_articles_removes_duplicate_urls():
@@ -95,23 +122,35 @@ def test_sort_articles_by_date_newest_first():
     articles = [
         {
             "title": "Older article",
-            "published_at": (
-                "Mon, 17 Aug 2026 "
-                "10:00:00 +0000"
+            "published_at": datetime(
+                2026,
+                8,
+                17,
+                10,
+                0,
+                tzinfo=timezone.utc,
             ),
         },
         {
             "title": "Newest article",
-            "published_at": (
-                "Mon, 17 Aug 2026 "
-                "15:00:00 +0000"
+            "published_at": datetime(
+                2026,
+                8,
+                17,
+                15,
+                0,
+                tzinfo=timezone.utc,
             ),
         },
         {
             "title": "Middle article",
-            "published_at": (
-                "Mon, 17 Aug 2026 "
-                "12:00:00 +0000"
+            "published_at": datetime(
+                2026,
+                8,
+                17,
+                12,
+                0,
+                tzinfo=timezone.utc,
             ),
         },
     ]
@@ -133,6 +172,40 @@ def test_sort_articles_by_date_newest_first():
     assert (
         result[2]["title"]
         == "Older article"
+    )
+
+
+def test_sort_articles_preserves_undated_items():
+    articles = [
+        {
+            "title": "Undated article",
+            "published_at": None,
+        },
+        {
+            "title": "Dated article",
+            "published_at": datetime(
+                2026,
+                8,
+                17,
+                tzinfo=timezone.utc,
+            ),
+        },
+    ]
+
+    result = sort_articles_by_date(
+        articles
+    )
+
+    assert len(result) == 2
+
+    assert (
+        result[0]["title"]
+        == "Dated article"
+    )
+
+    assert (
+        result[1]["title"]
+        == "Undated article"
     )
 
 
