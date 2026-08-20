@@ -1,23 +1,14 @@
-from datetime import (
-    datetime,
-)
+from datetime import datetime
 
 from models.article import (
     Article,
     db,
 )
 
-from models.company import (
-    Company,
-)
-
-from models.funding_round import (
-    FundingRound,
-)
-
-from models.investor import (
-    Investor,
-)
+from models.company import Company
+from models.entity_alias import EntityAlias
+from models.funding_round import FundingRound
+from models.investor import Investor
 
 from services.investor_intelligence_service import (
     get_investor_profile,
@@ -35,9 +26,7 @@ AS_OF = datetime(
 )
 
 
-def _investor(
-    name,
-):
+def _investor(name):
     investor = Investor(
         name=name
     )
@@ -121,6 +110,53 @@ def test_unknown_investor_returns_none(
             as_of=AS_OF,
         )
         is None
+    )
+
+
+def test_profile_resolves_investor_alias(
+    app,
+):
+    canonical = _investor(
+        "Index Ventures"
+    )
+
+    alias = EntityAlias(
+        alias="Index",
+        entity_type="investor",
+        canonical_name="Index Ventures",
+        canonical_investor=canonical,
+    )
+
+    db.session.add(
+        alias
+    )
+
+    _round(
+        "Alias Company",
+        datetime(
+            2026,
+            8,
+            1,
+        ),
+        [canonical],
+    )
+
+    db.session.commit()
+
+    profile = (
+        get_investor_profile(
+            "Index",
+            as_of=AS_OF,
+        )
+    )
+
+    assert profile is not None
+
+    assert (
+        profile[
+            "investor"
+        ].name
+        == "Index Ventures"
     )
 
 
@@ -541,9 +577,7 @@ def test_recent_investment_reports_evidence_sources(
 
     db.session.flush()
 
-    funding_round.article = (
-        first
-    )
+    funding_round.article = first
 
     funding_round.articles.append(
         first
@@ -659,4 +693,653 @@ def test_rankings_prioritize_current_activity(
     assert (
         "No Activity Capital"
         not in names
+    )
+
+
+def test_profile_reports_dimension_coverage(
+    app,
+):
+    investor = _investor(
+        "Coverage Capital"
+    )
+
+    _round(
+        "One",
+        datetime(
+            2026,
+            8,
+            1,
+        ),
+        [investor],
+        stage="Series A",
+        sector="AI",
+        country=None,
+    )
+
+    _round(
+        "Two",
+        datetime(
+            2026,
+            7,
+            1,
+        ),
+        [investor],
+        stage="Seed",
+        sector="Fintech",
+        country=None,
+    )
+
+    _round(
+        "Three",
+        datetime(
+            2026,
+            6,
+            1,
+        ),
+        [investor],
+        stage="Series B",
+        sector=None,
+        country=None,
+    )
+
+    _round(
+        "Four",
+        datetime(
+            2026,
+            4,
+            1,
+        ),
+        [investor],
+        stage=None,
+        sector=None,
+        country=None,
+    )
+
+    profile = (
+        get_investor_profile(
+            "Coverage Capital",
+            as_of=AS_OF,
+        )
+    )
+
+    coverage = profile[
+        "coverage"
+    ]
+
+    assert (
+        coverage[
+            "date"
+        ][
+            "label"
+        ]
+        == "high"
+    )
+
+    assert (
+        coverage[
+            "stage"
+        ][
+            "known"
+        ]
+        == 3
+    )
+
+    assert (
+        coverage[
+            "stage"
+        ][
+            "label"
+        ]
+        == "medium"
+    )
+
+    assert (
+        coverage[
+            "sector"
+        ][
+            "known"
+        ]
+        == 2
+    )
+
+    assert (
+        coverage[
+            "sector"
+        ][
+            "label"
+        ]
+        == "medium"
+    )
+
+    assert (
+        coverage[
+            "geography"
+        ][
+            "known"
+        ]
+        == 0
+    )
+
+    assert (
+        coverage[
+            "geography"
+        ][
+            "label"
+        ]
+        == "insufficient"
+    )
+
+
+def test_activity_signal_supported_with_comparison_history(
+    app,
+):
+    investor = _investor(
+        "Trend Capital"
+    )
+
+    _round(
+        "Current One",
+        datetime(
+            2026,
+            8,
+            1,
+        ),
+        [investor],
+    )
+
+    _round(
+        "Current Two",
+        datetime(
+            2026,
+            7,
+            1,
+        ),
+        [investor],
+    )
+
+    _round(
+        "Previous One",
+        datetime(
+            2026,
+            5,
+            1,
+        ),
+        [investor],
+    )
+
+    _round(
+        "Previous Two",
+        datetime(
+            2026,
+            3,
+            1,
+        ),
+        [investor],
+    )
+
+    profile = (
+        get_investor_profile(
+            "Trend Capital",
+            as_of=AS_OF,
+        )
+    )
+
+    signal = profile[
+        "signals"
+    ][
+        "activity"
+    ]
+
+    assert (
+        signal[
+            "status"
+        ]
+        == "supported"
+    )
+
+    assert (
+        signal[
+            "direction"
+        ]
+        == "flat"
+    )
+
+
+def test_activity_signal_rejects_current_only_history(
+    app,
+):
+    investor = _investor(
+        "Recent Only Capital"
+    )
+
+    for index, day in enumerate(
+        [
+            1,
+            5,
+            10,
+            15,
+        ],
+        start=1,
+    ):
+        _round(
+            f"Recent {index}",
+            datetime(
+                2026,
+                8,
+                day,
+            ),
+            [investor],
+        )
+
+    profile = (
+        get_investor_profile(
+            "Recent Only Capital",
+            as_of=AS_OF,
+        )
+    )
+
+    signal = profile[
+        "signals"
+    ][
+        "activity"
+    ]
+
+    assert (
+        signal[
+            "status"
+        ]
+        == "insufficient"
+    )
+
+    assert (
+        profile[
+            "coverage"
+        ][
+            "comparison_history"
+        ][
+            "status"
+        ]
+        == "insufficient"
+    )
+
+
+def test_stage_signal_requires_minimum_known_observations(
+    app,
+):
+    investor = _investor(
+        "Small Sample Capital"
+    )
+
+    _round(
+        "One",
+        datetime(
+            2026,
+            8,
+            1,
+        ),
+        [investor],
+        stage="Seed",
+    )
+
+    _round(
+        "Two",
+        datetime(
+            2026,
+            7,
+            1,
+        ),
+        [investor],
+        stage="Seed",
+    )
+
+    profile = (
+        get_investor_profile(
+            "Small Sample Capital",
+            as_of=AS_OF,
+        )
+    )
+
+    assert (
+        profile[
+            "coverage"
+        ][
+            "stage"
+        ][
+            "label"
+        ]
+        == "high"
+    )
+
+    assert (
+        profile[
+            "signals"
+        ][
+            "stage"
+        ][
+            "status"
+        ]
+        == "insufficient"
+    )
+
+
+def test_stage_and_sector_signals_identify_leading_patterns(
+    app,
+):
+    investor = _investor(
+        "Pattern Capital"
+    )
+
+    observations = [
+        (
+            "One",
+            "Seed",
+            "AI",
+        ),
+        (
+            "Two",
+            "Seed",
+            "AI",
+        ),
+        (
+            "Three",
+            "Seed",
+            "AI",
+        ),
+        (
+            "Four",
+            "Series A",
+            "Fintech",
+        ),
+        (
+            "Five",
+            "Series B",
+            "Fintech",
+        ),
+    ]
+
+    for index, (
+        company,
+        stage,
+        sector,
+    ) in enumerate(
+        observations
+    ):
+        _round(
+            company,
+            datetime(
+                2026,
+                8,
+                1,
+            )
+            - (
+                index
+                * (
+                    datetime(
+                        2026,
+                        8,
+                        1,
+                    )
+                    - datetime(
+                        2026,
+                        7,
+                        31,
+                    )
+                )
+            ),
+            [investor],
+            stage=stage,
+            sector=sector,
+        )
+
+    profile = (
+        get_investor_profile(
+            "Pattern Capital",
+            as_of=AS_OF,
+        )
+    )
+
+    stage_signal = profile[
+        "signals"
+    ][
+        "stage"
+    ]
+
+    sector_signal = profile[
+        "signals"
+    ][
+        "sector"
+    ]
+
+    assert (
+        stage_signal[
+            "status"
+        ]
+        == "supported"
+    )
+
+    assert (
+        stage_signal[
+            "leaders"
+        ]
+        == [
+            "Seed",
+        ]
+    )
+
+    assert (
+        stage_signal[
+            "share"
+        ]
+        == 0.6
+    )
+
+    assert (
+        sector_signal[
+            "status"
+        ]
+        == "supported"
+    )
+
+    assert (
+        sector_signal[
+            "leaders"
+        ]
+        == [
+            "AI",
+        ]
+    )
+
+    assert (
+        sector_signal[
+            "share"
+        ]
+        == 0.6
+    )
+
+
+def test_geography_signal_is_gated_by_coverage(
+    app,
+):
+    investor = _investor(
+        "Unknown Geography Capital"
+    )
+
+    for index in range(4):
+        _round(
+            f"Company {index}",
+            datetime(
+                2026,
+                8,
+                1 + index,
+            ),
+            [investor],
+            country=None,
+        )
+
+    profile = (
+        get_investor_profile(
+            "Unknown Geography Capital",
+            as_of=AS_OF,
+        )
+    )
+
+    assert (
+        profile[
+            "coverage"
+        ][
+            "geography"
+        ][
+            "known"
+        ]
+        == 0
+    )
+
+    assert (
+        profile[
+            "signals"
+        ][
+            "geography"
+        ][
+            "status"
+        ]
+        == "insufficient"
+    )
+
+
+def test_geography_signal_supported_with_enough_evidence(
+    app,
+):
+    investor = _investor(
+        "Geo Capital"
+    )
+
+    countries = [
+        "United Kingdom",
+        "United Kingdom",
+        "United Kingdom",
+        "France",
+    ]
+
+    for index, country in enumerate(
+        countries
+    ):
+        _round(
+            f"Geo Company {index}",
+            datetime(
+                2026,
+                8,
+                1 + index,
+            ),
+            [investor],
+            country=country,
+        )
+
+    profile = (
+        get_investor_profile(
+            "Geo Capital",
+            as_of=AS_OF,
+        )
+    )
+
+    signal = profile[
+        "signals"
+    ][
+        "geography"
+    ]
+
+    assert (
+        signal[
+            "status"
+        ]
+        == "supported"
+    )
+
+    assert (
+        signal[
+            "leaders"
+        ]
+        == [
+            "United Kingdom",
+        ]
+    )
+
+    assert (
+        signal[
+            "share"
+        ]
+        == 0.75
+    )
+
+
+def test_rankings_report_trend_support_status(
+    app,
+):
+    investor = _investor(
+        "Ranking Capital"
+    )
+
+    _round(
+        "Current One",
+        datetime(
+            2026,
+            8,
+            1,
+        ),
+        [investor],
+    )
+
+    _round(
+        "Current Two",
+        datetime(
+            2026,
+            7,
+            1,
+        ),
+        [investor],
+    )
+
+    _round(
+        "Previous One",
+        datetime(
+            2026,
+            5,
+            1,
+        ),
+        [investor],
+    )
+
+    _round(
+        "Previous Two",
+        datetime(
+            2026,
+            3,
+            1,
+        ),
+        [investor],
+    )
+
+    rankings = (
+        get_investor_rankings(
+            window_days=90,
+            as_of=AS_OF,
+        )
+    )
+
+    result = next(
+        item
+        for item
+        in rankings
+        if (
+            item[
+                "investor"
+            ].name
+            == "Ranking Capital"
+        )
+    )
+
+    assert (
+        result[
+            "trend_status"
+        ]
+        == "supported"
     )

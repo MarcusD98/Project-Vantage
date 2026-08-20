@@ -1,22 +1,26 @@
-from collections import (
-    Counter,
-    defaultdict,
-)
+from collections import Counter, defaultdict
+from datetime import datetime, timedelta, timezone
 
-from datetime import (
-    datetime,
-    timedelta,
-    timezone,
-)
+from models.investor import Investor
 
-from models.investor import (
-    Investor,
+from services.entity_resolution_service import (
+    resolve_entity_name,
 )
 
 
-def _normalize_datetime(
-    value,
-):
+COVERAGE_HIGH_THRESHOLD = 0.80
+COVERAGE_MEDIUM_THRESHOLD = 0.50
+
+MIN_DIMENSION_SIGNAL_OBSERVATIONS = 3
+MIN_DIMENSION_SIGNAL_COVERAGE = 0.60
+
+MIN_ACTIVITY_COMPARISON_OBSERVATIONS = 4
+MIN_ACTIVITY_PREVIOUS_OBSERVATIONS = 1
+
+LEADING_DIMENSION_SHARE = 0.40
+
+
+def _normalize_datetime(value):
     """
     Normalize datetimes to naive UTC for comparison with the
     existing Vantage SQLite datetime convention.
@@ -27,48 +31,28 @@ def _normalize_datetime(
 
     if value.tzinfo is not None:
         return (
-            value.astimezone(
-                timezone.utc
-            )
-            .replace(
-                tzinfo=None
-            )
+            value.astimezone(timezone.utc)
+            .replace(tzinfo=None)
         )
 
     return value
 
 
-def _normalize_as_of(
-    as_of=None,
-):
+def _normalize_as_of(as_of=None):
     if as_of is None:
         return (
-            datetime.now(
-                timezone.utc
-            )
-            .replace(
-                tzinfo=None
-            )
+            datetime.now(timezone.utc)
+            .replace(tzinfo=None)
         )
 
-    return _normalize_datetime(
-        as_of
-    )
+    return _normalize_datetime(as_of)
 
 
-def _positive_integer(
-    value,
-    name,
-):
+def _positive_integer(value, name):
     try:
-        value = int(
-            value
-        )
+        value = int(value)
 
-    except (
-        TypeError,
-        ValueError,
-    ) as exc:
+    except (TypeError, ValueError) as exc:
         raise ValueError(
             f"{name} must be an integer."
         ) from exc
@@ -81,131 +65,156 @@ def _positive_integer(
     return value
 
 
-def _find_investor(
-    identifier,
-):
+def _clean_dimension_value(value):
+    """
+    Normalize analytical dimension values.
+
+    Missing / placeholder values should not count as known
+    coverage.
+    """
+
+    if value is None:
+        return None
+
+    value = str(value).strip()
+
+    if not value:
+        return None
+
+    if value.casefold() in {
+        "unknown",
+        "none",
+        "n/a",
+        "na",
+    }:
+        return None
+
+    return value
+
+
+def _find_investor(identifier):
+    """
+    Resolve an investor using the canonical entity layer.
+
+    This means investor intelligence automatically respects
+    durable aliases such as:
+
+        Index -> Index Ventures
+    """
+
     if identifier is None:
         return None
 
-    normalized = (
-        str(identifier)
-        .strip()
-        .casefold()
-    )
+    identifier = str(identifier).strip()
 
-    if not normalized:
+    if not identifier:
         return None
 
-    for investor in (
-        Investor.query.all()
-    ):
-        if (
-            investor.name
-            .strip()
-            .casefold()
-            == normalized
-        ):
-            return investor
+    resolution = resolve_entity_name(
+        identifier,
+        "investor",
+    )
+
+    if resolution["status"] in {
+        "alias",
+        "exact",
+    }:
+        return resolution["entity"]
 
     return None
 
 
-def _rounds_for_investor(
-    investor,
-):
+def _round_key(funding_round):
+    return (
+        funding_round.id
+        if funding_round.id is not None
+        else id(funding_round)
+    )
+
+
+def _round_date(funding_round):
+    return _normalize_datetime(
+        funding_round.announced_at
+    )
+
+
+def _stage_value(funding_round):
+    return _clean_dimension_value(
+        funding_round.canonical_round_type
+        or funding_round.round_type
+    )
+
+
+def _sector_value(funding_round):
+    company = funding_round.company
+
+    if company is None:
+        return None
+
+    return _clean_dimension_value(
+        company.canonical_sector
+        or company.sector
+    )
+
+
+def _geography_value(funding_round):
+    """
+    Country is the canonical geography dimension for V1.
+
+    We deliberately do not fall back to free-form headquarters
+    because that would mix countries, cities and arbitrary
+    location strings in the same analytical dimension.
+    """
+
+    company = funding_round.company
+
+    if company is None:
+        return None
+
+    return _clean_dimension_value(
+        company.country
+    )
+
+
+def _rounds_for_investor(investor):
     """
     Return unique canonical funding rounds associated with an
     investor.
 
     Lead rounds are included defensively even though Vantage
-    currently also stores lead investors in the general
-    participating-investor relationship.
+    also stores lead investors in the general investor
+    relationship.
     """
 
     rounds = {}
 
-    for funding_round in (
-        investor.funding_rounds
-    ):
-        key = (
-            funding_round.id
-            if funding_round.id
-            is not None
-            else id(
-                funding_round
-            )
-        )
+    for funding_round in investor.funding_rounds:
+        rounds[
+            _round_key(funding_round)
+        ] = funding_round
 
-        rounds[key] = (
-            funding_round
-        )
-
-    for funding_round in (
-        investor.led_funding_rounds
-    ):
-        key = (
-            funding_round.id
-            if funding_round.id
-            is not None
-            else id(
-                funding_round
-            )
-        )
-
-        rounds[key] = (
-            funding_round
-        )
+    for funding_round in investor.led_funding_rounds:
+        rounds[
+            _round_key(funding_round)
+        ] = funding_round
 
     return list(
         rounds.values()
     )
 
 
-def _lead_round_ids(
-    investor,
-):
+def _lead_round_ids(investor):
     return {
-        (
-            funding_round.id
-            if funding_round.id
-            is not None
-            else id(
-                funding_round
-            )
-        )
+        _round_key(funding_round)
         for funding_round
         in investor.led_funding_rounds
     }
 
 
-def _round_key(
-    funding_round,
-):
-    return (
-        funding_round.id
-        if funding_round.id
-        is not None
-        else id(
-            funding_round
-        )
-    )
-
-
-def _round_date(
-    funding_round,
-):
-    return _normalize_datetime(
-        funding_round.announced_at
-    )
-
-
-def _analysis_rounds(
-    rounds,
-    as_of,
-):
+def _analysis_rounds(rounds, as_of):
     """
-    Keep undated historical observations and dated rounds up to
-    the analysis date.
+    Preserve undated historical observations and dated rounds
+    up to the analysis date.
 
     Future-dated records are excluded.
     """
@@ -213,10 +222,8 @@ def _analysis_rounds(
     result = []
 
     for funding_round in rounds:
-        announced_at = (
-            _round_date(
-                funding_round
-            )
+        announced_at = _round_date(
+            funding_round
         )
 
         if (
@@ -241,10 +248,8 @@ def _rounds_between(
     selected = []
 
     for funding_round in rounds:
-        announced_at = (
-            _round_date(
-                funding_round
-            )
+        announced_at = _round_date(
+            funding_round
         )
 
         if announced_at is None:
@@ -268,14 +273,12 @@ def _rounds_between(
     return selected
 
 
-def _round_volume_by_currency(
-    rounds,
-):
+def _round_volume_by_currency(rounds):
     """
-    Sum the full financing-round amounts in which the investor
+    Sum complete financing-round values in which the investor
     participated.
 
-    This is NOT an estimate of investor capital deployed.
+    This is NOT investor capital deployed.
     """
 
     totals = defaultdict(
@@ -286,10 +289,7 @@ def _round_volume_by_currency(
     )
 
     for funding_round in rounds:
-        if (
-            funding_round.amount
-            is None
-        ):
+        if funding_round.amount is None:
             continue
 
         currency = (
@@ -300,39 +300,26 @@ def _round_volume_by_currency(
         if not currency:
             continue
 
-        totals[
-            currency
-        ][
+        totals[currency][
             "amount"
         ] += float(
             funding_round.amount
         )
 
-        totals[
-            currency
-        ][
+        totals[currency][
             "round_count"
         ] += 1
 
     return [
         {
-            "currency":
-                currency,
-
-            "amount":
-                values[
-                    "amount"
-                ],
-
-            "round_count":
-                values[
-                    "round_count"
-                ],
+            "currency": currency,
+            "amount": values["amount"],
+            "round_count": values[
+                "round_count"
+            ],
         }
         for currency, values
-        in sorted(
-            totals.items()
-        )
+        in sorted(totals.items())
     ]
 
 
@@ -341,29 +328,23 @@ def _activity_summary(
     lead_ids,
 ):
     company_keys = set()
-
     lead_count = 0
 
     for funding_round in rounds:
         if (
-            _round_key(
-                funding_round
-            )
+            _round_key(funding_round)
             in lead_ids
         ):
             lead_count += 1
 
-        company = (
-            funding_round.company
-        )
+        company = funding_round.company
 
         if company is None:
             continue
 
         company_key = (
             company.id
-            if company.id
-            is not None
+            if company.id is not None
             else company.name
         )
 
@@ -373,17 +354,13 @@ def _activity_summary(
 
     return {
         "investment_count":
-            len(
-                rounds
-            ),
+            len(rounds),
 
         "lead_count":
             lead_count,
 
         "company_count":
-            len(
-                company_keys
-            ),
+            len(company_keys),
 
         "round_volume_by_currency":
             _round_volume_by_currency(
@@ -396,9 +373,7 @@ def _counter_items(
     values,
     label_key,
 ):
-    counts = Counter(
-        values
-    )
+    counts = Counter(values)
 
     ordered = sorted(
         counts.items(),
@@ -410,95 +385,557 @@ def _counter_items(
 
     return [
         {
-            label_key:
-                label,
-
-            "count":
-                count,
+            label_key: label,
+            "count": count,
         }
         for label, count
         in ordered
     ]
 
 
-def _stage_exposure(
-    rounds,
-):
-    stages = []
+def _stage_exposure(rounds):
+    values = []
 
     for funding_round in rounds:
-        stage = (
-            funding_round.canonical_round_type
-            or funding_round.round_type
-            or "Unknown"
+        value = _stage_value(
+            funding_round
         )
 
-        stages.append(
-            stage
+        values.append(
+            value or "Unknown"
         )
 
     return _counter_items(
-        stages,
+        values,
         "stage",
     )
 
 
-def _sector_exposure(
-    rounds,
-):
-    sectors = []
+def _sector_exposure(rounds):
+    values = []
 
     for funding_round in rounds:
-        company = (
-            funding_round.company
+        value = _sector_value(
+            funding_round
         )
 
-        sector = None
-
-        if company is not None:
-            sector = (
-                company.canonical_sector
-                or company.sector
-            )
-
-        sectors.append(
-            sector
-            or "Unknown"
+        values.append(
+            value or "Unknown"
         )
 
     return _counter_items(
-        sectors,
+        values,
         "sector",
     )
 
 
-def _geography_exposure(
-    rounds,
-):
-    locations = []
+def _geography_exposure(rounds):
+    values = []
 
     for funding_round in rounds:
-        company = (
-            funding_round.company
+        value = _geography_value(
+            funding_round
         )
 
-        location = None
-
-        if company is not None:
-            location = (
-                company.country
-                or company.headquarters
-            )
-
-        locations.append(
-            location
-            or "Unknown"
+        values.append(
+            value or "Unknown"
         )
 
     return _counter_items(
-        locations,
+        values,
         "location",
     )
+
+
+def _coverage_label(
+    known,
+    total,
+):
+    if total <= 0:
+        return "insufficient"
+
+    ratio = known / total
+
+    if ratio >= COVERAGE_HIGH_THRESHOLD:
+        return "high"
+
+    if ratio >= COVERAGE_MEDIUM_THRESHOLD:
+        return "medium"
+
+    if known > 0:
+        return "low"
+
+    return "insufficient"
+
+
+def _coverage_metric(
+    known,
+    total,
+):
+    ratio = (
+        known / total
+        if total
+        else 0.0
+    )
+
+    return {
+        "known":
+            known,
+
+        "total":
+            total,
+
+        "missing":
+            max(
+                total - known,
+                0,
+            ),
+
+        "ratio":
+            ratio,
+
+        "percent":
+            ratio * 100,
+
+        "label":
+            _coverage_label(
+                known,
+                total,
+            ),
+    }
+
+
+def _build_dimension_coverage(
+    rounds,
+    extractor,
+):
+    known = sum(
+        1
+        for funding_round
+        in rounds
+        if extractor(
+            funding_round
+        )
+        is not None
+    )
+
+    return _coverage_metric(
+        known=known,
+        total=len(rounds),
+    )
+
+
+def _build_comparison_history(
+    current_rounds,
+    previous_rounds,
+):
+    current_count = len(
+        current_rounds
+    )
+
+    previous_count = len(
+        previous_rounds
+    )
+
+    combined = (
+        current_count
+        + previous_count
+    )
+
+    sufficient = (
+        previous_count
+        >= MIN_ACTIVITY_PREVIOUS_OBSERVATIONS
+        and combined
+        >= MIN_ACTIVITY_COMPARISON_OBSERVATIONS
+    )
+
+    return {
+        "current_observations":
+            current_count,
+
+        "previous_observations":
+            previous_count,
+
+        "combined_observations":
+            combined,
+
+        "status":
+            (
+                "sufficient"
+                if sufficient
+                else "insufficient"
+            ),
+    }
+
+
+def _build_coverage(
+    rounds,
+    current_rounds,
+    previous_rounds,
+):
+    total = len(rounds)
+
+    dated_count = sum(
+        1
+        for funding_round
+        in rounds
+        if _round_date(
+            funding_round
+        )
+        is not None
+    )
+
+    return {
+        # Backwards-compatible fields.
+        "observed_rounds":
+            total,
+
+        "dated_rounds":
+            dated_count,
+
+        "undated_rounds":
+            total - dated_count,
+
+        # Dimension-level coverage.
+        "date":
+            _coverage_metric(
+                known=dated_count,
+                total=total,
+            ),
+
+        "stage":
+            _build_dimension_coverage(
+                rounds,
+                _stage_value,
+            ),
+
+        "sector":
+            _build_dimension_coverage(
+                rounds,
+                _sector_value,
+            ),
+
+        "geography":
+            _build_dimension_coverage(
+                rounds,
+                _geography_value,
+            ),
+
+        "comparison_history":
+            _build_comparison_history(
+                current_rounds,
+                previous_rounds,
+            ),
+    }
+
+
+def _build_activity_signal(
+    current,
+    previous,
+    comparison_history,
+):
+    if (
+        comparison_history["status"]
+        != "sufficient"
+    ):
+        return {
+            "status":
+                "insufficient",
+
+            "direction":
+                None,
+
+            "current":
+                current[
+                    "investment_count"
+                ],
+
+            "previous":
+                previous[
+                    "investment_count"
+                ],
+
+            "delta":
+                (
+                    current[
+                        "investment_count"
+                    ]
+                    - previous[
+                        "investment_count"
+                    ]
+                ),
+
+            "change_pct":
+                None,
+
+            "reason": (
+                "Need at least "
+                f"{MIN_ACTIVITY_COMPARISON_OBSERVATIONS} "
+                "observed rounds across the two "
+                "comparison windows, including at least "
+                f"{MIN_ACTIVITY_PREVIOUS_OBSERVATIONS} "
+                "in the previous window."
+            ),
+        }
+
+    current_count = (
+        current[
+            "investment_count"
+        ]
+    )
+
+    previous_count = (
+        previous[
+            "investment_count"
+        ]
+    )
+
+    delta = (
+        current_count
+        - previous_count
+    )
+
+    if delta > 0:
+        direction = "up"
+
+    elif delta < 0:
+        direction = "down"
+
+    else:
+        direction = "flat"
+
+    change_pct = (
+        delta
+        / previous_count
+        * 100
+    )
+
+    return {
+        "status":
+            "supported",
+
+        "direction":
+            direction,
+
+        "current":
+            current_count,
+
+        "previous":
+            previous_count,
+
+        "delta":
+            delta,
+
+        "change_pct":
+            change_pct,
+
+        "reason":
+            None,
+    }
+
+
+def _build_dimension_signal(
+    rounds,
+    extractor,
+    coverage,
+):
+    if (
+        coverage["known"]
+        < MIN_DIMENSION_SIGNAL_OBSERVATIONS
+    ):
+        return {
+            "status":
+                "insufficient",
+
+            "pattern":
+                None,
+
+            "leaders":
+                [],
+
+            "leader_count":
+                0,
+
+            "known_count":
+                coverage["known"],
+
+            "share":
+                None,
+
+            "reason": (
+                "Need at least "
+                f"{MIN_DIMENSION_SIGNAL_OBSERVATIONS} "
+                "known observations."
+            ),
+        }
+
+    if (
+        coverage["ratio"]
+        < MIN_DIMENSION_SIGNAL_COVERAGE
+    ):
+        return {
+            "status":
+                "insufficient",
+
+            "pattern":
+                None,
+
+            "leaders":
+                [],
+
+            "leader_count":
+                0,
+
+            "known_count":
+                coverage["known"],
+
+            "share":
+                None,
+
+            "reason": (
+                "Known-field coverage is below "
+                f"{MIN_DIMENSION_SIGNAL_COVERAGE:.0%}."
+            ),
+        }
+
+    values = [
+        extractor(
+            funding_round
+        )
+        for funding_round
+        in rounds
+    ]
+
+    values = [
+        value
+        for value
+        in values
+        if value is not None
+    ]
+
+    counts = Counter(
+        values
+    )
+
+    if not counts:
+        return {
+            "status":
+                "insufficient",
+
+            "pattern":
+                None,
+
+            "leaders":
+                [],
+
+            "leader_count":
+                0,
+
+            "known_count":
+                0,
+
+            "share":
+                None,
+
+            "reason":
+                "No known observations.",
+        }
+
+    leader_count = max(
+        counts.values()
+    )
+
+    leaders = sorted(
+        [
+            label
+            for label, count
+            in counts.items()
+            if count == leader_count
+        ],
+        key=str.casefold,
+    )
+
+    share = (
+        leader_count
+        / len(values)
+    )
+
+    pattern = (
+        "leading"
+        if share
+        >= LEADING_DIMENSION_SHARE
+        else "mixed"
+    )
+
+    return {
+        "status":
+            "supported",
+
+        "pattern":
+            pattern,
+
+        "leaders":
+            leaders,
+
+        "leader_count":
+            leader_count,
+
+        "known_count":
+            len(values),
+
+        "share":
+            share,
+
+        "reason":
+            None,
+    }
+
+
+def _build_signals(
+    rounds,
+    current,
+    previous,
+    coverage,
+):
+    return {
+        "activity":
+            _build_activity_signal(
+                current=current,
+                previous=previous,
+                comparison_history=(
+                    coverage[
+                        "comparison_history"
+                    ]
+                ),
+            ),
+
+        "stage":
+            _build_dimension_signal(
+                rounds=rounds,
+                extractor=_stage_value,
+                coverage=coverage[
+                    "stage"
+                ],
+            ),
+
+        "sector":
+            _build_dimension_signal(
+                rounds=rounds,
+                extractor=_sector_value,
+                coverage=coverage[
+                    "sector"
+                ],
+            ),
+
+        "geography":
+            _build_dimension_signal(
+                rounds=rounds,
+                extractor=_geography_value,
+                coverage=coverage[
+                    "geography"
+                ],
+            ),
+    }
 
 
 def _co_investors(
@@ -562,8 +999,7 @@ def _evidence_sources(
     for article in articles:
         key = (
             article.id
-            if article.id
-            is not None
+            if article.id is not None
             else article.url
         )
 
@@ -618,9 +1054,7 @@ def _recent_investments(
     result = []
 
     for funding_round in (
-        dated[
-            :limit
-        ]
+        dated[:limit]
     ):
         company = (
             funding_round.company
@@ -652,10 +1086,9 @@ def _recent_investments(
 
                 "stage":
                     (
-                        funding_round
-                        .canonical_round_type
-                        or funding_round
-                        .round_type
+                        _stage_value(
+                            funding_round
+                        )
                         or "Unknown"
                     ),
 
@@ -808,15 +1241,22 @@ def _build_profile(
     else:
         investment_change_pct = None
 
-    dated_count = sum(
-        1
-        for funding_round
-        in rounds
-        if (
-            _round_date(
-                funding_round
-            )
-            is not None
+    coverage = (
+        _build_coverage(
+            rounds=rounds,
+            current_rounds=current_rounds,
+            previous_rounds=(
+                previous_rounds
+            ),
+        )
+    )
+
+    signals = (
+        _build_signals(
+            rounds=rounds,
+            current=current,
+            previous=previous,
+            coverage=coverage,
         )
     )
 
@@ -844,23 +1284,11 @@ def _build_profile(
                 current_start,
         },
 
-        "coverage": {
-            "observed_rounds":
-                len(
-                    rounds
-                ),
+        "coverage":
+            coverage,
 
-            "dated_rounds":
-                dated_count,
-
-            "undated_rounds":
-                (
-                    len(
-                        rounds
-                    )
-                    - dated_count
-                ),
-        },
+        "signals":
+            signals,
 
         "all_time":
             all_time,
@@ -944,7 +1372,7 @@ def get_investor_profile(
     recent_limit=8,
 ):
     """
-    Build one evidence-backed investor activity profile from
+    Build an evidence-backed investor activity profile from
     canonical Vantage funding events.
     """
 
@@ -1081,6 +1509,15 @@ def get_investor_rankings(
                     ][
                         "investment_count"
                     ],
+
+                "trend_status":
+                    profile[
+                        "signals"
+                    ][
+                        "activity"
+                    ][
+                        "status"
+                    ],
             }
         )
 
@@ -1106,6 +1543,4 @@ def get_investor_rankings(
         )
     )
 
-    return rankings[
-        :limit
-    ]
+    return rankings[:limit]

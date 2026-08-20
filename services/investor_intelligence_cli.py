@@ -6,19 +6,12 @@ from services.investor_intelligence_service import (
 )
 
 
-def _compact_number(
-    value,
-):
+def _compact_number(value):
     if value is None:
         return "-"
 
-    value = float(
-        value
-    )
-
-    absolute = abs(
-        value
-    )
+    value = float(value)
+    absolute = abs(value)
 
     if absolute >= 1_000_000_000:
         return (
@@ -35,25 +28,17 @@ def _compact_number(
             f"{value / 1_000:.1f}K"
         )
 
-    return (
-        f"{value:,.0f}"
-    )
+    return f"{value:,.0f}"
 
 
-def _format_delta(
-    value,
-):
+def _format_delta(value):
     if value > 0:
         return f"+{value}"
 
-    return str(
-        value
-    )
+    return str(value)
 
 
-def _format_volume(
-    volumes,
-):
+def _format_volume(volumes):
     if not volumes:
         return "-"
 
@@ -67,6 +52,15 @@ def _format_volume(
     )
 
 
+def _format_coverage(metric):
+    return (
+        f"{metric['known']}/"
+        f"{metric['total']} "
+        f"({metric['percent']:.0f}%) "
+        f"{metric['label'].upper()}"
+    )
+
+
 def _print_exposure(
     title,
     items,
@@ -74,47 +68,69 @@ def _print_exposure(
     limit=5,
 ):
     click.echo("")
-    click.echo(
-        title
-    )
+    click.echo(title)
 
     if not items:
         click.echo(
             "  No observed data."
         )
-
         return
 
-    for item in items[
-        :limit
-    ]:
+    for item in items[:limit]:
         click.echo(
             f"  {item[label_key]}: "
             f"{item['count']}"
         )
 
 
-@click.command(
-    "investors"
-)
+def _print_dimension_signal(
+    title,
+    signal,
+):
+    if signal["status"] != "supported":
+        click.echo(
+            f"{title}: "
+            f"unavailable — "
+            f"{signal['reason']}"
+        )
+        return
+
+    if signal["pattern"] == "mixed":
+        click.echo(
+            f"{title}: mixed "
+            f"across "
+            f"{signal['known_count']} "
+            f"known observations"
+        )
+        return
+
+    leaders = " / ".join(
+        signal["leaders"]
+    )
+
+    click.echo(
+        f"{title}: {leaders} "
+        f"({signal['leader_count']}/"
+        f"{signal['known_count']}, "
+        f"{signal['share']:.0%})"
+    )
+
+
+@click.command("investors")
 @click.option(
     "--window",
     "window_days",
     default=90,
     type=int,
     show_default=True,
-    help=(
-        "Activity window in days."
-    ),
+    help="Activity window in days.",
 )
 @click.option(
     "--limit",
     default=20,
     type=int,
     show_default=True,
-    help=(
-        "Maximum investors to display."
-    ),
+    help="Maximum investors to display.",
 )
 def investors_command(
     window_days,
@@ -147,13 +163,21 @@ def investors_command(
     click.echo("")
 
     click.echo(
-        f"Window: current {window_days} days "
-        f"vs previous {window_days} days"
+        f"Window: current "
+        f"{window_days} days "
+        f"vs previous "
+        f"{window_days} days"
     )
 
     click.echo(
-        "Observed activity from the Vantage "
-        "evidence corpus."
+        "Observed activity from the "
+        "Vantage evidence corpus."
+    )
+
+    click.echo(
+        "Δ is descriptive; Trend indicates "
+        "whether comparison history is "
+        "sufficient for interpretation."
     )
 
     click.echo("")
@@ -162,7 +186,6 @@ def investors_command(
         click.echo(
             "No investor activity found."
         )
-
         return
 
     header = (
@@ -171,25 +194,20 @@ def investors_command(
         f"{'Previous':>8} | "
         f"{'Δ':>4} | "
         f"{'Leads':>5} | "
-        f"{'All-time':>8}"
+        f"{'All-time':>8} | "
+        f"{'Trend':>12}"
     )
 
+    click.echo(header)
     click.echo(
-        header
-    )
-
-    click.echo(
-        "-" * len(
-            header
-        )
+        "-" * len(header)
     )
 
     for item in rankings:
         name = (
             item[
                 "investor"
-            ]
-            .name
+            ].name
         )
 
         if len(name) > 25:
@@ -198,27 +216,35 @@ def investors_command(
                 + "…"
             )
 
+        trend = (
+            "SUPPORTED"
+            if item[
+                "trend_status"
+            ]
+            == "supported"
+            else "INSUFFICIENT"
+        )
+
         click.echo(
             f"{name:25} | "
             f"{item['current_investments']:>7} | "
             f"{item['previous_investments']:>8} | "
             f"{_format_delta(item['investment_delta']):>4} | "
             f"{item['current_leads']:>5} | "
-            f"{item['all_time_investments']:>8}"
+            f"{item['all_time_investments']:>8} | "
+            f"{trend:>12}"
         )
 
     click.echo("")
 
 
-@click.command(
-    "investor"
-)
+@click.command("investor")
 @click.option(
     "--name",
     required=True,
     type=str,
     help=(
-        "Canonical investor name."
+        "Investor name or known alias."
     ),
 )
 @click.option(
@@ -227,9 +253,7 @@ def investors_command(
     default=90,
     type=int,
     show_default=True,
-    help=(
-        "Activity window in days."
-    ),
+    help="Activity window in days.",
 )
 @click.option(
     "--recent",
@@ -269,41 +293,33 @@ def investor_command(
             f"Investor not found: {name}"
         )
 
-    investor = (
-        profile[
-            "investor"
-        ]
-    )
+    investor = profile[
+        "investor"
+    ]
 
-    current = (
-        profile[
-            "current_window"
-        ]
-    )
+    current = profile[
+        "current_window"
+    ]
 
-    previous = (
-        profile[
-            "previous_window"
-        ]
-    )
+    previous = profile[
+        "previous_window"
+    ]
 
-    all_time = (
-        profile[
-            "all_time"
-        ]
-    )
+    all_time = profile[
+        "all_time"
+    ]
 
-    change = (
-        profile[
-            "change"
-        ]
-    )
+    change = profile[
+        "change"
+    ]
 
-    coverage = (
-        profile[
-            "coverage"
-        ]
-    )
+    coverage = profile[
+        "coverage"
+    ]
+
+    signals = profile[
+        "signals"
+    ]
 
     click.echo("")
     click.echo(
@@ -378,10 +394,89 @@ def investor_command(
         f"{all_time['lead_count']}"
     )
 
+    click.echo("")
     click.echo(
-        f"Dated / undated rounds:   "
-        f"{coverage['dated_rounds']} / "
-        f"{coverage['undated_rounds']}"
+        "Coverage"
+    )
+    click.echo(
+        "--------"
+    )
+
+    click.echo(
+        f"Date coverage:            "
+        f"{_format_coverage(coverage['date'])}"
+    )
+
+    click.echo(
+        f"Stage coverage:           "
+        f"{_format_coverage(coverage['stage'])}"
+    )
+
+    click.echo(
+        f"Sector coverage:          "
+        f"{_format_coverage(coverage['sector'])}"
+    )
+
+    click.echo(
+        f"Geography coverage:       "
+        f"{_format_coverage(coverage['geography'])}"
+    )
+
+    comparison = coverage[
+        "comparison_history"
+    ]
+
+    click.echo(
+        f"Comparison history:       "
+        f"{comparison['combined_observations']} "
+        f"observations "
+        f"{comparison['status'].upper()}"
+    )
+
+    click.echo("")
+    click.echo(
+        "Observed Signals"
+    )
+    click.echo(
+        "----------------"
+    )
+
+    activity = signals[
+        "activity"
+    ]
+
+    if (
+        activity["status"]
+        == "supported"
+    ):
+        click.echo(
+            f"Activity trend: "
+            f"{activity['direction'].upper()} "
+            f"({activity['previous']} → "
+            f"{activity['current']}, "
+            f"{_format_delta(activity['delta'])}, "
+            f"{activity['change_pct']:+.1f}%)"
+        )
+
+    else:
+        click.echo(
+            "Activity trend: unavailable — "
+            f"{activity['reason']}"
+        )
+
+    _print_dimension_signal(
+        "Stage pattern",
+        signals["stage"],
+    )
+
+    _print_dimension_signal(
+        "Sector pattern",
+        signals["sector"],
+    )
+
+    _print_dimension_signal(
+        "Geography pattern",
+        signals["geography"],
     )
 
     click.echo("")
@@ -439,11 +534,9 @@ def investor_command(
         "Frequent Co-Investors"
     )
 
-    co_investors = (
-        profile[
-            "co_investors"
-        ]
-    )
+    co_investors = profile[
+        "co_investors"
+    ]
 
     if not co_investors:
         click.echo(
@@ -465,11 +558,9 @@ def investor_command(
         "Recent Investments"
     )
 
-    recent = (
-        profile[
-            "recent_investments"
-        ]
-    )
+    recent = profile[
+        "recent_investments"
+    ]
 
     if not recent:
         click.echo(
@@ -480,18 +571,12 @@ def investor_command(
         announced = (
             item[
                 "announced_at"
-            ]
-            .date()
+            ].date()
         )
 
         amount = "-"
 
-        if (
-            item[
-                "amount"
-            ]
-            is not None
-        ):
+        if item["amount"] is not None:
             currency = (
                 item[
                     "currency"
