@@ -1,39 +1,19 @@
-import feedparser
 import logging
 
-from bs4 import BeautifulSoup
 from email.utils import parsedate_to_datetime
 
 from config import SOURCES
+
 from models.article import db, Article
+
+from services.discovery_service import (
+    clean_summary,
+    discover_source,
+    fetch_rss_feed,
+)
 
 
 logger = logging.getLogger(__name__)
-
-
-# ---------------------------------------------------------
-# RSS fetching
-# ---------------------------------------------------------
-
-def fetch_rss_feed(feed_url):
-    feed = feedparser.parse(
-        feed_url
-    )
-
-    if feed.bozo:
-        logger.warning(
-            "Problem parsing RSS feed: %s",
-            feed_url,
-        )
-
-    if not feed.entries:
-        logger.warning(
-            "No entries found in RSS feed: %s",
-            feed_url,
-        )
-        return None
-
-    return feed
 
 
 # ---------------------------------------------------------
@@ -42,10 +22,11 @@ def fetch_rss_feed(feed_url):
 
 def get_source_health():
     """
-    Perform a live diagnostic check of configured RSS sources.
+    Perform live diagnostic checks of configured sources.
 
-    This remains separate from normal article ingestion.
-    It is currently used by the Sources diagnostics page.
+    Source-health monitoring remains RSS-oriented during the
+    first Source Network V2 refactor. It will be generalized
+    once additional discovery adapters exist.
     """
 
     source_health = []
@@ -63,6 +44,28 @@ def get_source_health():
                     "entries": 0,
                 }
             )
+
+            continue
+
+        method = (
+            source.get(
+                "method",
+                "rss",
+            )
+            .strip()
+            .lower()
+        )
+
+        if method != "rss":
+            source_health.append(
+                {
+                    "name": source["name"],
+                    "region": source["region"],
+                    "status": "unsupported",
+                    "entries": 0,
+                }
+            )
+
             continue
 
         feed = fetch_rss_feed(
@@ -78,6 +81,7 @@ def get_source_health():
                     "entries": 0,
                 }
             )
+
             continue
 
         status = (
@@ -91,7 +95,9 @@ def get_source_health():
                 "name": source["name"],
                 "region": source["region"],
                 "status": status,
-                "entries": len(feed.entries),
+                "entries": len(
+                    feed.entries
+                ),
             }
         )
 
@@ -99,59 +105,8 @@ def get_source_health():
 
 
 # ---------------------------------------------------------
-# Article normalization
+# Deduplication
 # ---------------------------------------------------------
-
-def clean_summary(summary):
-    soup = BeautifulSoup(
-        summary,
-        "html.parser",
-    )
-
-    return soup.get_text(
-        " ",
-        strip=True,
-    )
-
-
-def normalize_articles(
-    feed,
-    source,
-):
-    normalized_articles = []
-
-    for entry in feed.entries:
-        url = entry.get(
-            "link",
-            "",
-        )
-
-        if not url:
-            continue
-
-        normalized_articles.append(
-            {
-                "title": entry.get(
-                    "title",
-                    "Untitled article",
-                ),
-                "source": source,
-                "url": url,
-                "published_at": entry.get(
-                    "published",
-                    "",
-                ),
-                "summary": clean_summary(
-                    entry.get(
-                        "summary",
-                        "",
-                    )
-                ),
-            }
-        )
-
-    return normalized_articles
-
 
 def deduplicate_articles(articles):
     seen_urls = set()
@@ -173,6 +128,10 @@ def deduplicate_articles(articles):
 
     return unique_articles
 
+
+# ---------------------------------------------------------
+# Date handling
+# ---------------------------------------------------------
 
 def parse_article_date(article):
     try:
@@ -351,22 +310,23 @@ def categorize_articles(articles):
 
 
 # ---------------------------------------------------------
-# Canonical feed-processing pipeline
+# Canonical source-processing pipeline
 # ---------------------------------------------------------
 
 def process_news_sources():
     """
-    Fetch and process all enabled news sources.
+    Discover and process all enabled Vantage sources.
 
-    This is the single canonical path for:
-    - fetching RSS feeds
-    - normalizing entries
-    - deduplicating
+    Discovery-method-specific acquisition now happens behind
+    discover_source().
+
+    The downstream pipeline remains responsible for:
+    - cross-source URL deduplication
     - sorting
     - relevance filtering
     - categorization
 
-    It does not persist anything.
+    This function does not persist anything.
     """
 
     all_articles = []
@@ -383,18 +343,15 @@ def process_news_sources():
 
         sources_checked += 1
 
-        feed = fetch_rss_feed(
-            source["url"]
+        source_articles = (
+            discover_source(
+                source
+            )
         )
 
-        if feed is None:
+        if source_articles is None:
             sources_failed += 1
             continue
-
-        source_articles = normalize_articles(
-            feed,
-            source["name"],
-        )
 
         all_articles.extend(
             source_articles
@@ -404,27 +361,42 @@ def process_news_sources():
         all_articles
     )
 
-    unique_articles = deduplicate_articles(
-        all_articles
+    unique_articles = (
+        deduplicate_articles(
+            all_articles
+        )
     )
 
-    sorted_articles = sort_articles_by_date(
-        unique_articles
+    sorted_articles = (
+        sort_articles_by_date(
+            unique_articles
+        )
     )
 
-    relevant_articles = filter_vc_articles(
-        sorted_articles
+    relevant_articles = (
+        filter_vc_articles(
+            sorted_articles
+        )
     )
 
-    categorized_articles = categorize_articles(
-        relevant_articles
+    categorized_articles = (
+        categorize_articles(
+            relevant_articles
+        )
     )
 
     return {
-        "sources_checked": sources_checked,
-        "sources_failed": sources_failed,
-        "articles_discovered": articles_discovered,
-        "articles": categorized_articles,
+        "sources_checked":
+            sources_checked,
+
+        "sources_failed":
+            sources_failed,
+
+        "articles_discovered":
+            articles_discovered,
+
+        "articles":
+            categorized_articles,
     }
 
 
@@ -482,8 +454,8 @@ def save_articles_to_database(
 
 def ingest_news_sources():
     """
-    Run the canonical RSS processing flow and add new relevant
-    articles to the current database session.
+    Run the canonical Vantage source-processing flow and add
+    new relevant evidence to the current database session.
 
     Transaction ownership belongs to the caller.
     """
@@ -494,19 +466,27 @@ def ingest_news_sources():
         "articles"
     ]
 
-    saved_count = save_articles_to_database(
-        articles
+    saved_count = (
+        save_articles_to_database(
+            articles
+        )
     )
 
     return {
         "sources_checked":
-            result["sources_checked"],
+            result[
+                "sources_checked"
+            ],
 
         "sources_failed":
-            result["sources_failed"],
+            result[
+                "sources_failed"
+            ],
 
         "articles_discovered":
-            result["articles_discovered"],
+            result[
+                "articles_discovered"
+            ],
 
         "articles_relevant":
             len(articles),
