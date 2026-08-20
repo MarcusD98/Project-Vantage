@@ -10,6 +10,11 @@ from services.fleet_cli import (
     sync_command,
 )
 
+from services.investor_intelligence_cli import (
+    investor_command,
+    investors_command,
+)
+
 
 @click.command(
     "backfill"
@@ -246,8 +251,8 @@ def register_corpus_commands(
     vantage_group,
 ):
     """
-    Register corpus and source-platform commands under the
-    existing Vantage Flask CLI group.
+    Register corpus, source-platform and investor-intelligence
+    commands under the Vantage Flask CLI group.
     """
 
     vantage_group.add_command(
@@ -264,4 +269,12 @@ def register_corpus_commands(
 
     vantage_group.add_command(
         runs_command
+    )
+
+    vantage_group.add_command(
+        investors_command
+    )
+
+    vantage_group.add_command(
+        investor_command
     )
