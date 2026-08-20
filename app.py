@@ -36,6 +36,11 @@ from services.intelligence_pipeline import (
     run_intelligence_pipeline,
 )
 
+from services.data_cleanup_service import (
+    reconcile_funding_round_pair,
+    reconcile_historical_funding_rounds,
+)
+
 logging.basicConfig(level=logging.INFO)
 
 # Create the Flask application
@@ -320,6 +325,150 @@ def ingest_command(
 
     click.echo("")
     click.echo("Pipeline complete.")
+
+@vantage.command("reconcile")
+@click.option(
+    "--apply",
+    "apply_changes",
+    is_flag=True,
+    help=(
+        "Apply high-confidence historical funding-event "
+        "merges. Without this flag the command is read-only."
+    ),
+)
+def reconcile_command(
+    apply_changes,
+):
+    """
+    Audit or reconcile historical funding-event duplicates.
+    """
+
+    click.echo("")
+    click.echo(
+        "Vantage Funding Event Reconciliation"
+    )
+    click.echo(
+        "------------------------------------"
+    )
+
+    mode = (
+        "APPLY"
+        if apply_changes
+        else "DRY RUN"
+    )
+
+    click.echo("")
+    click.echo(
+        f"Mode:                    {mode}"
+    )
+
+    try:
+        result = (
+            reconcile_historical_funding_rounds(
+                apply=apply_changes
+            )
+        )
+
+        if apply_changes:
+            db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+
+        logging.exception(
+            "Historical funding reconciliation failed."
+        )
+
+        raise
+
+    click.echo("")
+    click.echo(
+        f"Initial candidates:      "
+        f"{result['initial_candidates']}"
+    )
+
+    if not apply_changes:
+        click.echo("")
+        click.echo(
+            "Candidate funding events:"
+        )
+
+        if not result["candidates"]:
+            click.echo(
+                "  None."
+            )
+
+        for candidate in result[
+            "candidates"
+        ]:
+            click.echo(
+                ""
+            )
+
+            click.echo(
+                f"  {candidate['company_name']}"
+            )
+
+            click.echo(
+                "    Round "
+                f"{candidate['round_a_id']}: "
+                f"{candidate['round_a_amount']} "
+                f"{candidate['round_a_currency']} | "
+                f"{candidate['round_a_type']} | "
+                f"{candidate['round_a_announced_at']}"
+            )
+
+            click.echo(
+                "    Round "
+                f"{candidate['round_b_id']}: "
+                f"{candidate['round_b_amount']} "
+                f"{candidate['round_b_currency']} | "
+                f"{candidate['round_b_type']} | "
+                f"{candidate['round_b_announced_at']}"
+            )
+
+        click.echo("")
+        click.echo(
+            "No database changes were made."
+        )
+
+        click.echo(
+            "Re-run with --apply to execute "
+            "these high-confidence merges."
+        )
+
+        return
+
+    click.echo(
+        f"Funding rounds merged:  "
+        f"{result['merged']}"
+    )
+
+    click.echo(
+        f"Candidates remaining:   "
+        f"{result['remaining_candidates']}"
+    )
+
+    if result["merges"]:
+        click.echo("")
+        click.echo(
+            "Applied merges:"
+        )
+
+        for merge in result["merges"]:
+            click.echo(
+                "  "
+                f"{merge['company_name']}: "
+                f"removed round "
+                f"{merge['removed_round_id']} "
+                f"→ canonical round "
+                f"{merge['surviving_round_id']}"
+            )
+
+    click.echo("")
+    click.echo(
+        "Reconciliation complete."
+    )
 
 # Run the Flask development server when this file is executed directly
 if __name__ == "__main__":
