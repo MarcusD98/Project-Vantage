@@ -2,11 +2,23 @@ from models.article import db
 
 
 class EntityAlias(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    __tablename__ = "entity_alias"
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "entity_type",
+            "alias",
+            name="uq_entity_alias_type_alias",
+        ),
+    )
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True,
+    )
 
     alias = db.Column(
         db.String(300),
-        unique=True,
         nullable=False,
     )
 
@@ -22,6 +34,8 @@ class EntityAlias(db.Model):
 
     def __repr__(self):
         return (
-            f"<EntityAlias {self.alias} "
+            f"<EntityAlias "
+            f"{self.entity_type}: "
+            f"{self.alias} "
             f"-> {self.canonical_name}>"
         )

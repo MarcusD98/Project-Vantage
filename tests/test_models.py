@@ -1,9 +1,14 @@
+import pytest
+
+from sqlalchemy.exc import IntegrityError
+
 from models.article import db
 from models.company import Company
 from models.investor import Investor
 from models.funding_round import FundingRound
 from models.fund import Fund
 from models.fund_close import FundClose
+from models.entity_alias import EntityAlias
 
 
 def test_models_can_be_created():
@@ -53,3 +58,65 @@ def test_models_can_be_created():
     assert fund_close.fund.name == "Test Fund I"
     assert fund_close.amount == 300_000_000
     assert fund_close.close_type == "final_close"
+
+def test_same_alias_allowed_for_different_entity_types(
+    app,
+):
+    with app.app_context():
+        company_alias = EntityAlias(
+            alias="Shared Name",
+            entity_type="company",
+            canonical_name="Shared Company",
+        )
+
+        investor_alias = EntityAlias(
+            alias="Shared Name",
+            entity_type="investor",
+            canonical_name="Shared Investor",
+        )
+
+        db.session.add_all(
+            [
+                company_alias,
+                investor_alias,
+            ]
+        )
+
+        db.session.flush()
+
+        assert (
+            EntityAlias.query.count()
+            == 2
+        )
+
+        db.session.rollback()
+
+def test_same_alias_rejected_within_same_entity_type(
+    app,
+):
+    with app.app_context():
+        alias_a = EntityAlias(
+            alias="Duplicate Name",
+            entity_type="company",
+            canonical_name="Company A",
+        )
+
+        alias_b = EntityAlias(
+            alias="Duplicate Name",
+            entity_type="company",
+            canonical_name="Company B",
+        )
+
+        db.session.add_all(
+            [
+                alias_a,
+                alias_b,
+            ]
+        )
+
+        with pytest.raises(
+            IntegrityError
+        ):
+            db.session.flush()
+
+        db.session.rollback()
