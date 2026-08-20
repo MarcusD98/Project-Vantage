@@ -55,6 +55,9 @@ from services.source_measurement_service import (
     get_source_measurements,
 )
 
+from services.corpus_cli import (
+    register_corpus_commands,
+)
 
 logging.basicConfig(
     level=logging.INFO
@@ -359,6 +362,11 @@ def vantage():
     Project Vantage management commands.
     """
     pass
+
+
+register_corpus_commands(
+    vantage
+)
 
 
 # ---------------------------------------------------------
