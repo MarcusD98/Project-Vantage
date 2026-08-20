@@ -1,6 +1,10 @@
-# Configure external news sources
+# Configure external evidence sources
 
 SOURCES = [
+    # -----------------------------------------------------
+    # Editorial publications
+    # -----------------------------------------------------
+
     {
         "name": "TechCrunch",
         "url": "https://techcrunch.com/feed",
@@ -51,36 +55,71 @@ SOURCES = [
     },
     {
         "name": "Silicon Canals",
-        "url": "https://siliconcanals.com/news/startups/feed/",
+        "url": (
+            "https://siliconcanals.com/"
+            "news/startups/feed/"
+        ),
         "type": "publication",
         "region": "Europe",
         "method": "rss",
         "enabled": False,
     },
     {
-    "name": "LatAmList",
-    "url": "https://latamlist.com/feed",
-    "type": "publication",
-    "region": "Latin America",
-    "method": "rss",
-    "enabled": True,
+        "name": "LatAmList",
+        "url": "https://latamlist.com/feed",
+        "type": "publication",
+        "region": "Latin America",
+        "method": "rss",
+        "enabled": True,
     },
     {
-    "name": "Inc42",
-    "url": "https://inc42.com/feed/",
-    "type": "publication",
-    "region": "India",
-    "method": "rss",
-    "enabled": True,
+        "name": "Inc42",
+        "url": "https://inc42.com/feed/",
+        "type": "publication",
+        "region": "India",
+        "method": "rss",
+        "enabled": True,
     },
     {
-    "name": "TechCabal",
-    "url": "https://techcabal.com/feed/",
-    "type": "publication",
-    "region": "Africa",
-    "method": "rss",
-    "enabled": True,
-},
+        "name": "TechCabal",
+        "url": "https://techcabal.com/feed/",
+        "type": "publication",
+        "region": "Africa",
+        "method": "rss",
+        "enabled": True,
+    },
+
+    # -----------------------------------------------------
+    # First-party investor sources
+    # -----------------------------------------------------
+
+    {
+        "name": "Accel",
+        "url": "https://www.accel.com/sitemap.xml",
+        "type": "investor",
+        "region": "Global",
+        "method": "sitemap",
+        "enabled": True,
+
+        # Accel's sitemap contains hundreds of historical
+        # URLs. For the initial Source Network V2 pilot,
+        # consider only recently modified pages.
+        "max_age_days": 180,
+
+        # Restrict discovery to Accel's public news area.
+        "include_url_patterns": [
+            "/news/",
+        ],
+
+        # Exclude navigation/index pages rather than
+        # individual evidence documents.
+        "exclude_url_patterns": [
+            "/news/insights",
+            "/news/portfolio",
+            "/news/podcasts",
+        ],
+    },
 ]
+
 
 CACHE_DURATION_MINUTES = 5
