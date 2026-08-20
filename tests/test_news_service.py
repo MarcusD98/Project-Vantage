@@ -12,6 +12,7 @@ from services.discovery_service import (
 )
 
 from services.news_service import (
+    categorize_article,
     deduplicate_articles,
     filter_vc_articles,
     sort_articles_by_date,
@@ -469,3 +470,40 @@ def test_discover_source_rejects_unknown_method():
     )
 
     assert result is None
+
+def test_categorize_partnering_with_for_investor():
+    article = {
+        "title": "Partnering with Acme",
+        "source_type": "investor",
+    }
+
+    assert (
+        categorize_article(article)
+        == "Funding Round"
+    )
+
+
+def test_categorize_partnering_with_for_publication_is_other():
+    article = {
+        "title": "Partnering with Acme",
+        "source_type": "publication",
+    }
+
+    assert (
+        categorize_article(article)
+        == "Other"
+    )
+
+
+def test_categorize_investor_commentary_remains_other():
+    article = {
+        "title": (
+            "The future of enterprise software"
+        ),
+        "source_type": "investor",
+    }
+
+    assert (
+        categorize_article(article)
+        == "Other"
+    )

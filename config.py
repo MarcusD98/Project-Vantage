@@ -159,6 +159,26 @@ SOURCES = [
         # evidence is current enough for intelligence.
         "max_published_age_days": 180,
     },
+    
+    {
+        "name": "Sequoia Capital",
+        "url": "https://sequoiacap.com/sitemap.xml",
+        "type": "investor",
+        "region": "Global",
+        "method": "sitemap",
+        "enabled": True,
+
+        "include_url_patterns": [
+            "/article/",
+        ],
+
+        "exclude_url_regex_patterns": [
+            r"/article/tag/",
+        ],
+
+        "max_discovery_items": 100,
+        "max_published_age_days": 180,
+    },
 ]
 
 

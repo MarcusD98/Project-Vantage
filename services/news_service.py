@@ -240,14 +240,35 @@ def filter_vc_articles(articles):
 
     return filtered_articles
 
+
 # ---------------------------------------------------------
 # Categorization
 # ---------------------------------------------------------
 
 def categorize_article(article):
+    """
+    Route normalized evidence into a broad intelligence
+    category.
+
+    Categorization is intentionally a high-recall routing
+    heuristic rather than a final statement of event truth.
+
+    First-party investor sources can use investment-specific
+    editorial language that general publications do not.
+    """
+
     title = article[
         "title"
     ].lower()
+
+    source_type = (
+        article.get(
+            "source_type",
+            "publication",
+        )
+        .strip()
+        .lower()
+    )
 
     fund_phrases = [
         "fund i",
@@ -319,6 +340,22 @@ def categorize_article(article):
     ):
         return "Funding Round"
 
+    # First-party investors frequently announce new
+    # investments using language such as:
+    #
+    #   "Partnering with Acme"
+    #
+    # This is a routing signal, not final event truth.
+    # The funding extractor still decides whether the page
+    # actually represents a financing event.
+    if (
+        source_type == "investor"
+        and title.startswith(
+            "partnering with "
+        )
+    ):
+        return "Funding Round"
+
     return "Other"
 
 
@@ -331,6 +368,53 @@ def categorize_articles(articles):
         )
 
     return articles
+
+
+def recategorize_stored_articles(
+    source=None,
+):
+    """
+    Reapply the current categorization rules to evidence that
+    is already stored.
+
+    Useful when categorization logic improves after a source
+    has already been ingested.
+
+    Existing evidence is updated in place. Transaction
+    ownership remains with the caller.
+
+    Returns the number of Article rows whose category changed.
+    """
+
+    query = Article.query
+
+    if source is not None:
+        query = query.filter_by(
+            source=source
+        )
+
+    changed = 0
+
+    for article in query.all():
+        category = categorize_article(
+            {
+                "title": article.title,
+                "source_type": (
+                    article.source_type
+                    or "publication"
+                ),
+            }
+        )
+
+        if category == article.category:
+            continue
+
+        article.category = category
+        changed += 1
+
+    db.session.flush()
+
+    return changed
 
 
 # ---------------------------------------------------------
