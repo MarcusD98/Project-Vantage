@@ -99,6 +99,9 @@ def test_select_historical_fleet():
 
     assert names == [
         "TechCrunch",
+        "Accel",
+        "Index Ventures",
+        "Sequoia Capital",
     ]
 
 
@@ -358,12 +361,16 @@ def test_fleet_aggregates_processing(
         lambda source, **kwargs: {
             "source":
                 source["name"],
+
             "articles_discovered":
                 4,
+
             "articles_relevant":
                 3,
+
             "articles_saved":
                 2,
+
             "dates_populated":
                 0,
         },
@@ -462,4 +469,115 @@ def test_fleet_aggregates_processing(
             "funding_rounds"
         ]
         == 4
+    )
+
+
+def test_historical_fleet_uses_historical_processing(
+    monkeypatch,
+):
+    _patch_run_persistence(
+        monkeypatch
+    )
+
+    fleet = [
+        {
+            "key": "historical-one",
+            "name": "Historical One",
+            "type": "investor",
+        },
+    ]
+
+    monkeypatch.setattr(
+        fleet_service,
+        "select_source_fleet",
+        lambda **kwargs: fleet,
+    )
+
+    monkeypatch.setattr(
+        fleet_service,
+        "run_source_sync",
+        lambda source, **kwargs: {
+            "source":
+                source["name"],
+
+            "articles_discovered":
+                3,
+
+            "articles_relevant":
+                2,
+
+            "articles_saved":
+                2,
+
+            "dates_populated":
+                2,
+        },
+    )
+
+    captured = {}
+
+    def fake_process(
+        **kwargs,
+    ):
+        captured.update(
+            kwargs
+        )
+
+        return {
+            "articles_selected":
+                0,
+
+            "stale_articles_skipped":
+                0,
+
+            "compound_articles_skipped":
+                0,
+
+            "content_retrieved":
+                0,
+
+            "content_failed":
+                0,
+
+            "funding_processed":
+                0,
+
+            "funding_rounds":
+                0,
+
+            "fund_news_processed":
+                0,
+
+            "fund_closes":
+                0,
+
+            "processing_failed":
+                0,
+        }
+
+    monkeypatch.setattr(
+        fleet_service,
+        "run_stored_intelligence",
+        fake_process,
+    )
+
+    result = (
+        run_source_fleet(
+            mode="historical",
+            process=True,
+        )
+    )
+
+    assert (
+        captured[
+            "historical"
+        ]
+        is True
+    )
+
+    assert (
+        result["totals"][
+            "sources_succeeded"
+        ]
+        == 1
     )

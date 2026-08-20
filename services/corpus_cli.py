@@ -123,6 +123,16 @@ def backfill_command(
     ),
 )
 @click.option(
+    "--historical",
+    is_flag=True,
+    default=False,
+    help=(
+        "Process historical stored evidence "
+        "without applying the source's current "
+        "publication-age cutoff."
+    ),
+)
+@click.option(
     "--funding-limit",
     default=10,
     type=int,
@@ -144,6 +154,7 @@ def backfill_command(
 )
 def process_command(
     source,
+    historical,
     funding_limit,
     fund_news_limit,
 ):
@@ -170,6 +181,7 @@ def process_command(
                 fund_news_limit=(
                     fund_news_limit
                 ),
+                historical=historical,
             )
         )
 
@@ -181,6 +193,11 @@ def process_command(
     click.echo(
         f"Source:                  "
         f"{result['source']}"
+    )
+
+    click.echo(
+        f"Mode:                    "
+        f"{'historical' if result['historical'] else 'current'}"
     )
 
     click.echo("")

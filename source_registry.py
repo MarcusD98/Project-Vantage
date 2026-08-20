@@ -13,13 +13,11 @@ SUPPORTED_SOURCE_TYPES = {
     "structured",
 }
 
-
 SUPPORTED_DISCOVERY_METHODS = {
     "rss",
     "sitemap",
     "html",
 }
-
 
 SUPPORTED_DISCOVERY_MODES = {
     "incremental",
@@ -42,32 +40,25 @@ SOURCE_REGISTRY = [
         "type": "publication",
         "region": "Global",
         "enabled": True,
-
         "discovery": {
             "incremental": {
                 "method": "rss",
                 "url": "https://techcrunch.com/feed",
             },
-
             "historical": {
                 "method": "html",
                 "url": "https://techcrunch.com/2026/",
-
                 "link_selector": "h3 a",
-
                 "pagination_url_pattern": (
                     "https://techcrunch.com/"
                     "2026/page/{page}/"
                 ),
-
                 "include_url_patterns": [
                     "techcrunch.com/2026/",
                 ],
-
                 "exclude_url_patterns": [
                     "/page/",
                 ],
-
                 "max_discovery_pages": 20,
                 "max_discovery_items": 500,
             },
@@ -80,7 +71,6 @@ SOURCE_REGISTRY = [
         "type": "publication",
         "region": "Europe",
         "enabled": True,
-
         "discovery": {
             "incremental": {
                 "method": "rss",
@@ -95,13 +85,10 @@ SOURCE_REGISTRY = [
         "type": "publication",
         "region": "Global",
         "enabled": True,
-
         "discovery": {
             "incremental": {
                 "method": "rss",
-                "url": (
-                    "https://news.crunchbase.com/feed/"
-                ),
+                "url": "https://news.crunchbase.com/feed/",
             },
         },
     },
@@ -112,7 +99,6 @@ SOURCE_REGISTRY = [
         "type": "publication",
         "region": "Europe",
         "enabled": True,
-
         "discovery": {
             "incremental": {
                 "method": "rss",
@@ -127,13 +113,10 @@ SOURCE_REGISTRY = [
         "type": "publication",
         "region": "Europe",
         "enabled": True,
-
         "discovery": {
             "incremental": {
                 "method": "rss",
-                "url": (
-                    "https://www.eu-startups.com/feed/"
-                ),
+                "url": "https://www.eu-startups.com/feed/",
             },
         },
     },
@@ -144,7 +127,6 @@ SOURCE_REGISTRY = [
         "type": "publication",
         "region": "Global",
         "enabled": True,
-
         "discovery": {
             "incremental": {
                 "method": "rss",
@@ -159,7 +141,6 @@ SOURCE_REGISTRY = [
         "type": "publication",
         "region": "Europe",
         "enabled": False,
-
         "discovery": {
             "incremental": {
                 "method": "rss",
@@ -177,7 +158,6 @@ SOURCE_REGISTRY = [
         "type": "publication",
         "region": "Latin America",
         "enabled": True,
-
         "discovery": {
             "incremental": {
                 "method": "rss",
@@ -192,7 +172,6 @@ SOURCE_REGISTRY = [
         "type": "publication",
         "region": "India",
         "enabled": True,
-
         "discovery": {
             "incremental": {
                 "method": "rss",
@@ -207,7 +186,6 @@ SOURCE_REGISTRY = [
         "type": "publication",
         "region": "Africa",
         "enabled": True,
-
         "discovery": {
             "incremental": {
                 "method": "rss",
@@ -226,20 +204,17 @@ SOURCE_REGISTRY = [
         "type": "investor",
         "region": "Global",
         "enabled": True,
-
         "discovery": {
             "incremental": {
                 "method": "sitemap",
-                "url": (
-                    "https://www.accel.com/sitemap.xml"
-                ),
+                "url": "https://www.accel.com/sitemap.xml",
 
                 # Sitemap modification age is only a
-                # discovery hint.
+                # discovery hint for the live/current feed.
                 "max_age_days": 180,
 
-                # Actual publication date determines
-                # eligibility for current intelligence.
+                # Actual publication date controls current
+                # intelligence eligibility.
                 "max_published_age_days": 180,
 
                 "include_url_patterns": [
@@ -252,6 +227,26 @@ SOURCE_REGISTRY = [
                     "/news/podcasts",
                 ],
             },
+
+            "historical": {
+                # Historical mode deliberately removes both
+                # current-recency limits while retaining the
+                # same generic sitemap and URL boundaries.
+                "method": "sitemap",
+                "url": "https://www.accel.com/sitemap.xml",
+
+                "include_url_patterns": [
+                    "/news/",
+                ],
+
+                "exclude_url_patterns": [
+                    "/news/insights",
+                    "/news/portfolio",
+                    "/news/podcasts",
+                ],
+
+                "max_discovery_items": 250,
+            },
         },
     },
 
@@ -261,7 +256,6 @@ SOURCE_REGISTRY = [
         "type": "investor",
         "region": "Global",
         "enabled": True,
-
         "discovery": {
             "incremental": {
                 "method": "sitemap",
@@ -281,22 +275,42 @@ SOURCE_REGISTRY = [
                 "exclude_url_regex_patterns": [
                     r"/perspectives/$",
                     r"/perspectives/\d+/$",
-                    (
-                        r"/perspectives/"
-                        r"news(?:/\d+)?/$"
-                    ),
-                    (
-                        r"/perspectives/"
-                        r"insights(?:/\d+)?/$"
-                    ),
+                    r"/perspectives/news(?:/\d+)?/$",
+                    r"/perspectives/insights(?:/\d+)?/$",
                     r"/perspectives/relationship/",
                     r"/perspectives/team-member/",
                 ],
 
                 "max_age_days": 180,
                 "max_discovery_items": 100,
-
                 "max_published_age_days": 180,
+            },
+
+            "historical": {
+                "method": "sitemap",
+                "url": (
+                    "https://www.indexventures.com/"
+                    "sitemap.xml"
+                ),
+
+                "sitemap_include_patterns": [
+                    "sitemap-perspectives.xml",
+                ],
+
+                "include_url_patterns": [
+                    "/perspectives/",
+                ],
+
+                "exclude_url_regex_patterns": [
+                    r"/perspectives/$",
+                    r"/perspectives/\d+/$",
+                    r"/perspectives/news(?:/\d+)?/$",
+                    r"/perspectives/insights(?:/\d+)?/$",
+                    r"/perspectives/relationship/",
+                    r"/perspectives/team-member/",
+                ],
+
+                "max_discovery_items": 250,
             },
         },
     },
@@ -307,14 +321,10 @@ SOURCE_REGISTRY = [
         "type": "investor",
         "region": "Global",
         "enabled": True,
-
         "discovery": {
             "incremental": {
                 "method": "sitemap",
-                "url": (
-                    "https://sequoiacap.com/"
-                    "sitemap.xml"
-                ),
+                "url": "https://sequoiacap.com/sitemap.xml",
 
                 "include_url_patterns": [
                     "/article/",
@@ -325,8 +335,22 @@ SOURCE_REGISTRY = [
                 ],
 
                 "max_discovery_items": 100,
-
                 "max_published_age_days": 180,
+            },
+
+            "historical": {
+                "method": "sitemap",
+                "url": "https://sequoiacap.com/sitemap.xml",
+
+                "include_url_patterns": [
+                    "/article/",
+                ],
+
+                "exclude_url_regex_patterns": [
+                    r"/article/tag/",
+                ],
+
+                "max_discovery_items": 250,
             },
         },
     },
@@ -341,23 +365,14 @@ SOURCE_REGISTRY = [
         "type": "investor",
         "region": "Global",
         "enabled": True,
-
         "discovery": {
             "incremental": {
-                # a16z exposes a dedicated Investment News
-                # page. The individual articles are not
-                # contained beneath one clean URL prefix, so
-                # the HTML listing itself provides the
-                # discovery boundary.
                 "method": "html",
                 "url": (
                     "https://a16z.com/category/"
                     "general/investment-news/"
                 ),
 
-                # Investment cards are heading-linked.
-                # Using heading anchors avoids treating every
-                # navigation/footer link as evidence.
                 "link_selector": (
                     "h2 a, h3 a, h4 a"
                 ),
@@ -372,7 +387,6 @@ SOURCE_REGISTRY = [
 
                 "max_discovery_pages": 1,
                 "max_discovery_items": 50,
-
                 "max_published_age_days": 180,
             },
         },
@@ -384,12 +398,8 @@ SOURCE_REGISTRY = [
         "type": "investor",
         "region": "Global",
         "enabled": True,
-
         "discovery": {
             "incremental": {
-                # GC's Stories surface mixes investment
-                # announcements, company-creation updates,
-                # firm news and investment theses.
                 "method": "html",
                 "url": (
                     "https://www.generalcatalyst.com/"
@@ -398,17 +408,12 @@ SOURCE_REGISTRY = [
 
                 "link_selector": "a[href]",
 
-                # Individual GC evidence pages live below
-                # /stories/<slug>. The listing itself is
-                # /stories and therefore does not match this
-                # trailing-slash pattern.
                 "include_url_patterns": [
                     "generalcatalyst.com/stories/",
                 ],
 
                 "max_discovery_pages": 1,
                 "max_discovery_items": 100,
-
                 "max_published_age_days": 180,
             },
         },
@@ -420,27 +425,19 @@ SOURCE_REGISTRY = [
         "type": "investor",
         "region": "Global",
         "enabled": True,
-
         "discovery": {
             "incremental": {
-                # Atlas is Bessemer's broad first-party
-                # research and portfolio-content corpus.
                 "method": "html",
-                "url": (
-                    "https://www.bvp.com/atlas"
-                ),
+                "url": "https://www.bvp.com/atlas",
 
                 "link_selector": "a[href]",
 
-                # Individual Atlas content lives under
-                # /atlas/<slug>.
                 "include_url_patterns": [
                     "bvp.com/atlas/",
                 ],
 
                 "max_discovery_pages": 1,
                 "max_discovery_items": 100,
-
                 "max_published_age_days": 180,
             },
         },
@@ -452,12 +449,8 @@ SOURCE_REGISTRY = [
         "type": "investor",
         "region": "United States",
         "enabled": True,
-
         "discovery": {
             "incremental": {
-                # Greylock exposes a dedicated Portfolio News
-                # listing. Individual portfolio announcements
-                # are normal /blog/<slug>/ articles.
                 "method": "html",
                 "url": (
                     "https://greylock.com/"
@@ -470,8 +463,6 @@ SOURCE_REGISTRY = [
                     "greylock.com/blog/",
                 ],
 
-                # Exclude category/navigation and pagination
-                # URLs while retaining individual articles.
                 "exclude_url_patterns": [
                     "/blog/portfolio-news/",
                     "/blog/greymatter/",
@@ -482,7 +473,6 @@ SOURCE_REGISTRY = [
 
                 "max_discovery_pages": 1,
                 "max_discovery_items": 100,
-
                 "max_published_age_days": 180,
             },
         },
@@ -494,29 +484,19 @@ SOURCE_REGISTRY = [
         "type": "investor",
         "region": "Global",
         "enabled": True,
-
         "discovery": {
             "incremental": {
-                # NEA's blog contains a dedicated Investment
-                # topic alongside thesis and company-building
-                # material. Vantage retains the broader
-                # investor corpus and classifies downstream.
                 "method": "html",
-                "url": (
-                    "https://www.nea.com/blog"
-                ),
+                "url": "https://www.nea.com/blog",
 
                 "link_selector": "a[href]",
 
-                # Individual evidence pages live beneath
-                # /blog/<slug>.
                 "include_url_patterns": [
                     "nea.com/blog/",
                 ],
 
                 "max_discovery_pages": 1,
                 "max_discovery_items": 100,
-
                 "max_published_age_days": 180,
             },
         },
@@ -528,12 +508,8 @@ SOURCE_REGISTRY = [
         "type": "investor",
         "region": "Europe",
         "enabled": True,
-
         "discovery": {
             "incremental": {
-                # Balderton maintains a dedicated Portfolio
-                # News category containing financing and
-                # portfolio-company activity.
                 "method": "html",
                 "url": (
                     "https://www.balderton.com/"
@@ -546,15 +522,12 @@ SOURCE_REGISTRY = [
                     "balderton.com/news/",
                 ],
 
-                # Category pages are navigation rather than
-                # evidence documents.
                 "exclude_url_patterns": [
                     "/news/category/",
                 ],
 
                 "max_discovery_pages": 1,
                 "max_discovery_items": 100,
-
                 "max_published_age_days": 180,
             },
         },
@@ -566,12 +539,8 @@ SOURCE_REGISTRY = [
         "type": "investor",
         "region": "Global",
         "enabled": True,
-
         "discovery": {
             "incremental": {
-                # Insight's Ideas surface contains investor
-                # POVs, Behind the Investment pieces,
-                # portfolio stories and operating research.
                 "method": "html",
                 "url": (
                     "https://www.insightpartners.com/"
@@ -584,15 +553,12 @@ SOURCE_REGISTRY = [
                     "insightpartners.com/ideas/",
                 ],
 
-                # Do not persist the Ideas landing page as an
-                # evidence document.
                 "exclude_url_regex_patterns": [
                     r"/ideas/$",
                 ],
 
                 "max_discovery_pages": 1,
                 "max_discovery_items": 100,
-
                 "max_published_age_days": 180,
             },
         },
@@ -780,8 +746,7 @@ def validate_source_registry(
 
             if (
                 method
-                not in
-                SUPPORTED_DISCOVERY_METHODS
+                not in SUPPORTED_DISCOVERY_METHODS
             ):
                 raise ValueError(
                     "Unsupported discovery method "
@@ -817,10 +782,8 @@ def get_source(
     """
     Return one canonical source definition.
 
-    A source may be addressed by either:
-
-        source key
-        source display name
+    A source may be addressed by either source key or source
+    display name.
 
     Matching is case-insensitive.
 
@@ -873,10 +836,6 @@ def _build_discovery_config(
     """
     Flatten one canonical source definition into the existing
     Vantage discovery configuration shape.
-
-    This compatibility boundary allows the current discovery
-    and intelligence pipeline to continue operating unchanged
-    while source configuration becomes unified.
     """
 
     if source is None:
@@ -957,15 +916,6 @@ def get_discovery_sources(
     """
     Return flattened discovery configurations for a source
     fleet.
-
-    Optional filters allow callers to select:
-
-        incremental / historical mode
-        source type
-        enabled sources only
-
-    Sources without the requested discovery strategy are
-    omitted.
     """
 
     normalized_mode = (
@@ -1100,8 +1050,5 @@ def get_source_names(
     return names
 
 
-# Validate configuration immediately when the registry is
-# imported. Configuration errors should fail fast during
-# development rather than appearing as mysterious ingestion
-# failures later.
+# Fail fast on invalid source configuration.
 validate_source_registry()

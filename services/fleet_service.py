@@ -74,6 +74,7 @@ def select_source_fleet(
             _normalize_identifier(
                 source["name"]
             ),
+
             _normalize_identifier(
                 source.get(
                     "key",
@@ -251,7 +252,9 @@ def run_source_fleet(
     Historical mode additionally performs page/date
     enrichment.
 
-    LLM processing occurs only when process=True.
+    When intelligence processing is enabled, historical fleets
+    automatically bypass the current publication-age cutoff
+    while retaining all other intelligence safeguards.
     """
 
     fleet = (
@@ -383,11 +386,18 @@ def run_source_fleet(
                                 "name"
                             ]
                         ),
+
                         funding_limit=(
                             funding_limit
                         ),
+
                         fund_news_limit=(
                             fund_news_limit
+                        ),
+
+                        historical=(
+                            mode
+                            == "historical"
                         ),
                     )
                 )

@@ -133,15 +133,18 @@ def _select_stored_articles(
     limit,
     stats,
     now,
+    historical=False,
 ):
     """
     Select existing unprocessed evidence for one source.
 
     No source discovery occurs here.
 
-    Existing intelligence preparation rules are reused so
-    publication-age policy and content enrichment remain
-    consistent with the normal intelligence pipeline.
+    Current mode reuses the normal publication-age policy.
+
+    Historical mode retains the same compound-evidence and
+    content/date preparation rules but deliberately bypasses
+    publication recency rejection.
 
     A zero or negative limit selects no articles.
     """
@@ -174,6 +177,9 @@ def _select_stored_articles(
             article,
             stats,
             now=now,
+            enforce_recency=(
+                not historical
+            ),
         ):
             continue
 
@@ -191,6 +197,7 @@ def run_stored_intelligence(
     source_name,
     funding_limit=10,
     fund_news_limit=10,
+    historical=False,
 ):
     """
     Process already-persisted evidence for one source.
@@ -198,23 +205,39 @@ def run_stored_intelligence(
     Unlike run_intelligence_pipeline(), this function performs
     no discovery and does not refresh live sources.
 
-    Lifecycle:
+    Current mode:
 
         stored evidence
-        → source filter
         → candidate preparation
+        → publication recency policy
         → LLM extraction
         → entity/event resolution
         → persistence
+
+    Historical mode:
+
+        stored evidence
+        → candidate preparation
+        → no publication recency rejection
+        → same LLM extraction
+        → same entity/event resolution
+        → same persistence
     """
 
     _validate_source(
         source_name
     )
 
+    historical = bool(
+        historical
+    )
+
     stats = {
         "source":
             source_name,
+
+        "historical":
+            historical,
 
         "articles_selected":
             0,
@@ -259,6 +282,7 @@ def run_stored_intelligence(
                 limit=funding_limit,
                 stats=stats,
                 now=now,
+                historical=historical,
             )
         )
 
@@ -269,6 +293,7 @@ def run_stored_intelligence(
                 limit=fund_news_limit,
                 stats=stats,
                 now=now,
+                historical=historical,
             )
         )
 

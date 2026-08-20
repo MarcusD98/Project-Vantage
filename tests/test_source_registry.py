@@ -1,7 +1,6 @@
 import pytest
 
 from source_registry import (
-    SOURCE_REGISTRY,
     get_discovery_config,
     get_discovery_sources,
     get_source,
@@ -29,11 +28,6 @@ def test_source_can_be_found_by_name():
         == "techcrunch"
     )
 
-    assert (
-        source["name"]
-        == "TechCrunch"
-    )
-
 
 def test_source_can_be_found_by_key():
     source = get_source(
@@ -49,9 +43,11 @@ def test_source_can_be_found_by_key():
 
 
 def test_techcrunch_has_incremental_strategy():
-    config = get_discovery_config(
-        "TechCrunch",
-        mode="incremental",
+    config = (
+        get_discovery_config(
+            "TechCrunch",
+            mode="incremental",
+        )
     )
 
     assert config is not None
@@ -68,9 +64,11 @@ def test_techcrunch_has_incremental_strategy():
 
 
 def test_techcrunch_has_historical_strategy():
-    config = get_discovery_config(
-        "TechCrunch",
-        mode="historical",
+    config = (
+        get_discovery_config(
+            "TechCrunch",
+            mode="historical",
+        )
     )
 
     assert config is not None
@@ -89,18 +87,22 @@ def test_techcrunch_has_historical_strategy():
 
 
 def test_source_without_historical_strategy_returns_none():
-    config = get_discovery_config(
-        "Sifted",
-        mode="historical",
+    config = (
+        get_discovery_config(
+            "Sifted",
+            mode="historical",
+        )
     )
 
     assert config is None
 
 
-def test_historical_fleet_contains_only_configured_sources():
-    configs = get_discovery_sources(
-        mode="historical",
-        enabled_only=True,
+def test_historical_fleet_contains_configured_sources():
+    configs = (
+        get_discovery_sources(
+            mode="historical",
+            enabled_only=True,
+        )
     )
 
     names = [
@@ -110,14 +112,78 @@ def test_historical_fleet_contains_only_configured_sources():
 
     assert names == [
         "TechCrunch",
+        "Accel",
+        "Index Ventures",
+        "Sequoia Capital",
     ]
 
 
+def test_historical_investor_fleet():
+    configs = (
+        get_discovery_sources(
+            mode="historical",
+            source_type="investor",
+            enabled_only=True,
+        )
+    )
+
+    names = {
+        config["name"]
+        for config in configs
+    }
+
+    assert names == {
+        "Accel",
+        "Index Ventures",
+        "Sequoia Capital",
+    }
+
+
+def test_historical_investor_strategies_remove_recency_limits():
+    for name in [
+        "Accel",
+        "Index Ventures",
+        "Sequoia Capital",
+    ]:
+        config = (
+            get_discovery_config(
+                name,
+                mode="historical",
+            )
+        )
+
+        assert config is not None
+
+        assert (
+            config["method"]
+            == "sitemap"
+        )
+
+        assert (
+            config[
+                "max_discovery_items"
+            ]
+            == 250
+        )
+
+        assert (
+            "max_age_days"
+            not in config
+        )
+
+        assert (
+            "max_published_age_days"
+            not in config
+        )
+
+
 def test_incremental_investor_fleet():
-    configs = get_discovery_sources(
-        mode="incremental",
-        source_type="investor",
-        enabled_only=True,
+    configs = (
+        get_discovery_sources(
+            mode="incremental",
+            source_type="investor",
+            enabled_only=True,
+        )
     )
 
     names = {
@@ -162,9 +228,11 @@ def test_new_scale_cohort_uses_existing_html_adapter():
     ]
 
     for name in names:
-        config = get_discovery_config(
-            name,
-            mode="incremental",
+        config = (
+            get_discovery_config(
+                name,
+                mode="incremental",
+            )
         )
 
         assert config is not None
@@ -176,9 +244,11 @@ def test_new_scale_cohort_uses_existing_html_adapter():
 
 
 def test_general_catalyst_story_boundary():
-    config = get_discovery_config(
-        "General Catalyst",
-        mode="incremental",
+    config = (
+        get_discovery_config(
+            "General Catalyst",
+            mode="incremental",
+        )
     )
 
     assert (
@@ -190,9 +260,11 @@ def test_general_catalyst_story_boundary():
 
 
 def test_bessemer_atlas_boundary():
-    config = get_discovery_config(
-        "Bessemer Venture Partners",
-        mode="incremental",
+    config = (
+        get_discovery_config(
+            "Bessemer Venture Partners",
+            mode="incremental",
+        )
     )
 
     assert (
@@ -209,10 +281,12 @@ def test_enabled_source_names_exclude_disabled_sources():
     )
 
     assert "TechCrunch" in names
-
     assert "Accel" in names
 
-    assert "Silicon Canals" not in names
+    assert (
+        "Silicon Canals"
+        not in names
+    )
 
 
 def test_source_lookup_returns_defensive_copy():

@@ -134,6 +134,7 @@ def _article_is_within_publication_window(
         now = datetime.now(
             timezone.utc
         )
+
     else:
         now = _normalize_datetime(
             now
@@ -183,6 +184,7 @@ def _prepare_candidate_article(
     article,
     stats,
     now=None,
+    enforce_recency=True,
 ):
     """
     Prepare one evidence document before intelligence
@@ -191,15 +193,15 @@ def _prepare_candidate_article(
     Funding evidence that is clearly compound is preserved but
     excluded from Vantage's single-event funding extractor.
 
-    For remaining sources with publication-age policies:
+    Page content and publication metadata are recovered where
+    required.
 
-    1. Recover missing page metadata when necessary.
-    2. Preserve any recovered publication date.
-    3. Exclude genuinely stale evidence from current
-       intelligence processing.
+    Current intelligence processing enforces source-specific
+    publication-age policy.
 
-    Historical and compound evidence remains stored in Article
-    and is not marked as LLM-processed.
+    Historical intelligence processing may deliberately disable
+    that age policy while retaining every other preparation and
+    safety rule.
     """
 
     if is_compound_funding_evidence(
@@ -257,9 +259,13 @@ def _prepare_candidate_article(
                 "content_retrieved"
             ] += 1
 
-    if not _article_is_within_publication_window(
-        article,
-        now=now,
+    if (
+        enforce_recency
+        and not
+        _article_is_within_publication_window(
+            article,
+            now=now,
+        )
     ):
         stats[
             "stale_articles_skipped"
@@ -283,6 +289,9 @@ def _select_articles_for_intelligence(
     Candidate preparation occurs before the final batch limit,
     so stale or compound evidence does not consume processing
     capacity.
+
+    This is the live/current pipeline and therefore always uses
+    the normal publication-recency policy.
     """
 
     if limit <= 0:
@@ -293,6 +302,7 @@ def _select_articles_for_intelligence(
         .filter(
             Article.category
             == category,
+
             Article.llm_processed_at
             .is_(None),
         )
@@ -309,6 +319,7 @@ def _select_articles_for_intelligence(
             article,
             stats,
             now=now,
+            enforce_recency=True,
         ):
             continue
 
