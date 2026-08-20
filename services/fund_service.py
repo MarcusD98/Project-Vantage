@@ -11,11 +11,31 @@ from services.entity_review_service import (
     record_entity_resolution_review,
 )
 
+from services.fund_event_resolution_service import (
+    find_matching_fund_close,
+)
+
 
 def save_fund_close_extraction(
     article,
     extraction,
 ):
+    """
+    Persist a structured fund-close extraction into the
+    current database session.
+
+    Responsibilities:
+    - resolve the investor / fund manager
+    - resolve or create the Fund
+    - resolve the canonical FundClose event
+    - attach supporting evidence
+    - enrich Fund and FundClose metadata
+
+    Transaction ownership belongs to the caller.
+
+    This function deliberately does not commit.
+    """
+
     if not extraction.is_fund_close:
         return None
 
@@ -25,7 +45,10 @@ def save_fund_close_extraction(
     if not extraction.investor_name:
         return None
 
-    # Resolve the fund manager / investor entity
+    # ---------------------------------------------------------
+    # Resolve fund manager / investor
+    # ---------------------------------------------------------
+
     investor_resolution = resolve_entity_name(
         extraction.investor_name,
         "investor",
@@ -34,7 +57,6 @@ def save_fund_close_extraction(
     if investor_resolution["status"] == "invalid":
         return None
 
-    # Persist uncertain matches for human review
     record_entity_resolution_review(
         article=article,
         resolution=investor_resolution,
@@ -58,14 +80,19 @@ def save_fund_close_extraction(
             name=investor_name
         )
 
-        db.session.add(investor)
+        db.session.add(
+            investor
+        )
+
         db.session.flush()
 
-    # We require a usable fund name before creating a Fund record
+    # ---------------------------------------------------------
+    # Resolve Fund
+    # ---------------------------------------------------------
+
     if not extraction.fund_name:
         return None
 
-    # Find the fund under this specific investor
     fund = Fund.query.filter_by(
         name=extraction.fund_name,
         investor_id=investor.id,
@@ -80,48 +107,123 @@ def save_fund_close_extraction(
             vintage_year=extraction.vintage_year,
         )
 
-        db.session.add(fund)
+        db.session.add(
+            fund
+        )
+
+        # Required because event resolution needs fund.id.
         db.session.flush()
 
     else:
-        # Enrich existing fund metadata when better information exists
         if extraction.strategy:
-            fund.strategy = extraction.strategy
+            fund.strategy = (
+                extraction.strategy
+            )
 
         if extraction.geography:
-            fund.geography = extraction.geography
+            fund.geography = (
+                extraction.geography
+            )
 
         if extraction.vintage_year:
-            fund.vintage_year = extraction.vintage_year
+            fund.vintage_year = (
+                extraction.vintage_year
+            )
 
-    # Avoid duplicate close events for the same article
-    existing_close = FundClose.query.filter_by(
-        article_id=article.id
-    ).first()
+    # ---------------------------------------------------------
+    # Resolve canonical real-world FundClose event
+    # ---------------------------------------------------------
 
-    if existing_close is not None:
-        existing_close.fund = fund
-        existing_close.amount = extraction.amount
-        existing_close.currency = extraction.currency
-        existing_close.close_type = extraction.close_type
-        existing_close.announced_at = article.published_at
-        existing_close.event_evidence = extraction.event_evidence
-
-        db.session.commit()
-
-        return existing_close
-
-    fund_close = FundClose(
+    fund_close = find_matching_fund_close(
         fund=fund,
-        article=article,
         amount=extraction.amount,
         currency=extraction.currency,
         close_type=extraction.close_type,
         announced_at=article.published_at,
-        event_evidence=extraction.event_evidence,
     )
 
-    db.session.add(fund_close)
-    db.session.commit()
+    # Compatibility / idempotency fallback:
+    # preserve the existing behaviour for an article that has
+    # already created a FundClose.
+    if fund_close is None:
+        fund_close = FundClose.query.filter_by(
+            article_id=article.id
+        ).first()
+
+    # ---------------------------------------------------------
+    # Create new canonical FundClose
+    # ---------------------------------------------------------
+
+    if fund_close is None:
+        fund_close = FundClose(
+            fund=fund,
+            article=article,
+            amount=extraction.amount,
+            currency=extraction.currency,
+            close_type=extraction.close_type,
+            announced_at=article.published_at,
+            event_evidence=extraction.event_evidence,
+        )
+
+        db.session.add(
+            fund_close
+        )
+
+        db.session.flush()
+
+    # ---------------------------------------------------------
+    # Enrich existing canonical FundClose
+    # ---------------------------------------------------------
+
+    else:
+        fund_close.fund = fund
+
+        if extraction.event_evidence:
+            fund_close.event_evidence = (
+                extraction.event_evidence
+            )
+
+        if extraction.amount is not None:
+            fund_close.amount = (
+                extraction.amount
+            )
+
+        if extraction.currency:
+            fund_close.currency = (
+                extraction.currency
+                .strip()
+                .upper()
+            )
+
+        if extraction.close_type:
+            fund_close.close_type = (
+                extraction.close_type
+            )
+
+        # Preserve the earliest known announcement date.
+        if article.published_at:
+            if (
+                fund_close.announced_at is None
+                or article.published_at
+                < fund_close.announced_at
+            ):
+                fund_close.announced_at = (
+                    article.published_at
+                )
+
+        # Retain backwards-compatible primary article.
+        if fund_close.article is None:
+            fund_close.article = article
+
+    # ---------------------------------------------------------
+    # Supporting source evidence
+    # ---------------------------------------------------------
+
+    if article not in fund_close.articles:
+        fund_close.articles.append(
+            article
+        )
+
+    db.session.flush()
 
     return fund_close
