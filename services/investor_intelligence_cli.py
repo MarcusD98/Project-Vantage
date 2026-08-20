@@ -1,9 +1,21 @@
 import click
 
-from services.investor_intelligence_service import (
+from services.investor_confidence_service import (
     get_investor_profile,
     get_investor_rankings,
 )
+
+
+CONFIDENCE_LABELS = {
+    "corpus_supported":
+        "CORPUS-SUPPORTED",
+
+    "observational":
+        "OBSERVATIONAL",
+
+    "insufficient":
+        "INSUFFICIENT",
+}
 
 
 def _compact_number(value):
@@ -58,6 +70,24 @@ def _format_coverage(metric):
         f"{metric['total']} "
         f"({metric['percent']:.0f}%) "
         f"{metric['label'].upper()}"
+    )
+
+
+def _format_temporal_window(window):
+    if window is None:
+        return "unavailable"
+
+    return (
+        f"{window['processed_candidates']}/"
+        f"{window['total_candidates']} processed "
+        f"{window['status'].upper()}"
+    )
+
+
+def _confidence_label(value):
+    return CONFIDENCE_LABELS.get(
+        value,
+        str(value).upper(),
     )
 
 
@@ -175,9 +205,11 @@ def investors_command(
     )
 
     click.echo(
-        "Δ is descriptive; Trend indicates "
-        "whether comparison history is "
-        "sufficient for interpretation."
+        "Confidence: CORPUS-SUPPORTED = enough observations "
+        "plus fully processed discovered first-party funding "
+        "candidates in both windows; OBSERVATIONAL = enough "
+        "graph observations but temporal first-party corpus "
+        "coverage is unavailable or incomplete."
     )
 
     click.echo("")
@@ -195,7 +227,7 @@ def investors_command(
         f"{'Δ':>4} | "
         f"{'Leads':>5} | "
         f"{'All-time':>8} | "
-        f"{'Trend':>12}"
+        f"{'Confidence':>16}"
     )
 
     click.echo(header)
@@ -216,13 +248,12 @@ def investors_command(
                 + "…"
             )
 
-        trend = (
-            "SUPPORTED"
-            if item[
-                "trend_status"
-            ]
-            == "supported"
-            else "INSUFFICIENT"
+        confidence = (
+            _confidence_label(
+                item[
+                    "trend_confidence"
+                ]
+            )
         )
 
         click.echo(
@@ -232,7 +263,7 @@ def investors_command(
             f"{_format_delta(item['investment_delta']):>4} | "
             f"{item['current_leads']:>5} | "
             f"{item['all_time_investments']:>8} | "
-            f"{trend:>12}"
+            f"{confidence:>16}"
         )
 
     click.echo("")
@@ -319,6 +350,10 @@ def investor_command(
 
     signals = profile[
         "signals"
+    ]
+
+    temporal = coverage[
+        "temporal_corpus"
     ]
 
     click.echo("")
@@ -433,6 +468,35 @@ def investor_command(
         f"{comparison['status'].upper()}"
     )
 
+    click.echo(
+        f"Temporal corpus:          "
+        f"{temporal['status'].upper()}"
+    )
+
+    if temporal[
+        "source_matched"
+    ]:
+        click.echo(
+            f"First-party source:       "
+            f"{temporal['source_name']}"
+        )
+
+    if temporal[
+        "current_window"
+    ] is not None:
+        click.echo(
+            f"Current source window:    "
+            f"{_format_temporal_window(temporal['current_window'])}"
+        )
+
+    if temporal[
+        "previous_window"
+    ] is not None:
+        click.echo(
+            f"Previous source window:   "
+            f"{_format_temporal_window(temporal['previous_window'])}"
+        )
+
     click.echo("")
     click.echo(
         "Observed Signals"
@@ -462,6 +526,27 @@ def investor_command(
         click.echo(
             "Activity trend: unavailable — "
             f"{activity['reason']}"
+        )
+
+    click.echo(
+        f"Trend confidence: "
+        f"{_confidence_label(activity['confidence'])}"
+    )
+
+    if (
+        activity[
+            "confidence"
+        ]
+        == "observational"
+        and activity[
+            "confidence_reason"
+        ]
+    ):
+        click.echo(
+            "  "
+            + activity[
+                "confidence_reason"
+            ]
         )
 
     _print_dimension_signal(

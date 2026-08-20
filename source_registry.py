@@ -281,7 +281,6 @@ SOURCE_REGISTRY = [
                     r"/perspectives/team-member/",
                 ],
 
-                "max_age_days": 180,
                 "max_discovery_items": 100,
                 "max_published_age_days": 180,
             },
