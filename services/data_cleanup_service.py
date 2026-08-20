@@ -1,99 +1,145 @@
-from collections import defaultdict
-
 from models.company import Company
 from models.funding_round import FundingRound
+
+from services.event_resolution_service import (
+    funding_rounds_match,
+)
 
 
 def find_duplicate_funding_rounds():
     """
-    Find funding rounds that may represent the same real-world event.
+    Find historical FundingRound records that may represent the
+    same real-world financing event.
 
-    This is intentionally conservative. It does not modify data.
+    This audit uses the exact same matching engine as live
+    ingestion.
+
+    It performs no database writes and never merges records
+    automatically.
     """
 
-    duplicate_groups = []
+    duplicate_candidates = []
 
-    companies = Company.query.all()
+    companies = Company.query.order_by(
+        Company.id
+    ).all()
 
     for company in companies:
-        rounds = FundingRound.query.filter_by(
+        funding_rounds = FundingRound.query.filter_by(
             company_id=company.id
         ).order_by(
-            FundingRound.announced_at
+            FundingRound.announced_at,
+            FundingRound.id,
         ).all()
 
-        if len(rounds) < 2:
+        if len(funding_rounds) < 2:
             continue
 
-        grouped = defaultdict(list)
+        for index, funding_round_a in enumerate(
+            funding_rounds
+        ):
+            for funding_round_b in funding_rounds[
+                index + 1:
+            ]:
+                if not funding_rounds_match(
+                    funding_round_a,
+                    funding_round_b,
+                ):
+                    continue
 
-        for funding_round in rounds:
-            key = (
-                funding_round.canonical_round_type,
-                funding_round.currency,
-                funding_round.amount,
-            )
+                duplicate_candidates.append(
+                    {
+                        "company": company,
+                        "round_a": funding_round_a,
+                        "round_b": funding_round_b,
+                    }
+                )
 
-            grouped[key].append(
-                funding_round
-            )
-
-        for key, matching_rounds in grouped.items():
-            if len(matching_rounds) < 2:
-                continue
-
-            duplicate_groups.append({
-                "company": company,
-                "canonical_round_type": key[0],
-                "currency": key[1],
-                "amount": key[2],
-                "rounds": matching_rounds,
-            })
-
-    return duplicate_groups
+    return duplicate_candidates
 
 
 def print_duplicate_funding_round_audit():
-    duplicate_groups = (
+    """
+    Print human-readable historical duplicate candidates.
+
+    This function is diagnostic only.
+    """
+
+    duplicate_candidates = (
         find_duplicate_funding_rounds()
     )
 
-    if not duplicate_groups:
+    if not duplicate_candidates:
         print(
             "No potential historical duplicates found."
         )
         return
 
     print()
-    print("Potential historical funding duplicates")
-    print("---------------------------------------")
+    print(
+        "Potential historical funding duplicates"
+    )
+    print(
+        "---------------------------------------"
+    )
 
-    for group in duplicate_groups:
+    for candidate in duplicate_candidates:
+        company = candidate[
+            "company"
+        ]
+
+        round_a = candidate[
+            "round_a"
+        ]
+
+        round_b = candidate[
+            "round_b"
+        ]
+
         print()
         print(
-            group["company"].name,
-            "|",
-            group["canonical_round_type"],
-            "|",
-            group["amount"],
-            group["currency"],
+            company.name
         )
 
-        for funding_round in group["rounds"]:
-            print(
-                "   ",
-                "Round ID:",
-                funding_round.id,
-                "| Date:",
-                funding_round.announced_at,
-                "| Sources:",
-                len(funding_round.articles),
-            )
+        _print_round(
+            "A",
+            round_a,
+        )
 
-            for article in funding_round.articles:
-                print(
-                    "       ",
-                    article.source,
-                    "|",
-                    article.title,
-                )
+        _print_round(
+            "B",
+            round_b,
+        )
+
+
+def _print_round(
+    label,
+    funding_round,
+):
+    """
+    Print one FundingRound and its supporting evidence.
+    """
+
+    print(
+        "   ",
+        label,
+        "| Round ID:",
+        funding_round.id,
+        "|",
+        funding_round.amount,
+        funding_round.currency,
+        "|",
+        funding_round.round_type,
+        "|",
+        funding_round.announced_at,
+        "| Sources:",
+        len(funding_round.articles),
+    )
+
+    for article in funding_round.articles:
+        print(
+            "       ",
+            article.source,
+            "|",
+            article.title,
+        )

@@ -1,20 +1,12 @@
 import feedparser
 import logging
 
-from config import SOURCES, CACHE_DURATION_MINUTES
-from models.article import db, Article
-
 from bs4 import BeautifulSoup
 from email.utils import parsedate_to_datetime
-from datetime import datetime, timedelta
 
+from config import SOURCES
+from models.article import db, Article
 
-_cached_articles = None
-_cache_time = None
-
-CACHE_DURATION = timedelta(
-    minutes=CACHE_DURATION_MINUTES
-)
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +16,9 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------
 
 def fetch_rss_feed(feed_url):
-    feed = feedparser.parse(feed_url)
+    feed = feedparser.parse(
+        feed_url
+    )
 
     if feed.bozo:
         logger.warning(
@@ -47,10 +41,20 @@ def fetch_rss_feed(feed_url):
 # ---------------------------------------------------------
 
 def get_source_health():
+    """
+    Perform a live diagnostic check of configured RSS sources.
+
+    This remains separate from normal article ingestion.
+    It is currently used by the Sources diagnostics page.
+    """
+
     source_health = []
 
     for source in SOURCES:
-        if not source.get("enabled", True):
+        if not source.get(
+            "enabled",
+            True,
+        ):
             source_health.append(
                 {
                     "name": source["name"],
@@ -61,11 +65,11 @@ def get_source_health():
             )
             continue
 
-        feed = feedparser.parse(
+        feed = fetch_rss_feed(
             source["url"]
         )
 
-        if not feed.entries:
+        if feed is None:
             source_health.append(
                 {
                     "name": source["name"],
@@ -95,7 +99,7 @@ def get_source_health():
 
 
 # ---------------------------------------------------------
-# Article normalization helpers
+# Article normalization
 # ---------------------------------------------------------
 
 def clean_summary(summary):
@@ -125,27 +129,25 @@ def normalize_articles(
         if not url:
             continue
 
-        article = {
-            "title": entry.get(
-                "title",
-                "Untitled article",
-            ),
-            "source": source,
-            "url": url,
-            "published_at": entry.get(
-                "published",
-                "",
-            ),
-            "summary": clean_summary(
-                entry.get(
-                    "summary",
-                    "",
-                )
-            ),
-        }
-
         normalized_articles.append(
-            article
+            {
+                "title": entry.get(
+                    "title",
+                    "Untitled article",
+                ),
+                "source": source,
+                "url": url,
+                "published_at": entry.get(
+                    "published",
+                    "",
+                ),
+                "summary": clean_summary(
+                    entry.get(
+                        "summary",
+                        "",
+                    )
+                ),
+            }
         )
 
     return normalized_articles
@@ -156,11 +158,13 @@ def deduplicate_articles(articles):
     unique_articles = []
 
     for article in articles:
-        if article["url"] in seen_urls:
+        url = article["url"]
+
+        if url in seen_urls:
             continue
 
         seen_urls.add(
-            article["url"]
+            url
         )
 
         unique_articles.append(
@@ -187,14 +191,16 @@ def sort_articles_by_date(articles):
     dated_articles = []
 
     for article in articles:
-        date = parse_article_date(
+        parsed_date = parse_article_date(
             article
         )
 
-        if date is None:
+        if parsed_date is None:
             continue
 
-        article["parsed_date"] = date
+        article["parsed_date"] = (
+            parsed_date
+        )
 
         dated_articles.append(
             article
@@ -345,58 +351,22 @@ def categorize_articles(articles):
 
 
 # ---------------------------------------------------------
-# Persistence
+# Canonical feed-processing pipeline
 # ---------------------------------------------------------
 
-def save_articles_to_database(
-    articles,
-):
-    saved_count = 0
-
-    for article in articles:
-        existing_article = (
-            Article.query.filter_by(
-                url=article["url"]
-            ).first()
-        )
-
-        if existing_article:
-            continue
-
-        db_article = Article(
-            title=article["title"],
-            source=article["source"],
-            url=article["url"],
-            published_at=article[
-                "parsed_date"
-            ],
-            summary=article["summary"],
-            category=article["category"],
-        )
-
-        db.session.add(
-            db_article
-        )
-
-        saved_count += 1
-
-    db.session.commit()
-
-    return saved_count
-
-
-# ---------------------------------------------------------
-# Core ingestion
-# ---------------------------------------------------------
-
-def ingest_news_sources():
+def process_news_sources():
     """
-    Fetch enabled RSS sources, normalize and filter articles,
-    classify them, and persist only new records.
+    Fetch and process all enabled news sources.
 
-    This function is intentionally independent of the
-    homepage cache so it can be safely called by the
-    Vantage ingestion pipeline.
+    This is the single canonical path for:
+    - fetching RSS feeds
+    - normalizing entries
+    - deduplicating
+    - sorting
+    - relevance filtering
+    - categorization
+
+    It does not persist anything.
     """
 
     all_articles = []
@@ -421,142 +391,126 @@ def ingest_news_sources():
             sources_failed += 1
             continue
 
-        articles = normalize_articles(
+        source_articles = normalize_articles(
             feed,
             source["name"],
         )
 
         all_articles.extend(
-            articles
+            source_articles
         )
 
-    discovered_count = len(
+    articles_discovered = len(
         all_articles
     )
 
-    unique_articles = (
-        deduplicate_articles(
-            all_articles
-        )
+    unique_articles = deduplicate_articles(
+        all_articles
     )
 
-    sorted_articles = (
-        sort_articles_by_date(
-            unique_articles
-        )
+    sorted_articles = sort_articles_by_date(
+        unique_articles
     )
 
-    vc_articles = (
-        filter_vc_articles(
-            sorted_articles
-        )
+    relevant_articles = filter_vc_articles(
+        sorted_articles
     )
 
-    categorized_articles = (
-        categorize_articles(
-            vc_articles
-        )
-    )
-
-    saved_count = (
-        save_articles_to_database(
-            categorized_articles
-        )
+    categorized_articles = categorize_articles(
+        relevant_articles
     )
 
     return {
-        "sources_checked":
-            sources_checked,
-
-        "sources_failed":
-            sources_failed,
-
-        "articles_discovered":
-            discovered_count,
-
-        "articles_relevant":
-            len(categorized_articles),
-
-        "articles_saved":
-            saved_count,
+        "sources_checked": sources_checked,
+        "sources_failed": sources_failed,
+        "articles_discovered": articles_discovered,
+        "articles": categorized_articles,
     }
 
 
 # ---------------------------------------------------------
-# Web-app article feed
+# Persistence
 # ---------------------------------------------------------
 
-def get_vc_articles():
-    global _cached_articles
-    global _cache_time
+def save_articles_to_database(
+    articles,
+):
+    """
+    Add previously unseen articles to the current database
+    session.
 
-    now = datetime.now()
+    Transaction ownership belongs to the caller.
+    """
 
-    if (
-        _cached_articles is not None
-        and _cache_time is not None
-        and now - _cache_time
-        < CACHE_DURATION
-    ):
-        return _cached_articles
+    saved_count = 0
 
-    all_articles = []
+    for article in articles:
+        existing_article = (
+            Article.query.filter_by(
+                url=article["url"]
+            ).first()
+        )
 
-    for source in SOURCES:
-        if not source.get(
-            "enabled",
-            True,
-        ):
+        if existing_article is not None:
             continue
 
-        feed = fetch_rss_feed(
-            source["url"]
+        db_article = Article(
+            title=article["title"],
+            source=article["source"],
+            url=article["url"],
+            published_at=article[
+                "parsed_date"
+            ],
+            summary=article["summary"],
+            category=article["category"],
         )
 
-        if feed is None:
-            continue
-
-        articles = normalize_articles(
-            feed,
-            source["name"],
+        db.session.add(
+            db_article
         )
 
-        all_articles.extend(
-            articles
-        )
+        saved_count += 1
 
-    unique_articles = (
-        deduplicate_articles(
-            all_articles
-        )
+    db.session.flush()
+
+    return saved_count
+
+
+# ---------------------------------------------------------
+# Application ingestion entry point
+# ---------------------------------------------------------
+
+def ingest_news_sources():
+    """
+    Run the canonical RSS processing flow and add new relevant
+    articles to the current database session.
+
+    Transaction ownership belongs to the caller.
+    """
+
+    result = process_news_sources()
+
+    articles = result[
+        "articles"
+    ]
+
+    saved_count = save_articles_to_database(
+        articles
     )
 
-    sorted_articles = (
-        sort_articles_by_date(
-            unique_articles
-        )
-    )
+    return {
+        "sources_checked":
+            result["sources_checked"],
 
-    vc_articles = (
-        filter_vc_articles(
-            sorted_articles
-        )
-    )
+        "sources_failed":
+            result["sources_failed"],
 
-    categorized_articles = (
-        categorize_articles(
-            vc_articles
-        )
-    )
+        "articles_discovered":
+            result["articles_discovered"],
 
-    save_articles_to_database(
-        categorized_articles
-    )
+        "articles_relevant":
+            len(articles),
 
-    _cached_articles = (
-        categorized_articles
-    )
-
-    _cache_time = now
-
-    return categorized_articles
+        "articles_saved":
+            saved_count,
+    }

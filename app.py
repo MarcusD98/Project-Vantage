@@ -16,7 +16,6 @@ from models.fund import Fund
 from models.fund_close import FundClose
 
 from services.news_service import (
-    get_vc_articles,
     get_source_health,
 )
 
@@ -54,9 +53,6 @@ migrate = Migrate(app, db)
 # When a user visits "/", Flask runs the home() function.
 @app.route("/")
 def home():
-
-    # Refresh article data when needed
-    get_vc_articles()
 
     # Read optional search, source and category filters from the URL query parameters
     search_query = request.args.get("q", "").lower()

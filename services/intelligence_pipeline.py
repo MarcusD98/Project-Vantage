@@ -39,9 +39,21 @@ def run_intelligence_pipeline(
     5. Return a consolidated pipeline report.
     """
 
-    ingestion_stats = (
-        ingest_news_sources()
-    )
+    try:
+        ingestion_stats = (
+            ingest_news_sources()
+        )
+
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+
+        logger.exception(
+            "News ingestion failed."
+        )
+
+        raise
 
     stats = {
         "sources_checked":
