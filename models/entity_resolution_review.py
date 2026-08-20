@@ -1,7 +1,20 @@
 from models.article import db
 
+
 class EntityResolutionReview(db.Model):
     __tablename__ = "entity_resolution_review"
+
+    __table_args__ = (
+        db.CheckConstraint(
+            """
+            NOT (
+                candidate_company_id IS NOT NULL
+                AND candidate_investor_id IS NOT NULL
+            )
+            """,
+            name="ck_entity_resolution_review_single_candidate",
+        ),
+    )
 
     id = db.Column(
         db.Integer,
@@ -23,8 +36,21 @@ class EntityResolutionReview(db.Model):
         nullable=True,
     )
 
+    # Temporary compatibility field.
     candidate_name = db.Column(
         db.String(255),
+        nullable=True,
+    )
+
+    candidate_company_id = db.Column(
+        db.Integer,
+        db.ForeignKey("company.id"),
+        nullable=True,
+    )
+
+    candidate_investor_id = db.Column(
+        db.Integer,
+        db.ForeignKey("investor.id"),
         nullable=True,
     )
 
@@ -64,6 +90,30 @@ class EntityResolutionReview(db.Model):
         "Article",
         backref="entity_resolution_reviews",
     )
+
+    candidate_company = db.relationship(
+        "Company",
+        foreign_keys=[
+            candidate_company_id
+        ],
+    )
+
+    candidate_investor = db.relationship(
+        "Investor",
+        foreign_keys=[
+            candidate_investor_id
+        ],
+    )
+
+    @property
+    def candidate_entity(self):
+        if self.entity_type == "company":
+            return self.candidate_company
+
+        if self.entity_type == "investor":
+            return self.candidate_investor
+
+        return None
 
     def __repr__(self):
         return (

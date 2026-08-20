@@ -9,6 +9,9 @@ from models.funding_round import FundingRound
 from models.fund import Fund
 from models.fund_close import FundClose
 from models.entity_alias import EntityAlias
+from models.entity_resolution_review import (
+    EntityResolutionReview,
+)
 
 
 def test_models_can_be_created():
@@ -118,5 +121,140 @@ def test_same_alias_rejected_within_same_entity_type(
             IntegrityError
         ):
             db.session.flush()
+
+        db.session.rollback()
+
+def test_company_alias_requires_company_target(
+    app,
+):
+    with app.app_context():
+        company = Company(
+            name="Canonical Company"
+        )
+
+        db.session.add(
+            company
+        )
+
+        db.session.flush()
+
+        alias = EntityAlias(
+            alias="Company Alias",
+            entity_type="company",
+            canonical_name=company.name,
+            canonical_company=company,
+        )
+
+        db.session.add(
+            alias
+        )
+
+        db.session.flush()
+
+        assert (
+            alias.canonical_entity
+            is company
+        )
+
+        assert (
+            alias.canonical_company_id
+            == company.id
+        )
+
+        assert (
+            alias.canonical_investor_id
+            is None
+        )
+
+        db.session.rollback()
+
+def test_investor_alias_requires_investor_target(
+    app,
+):
+    with app.app_context():
+        investor = Investor(
+            name="Canonical Investor"
+        )
+
+        db.session.add(
+            investor
+        )
+
+        db.session.flush()
+
+        alias = EntityAlias(
+            alias="Investor Alias",
+            entity_type="investor",
+            canonical_name=investor.name,
+            canonical_investor=investor,
+        )
+
+        db.session.add(
+            alias
+        )
+
+        db.session.flush()
+
+        assert (
+            alias.canonical_entity
+            is investor
+        )
+
+        assert (
+            alias.canonical_investor_id
+            == investor.id
+        )
+
+        assert (
+            alias.canonical_company_id
+            is None
+        )
+
+        db.session.rollback()
+
+def test_resolution_review_uses_stable_candidate_reference(
+    app,
+):
+    with app.app_context():
+        investor = Investor(
+            name="Candidate Investor"
+        )
+
+        db.session.add(
+            investor
+        )
+
+        db.session.flush()
+
+        review = EntityResolutionReview(
+            entity_type="investor",
+            raw_name="Candidate Ventures",
+            normalized_name="Candidate Ventures",
+            candidate_name=investor.name,
+            candidate_investor=investor,
+            similarity_score=0.88,
+            resolution_status="review",
+        )
+
+        db.session.add(
+            review
+        )
+
+        db.session.flush()
+
+        assert (
+            review.candidate_entity
+            is investor
+        )
+
+        assert (
+            review.candidate_investor_id
+            == investor.id
+        )
+
+        assert (
+            review.candidate_company_id
+            is None
+        )
 
         db.session.rollback()
