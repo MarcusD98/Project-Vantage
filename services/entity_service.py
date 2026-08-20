@@ -1,167 +1,53 @@
-from datetime import datetime
-
-from models.article import db, Article
+from models.article import db
 from models.company import Company
 from models.investor import Investor
 from models.funding_round import FundingRound
 
-from services.funding_extractor import extract_funding_data
-from services.llm_extractor import (
-    extract_funding_with_llm,
-    extract_fund_close_with_llm,
+from services.entity_resolution_service import (
+    resolve_entity_name,
 )
-from services.article_service import populate_article_content
-from services.entity_normalizer import normalize_entity_name
-from services.entity_resolution_service import resolve_entity_name
-from services.entity_review_service import record_entity_resolution_review
+from services.entity_review_service import (
+    record_entity_resolution_review,
+)
 from services.event_resolution_service import (
     find_matching_funding_round,
 )
-from services.fund_service import save_fund_close_extraction
-from services.taxonomy_service import canonicalize_sector
+from services.taxonomy_service import (
+    canonicalize_sector,
+)
 from services.round_taxonomy_service import (
     canonicalize_round_type,
 )
-
-
-def create_funding_event(
-    article,
-    company_name,
-    amount,
-    currency,
-    round_type,
-    investor_names,
-):
-    company_name = normalize_entity_name(
-        company_name,
-        entity_type="company",
-    )
-
-    company = Company.query.filter_by(
-        name=company_name
-    ).first()
-
-    if company is None:
-        company = Company(
-            name=company_name
-        )
-        db.session.add(company)
-
-    funding_round = FundingRound(
-        company=company,
-        amount=amount,
-        currency=currency,
-        round_type=round_type,
-        canonical_round_type=canonicalize_round_type(
-            round_type
-        ),
-        announced_at=article.published_at,
-        article=article,
-    )
-
-    for investor_name in investor_names:
-        investor_name = normalize_entity_name(
-            investor_name,
-            entity_type="investor",
-        )
-
-        investor = Investor.query.filter_by(
-            name=investor_name
-        ).first()
-
-        if investor is None:
-            investor = Investor(
-                name=investor_name
-            )
-            db.session.add(investor)
-
-        funding_round.investors.append(
-            investor
-        )
-
-    if article not in funding_round.articles:
-        funding_round.articles.append(
-            article
-        )
-
-    db.session.add(
-        funding_round
-    )
-
-    db.session.commit()
-
-    return funding_round
-
-
-def process_funding_article(article):
-    funding_data = extract_funding_data(
-        article.title
-    )
-
-    if funding_data is None:
-        return None
-
-    existing_round = FundingRound.query.filter_by(
-        article_id=article.id
-    ).first()
-
-    if existing_round:
-        return existing_round
-
-    return create_funding_event(
-        article=article,
-        company_name=funding_data[
-            "company_name"
-        ],
-        amount=funding_data[
-            "amount"
-        ],
-        currency=funding_data[
-            "currency"
-        ],
-        round_type=funding_data[
-            "round_type"
-        ],
-        investor_names=[],
-    )
-
-
-def process_funding_articles():
-    articles = Article.query.filter_by(
-        category="Funding Round"
-    ).all()
-
-    created_count = 0
-
-    for article in articles:
-        existing_round = FundingRound.query.filter_by(
-            article_id=article.id
-        ).first()
-
-        if existing_round:
-            continue
-
-        funding_round = process_funding_article(
-            article
-        )
-
-        if funding_round is not None:
-            created_count += 1
-
-    return created_count
 
 
 def save_funding_extraction(
     article,
     extraction,
 ):
+    """
+    Persist a structured company-funding extraction into the
+    current database session.
+
+    Responsibilities:
+    - resolve the company
+    - enrich company metadata
+    - resolve the canonical funding event
+    - attach supporting evidence
+    - resolve participating investors
+    - resolve lead investors
+
+    Transaction ownership belongs to the caller.
+
+    This function deliberately does not commit.
+    """
+
     if not extraction.is_funding_round:
         return None
 
     if not extraction.event_evidence:
         return None
 
-    if extraction.company_name is None:
+    if not extraction.company_name:
         return None
 
     # ---------------------------------------------------------
@@ -203,17 +89,20 @@ def save_funding_extraction(
             company
         )
 
+        # Required because event resolution needs company.id.
         db.session.flush()
 
     # ---------------------------------------------------------
-    # Company metadata
+    # Enrich company metadata
     # ---------------------------------------------------------
 
     if extraction.sector:
         company.sector = extraction.sector
 
-        company.canonical_sector = canonicalize_sector(
-            extraction.sector
+        company.canonical_sector = (
+            canonicalize_sector(
+                extraction.sector
+            )
         )
 
     if extraction.company_city:
@@ -243,16 +132,15 @@ def save_funding_extraction(
         announced_at=article.published_at,
     )
 
-    # Historical fallback:
-    # if this exact article already owns a funding round,
-    # reuse that record.
+    # Compatibility fallback for historical records created
+    # before multi-source event resolution existed.
     if funding_round is None:
         funding_round = FundingRound.query.filter_by(
             article_id=article.id
         ).first()
 
     # ---------------------------------------------------------
-    # Create canonical funding event
+    # Create new canonical event
     # ---------------------------------------------------------
 
     if funding_round is None:
@@ -262,8 +150,10 @@ def save_funding_extraction(
             amount=extraction.amount,
             currency=extraction.currency,
             round_type=extraction.round_type,
-            canonical_round_type=canonicalize_round_type(
-                extraction.round_type
+            canonical_round_type=(
+                canonicalize_round_type(
+                    extraction.round_type
+                )
             ),
             announced_at=article.published_at,
             article=article,
@@ -308,6 +198,7 @@ def save_funding_extraction(
                 )
             )
 
+        # Preserve the earliest known announcement date.
         if article.published_at:
             if (
                 funding_round.announced_at is None
@@ -318,11 +209,12 @@ def save_funding_extraction(
                     article.published_at
                 )
 
+        # Retain backwards-compatible primary article.
         if funding_round.article is None:
             funding_round.article = article
 
     # ---------------------------------------------------------
-    # Attach supporting article evidence
+    # Supporting source evidence
     # ---------------------------------------------------------
 
     if article not in funding_round.articles:
@@ -335,40 +227,13 @@ def save_funding_extraction(
     # ---------------------------------------------------------
 
     for investor_name in extraction.investors:
-        investor_resolution = resolve_entity_name(
-            investor_name,
-            "investor",
-        )
-
-        if investor_resolution["status"] == "invalid":
-            continue
-
-        record_entity_resolution_review(
+        investor = _resolve_or_create_investor(
             article=article,
-            resolution=investor_resolution,
-            entity_type="investor",
+            investor_name=investor_name,
         )
 
-        resolved_name = (
-            investor_resolution["canonical_name"]
-            or investor_resolution["normalized_name"]
-        )
-
-        investor = investor_resolution["entity"]
-
         if investor is None:
-            investor = Investor.query.filter_by(
-                name=resolved_name
-            ).first()
-
-        if investor is None:
-            investor = Investor(
-                name=resolved_name
-            )
-
-            db.session.add(
-                investor
-            )
+            continue
 
         if investor not in funding_round.investors:
             funding_round.investors.append(
@@ -380,40 +245,13 @@ def save_funding_extraction(
     # ---------------------------------------------------------
 
     for investor_name in extraction.lead_investors:
-        investor_resolution = resolve_entity_name(
-            investor_name,
-            "investor",
-        )
-
-        if investor_resolution["status"] == "invalid":
-            continue
-
-        record_entity_resolution_review(
+        investor = _resolve_or_create_investor(
             article=article,
-            resolution=investor_resolution,
-            entity_type="investor",
+            investor_name=investor_name,
         )
 
-        resolved_name = (
-            investor_resolution["canonical_name"]
-            or investor_resolution["normalized_name"]
-        )
-
-        investor = investor_resolution["entity"]
-
         if investor is None:
-            investor = Investor.query.filter_by(
-                name=resolved_name
-            ).first()
-
-        if investor is None:
-            investor = Investor(
-                name=resolved_name
-            )
-
-            db.session.add(
-                investor
-            )
+            continue
 
         if investor not in funding_round.investors:
             funding_round.investors.append(
@@ -425,161 +263,58 @@ def save_funding_extraction(
                 investor
             )
 
-    db.session.commit()
+    db.session.flush()
 
     return funding_round
 
 
-def enrich_funding_articles_with_llm(
-    limit=5,
+def _resolve_or_create_investor(
+    article,
+    investor_name,
 ):
-    articles = Article.query.filter(
-        Article.category == "Funding Round",
-        Article.content.is_not(None),
-        Article.llm_processed_at.is_(None),
-    ).limit(
-        limit
-    ).all()
+    """
+    Resolve one extracted investor against the knowledge base,
+    creating a new Investor only when no existing entity can be
+    used.
 
-    enriched_count = 0
+    Transaction ownership remains with the caller.
+    """
 
-    for article in articles:
-        extraction = extract_funding_with_llm(
-            article
+    investor_resolution = resolve_entity_name(
+        investor_name,
+        "investor",
+    )
+
+    if investor_resolution["status"] == "invalid":
+        return None
+
+    record_entity_resolution_review(
+        article=article,
+        resolution=investor_resolution,
+        entity_type="investor",
+    )
+
+    resolved_name = (
+        investor_resolution["canonical_name"]
+        or investor_resolution["normalized_name"]
+    )
+
+    investor = investor_resolution["entity"]
+
+    if investor is None:
+        investor = Investor.query.filter_by(
+            name=resolved_name
+        ).first()
+
+    if investor is None:
+        investor = Investor(
+            name=resolved_name
         )
 
-        if extraction is None:
-            continue
-
-        article.llm_processed_at = (
-            datetime.now()
+        db.session.add(
+            investor
         )
 
-        article.llm_is_funding_round = (
-            extraction.is_funding_round
-        )
+        db.session.flush()
 
-        funding_round = save_funding_extraction(
-            article,
-            extraction,
-        )
-
-        db.session.commit()
-
-        if funding_round is not None:
-            enriched_count += 1
-
-    return enriched_count
-
-
-def process_intelligence_batch(
-    funding_limit=5,
-    fund_news_limit=5,
-):
-    funding_articles = Article.query.filter(
-        Article.category == "Funding Round",
-        Article.llm_processed_at.is_(None),
-    ).order_by(
-        Article.published_at.desc()
-    ).limit(
-        funding_limit
-    ).all()
-
-    fund_news_articles = Article.query.filter(
-        Article.category == "Fund News",
-        Article.llm_processed_at.is_(None),
-    ).order_by(
-        Article.published_at.desc()
-    ).limit(
-        fund_news_limit
-    ).all()
-
-    processed_count = 0
-    funding_count = 0
-    fund_close_count = 0
-    skipped_count = 0
-
-    # ---------------------------------------------------------
-    # Company funding events
-    # ---------------------------------------------------------
-
-    for article in funding_articles:
-        if not article.content:
-            content = populate_article_content(
-                article
-            )
-
-            if not content:
-                skipped_count += 1
-                continue
-
-        extraction = extract_funding_with_llm(
-            article
-        )
-
-        if extraction is None:
-            skipped_count += 1
-            continue
-
-        article.llm_processed_at = (
-            datetime.now()
-        )
-
-        article.llm_is_funding_round = (
-            extraction.is_funding_round
-        )
-
-        funding_round = save_funding_extraction(
-            article,
-            extraction,
-        )
-
-        processed_count += 1
-
-        if funding_round is not None:
-            funding_count += 1
-
-    # ---------------------------------------------------------
-    # VC fund-close events
-    # ---------------------------------------------------------
-
-    for article in fund_news_articles:
-        if not article.content:
-            content = populate_article_content(
-                article
-            )
-
-            if not content:
-                skipped_count += 1
-                continue
-
-        extraction = extract_fund_close_with_llm(
-            article
-        )
-
-        if extraction is None:
-            skipped_count += 1
-            continue
-
-        article.llm_processed_at = (
-            datetime.now()
-        )
-
-        fund_close = save_fund_close_extraction(
-            article,
-            extraction,
-        )
-
-        processed_count += 1
-
-        if fund_close is not None:
-            fund_close_count += 1
-
-    db.session.commit()
-
-    return {
-        "processed": processed_count,
-        "funding_rounds": funding_count,
-        "fund_closes": fund_close_count,
-        "skipped": skipped_count,
-    }
+    return investor

@@ -5,7 +5,7 @@ import requests
 
 from bs4 import BeautifulSoup
 
-from models.article import db, Article
+from models.article import Article
 
 
 logger = logging.getLogger(__name__)
@@ -60,12 +60,9 @@ def extract_paragraphs(container):
         if not text:
             continue
 
-        # Ignore extremely short fragments that are unlikely
-        # to represent meaningful article prose.
         if len(text) < 25:
             continue
 
-        # Avoid duplicate paragraphs.
         if text in seen:
             continue
 
@@ -84,7 +81,6 @@ def extract_article_content(html):
         "html.parser",
     )
 
-    # Remove obvious non-content elements before extraction.
     for tag in soup(
         [
             "script",
@@ -99,7 +95,6 @@ def extract_article_content(html):
     ):
         tag.decompose()
 
-    # Prefer semantic article containers first.
     candidate_selectors = [
         "article",
         "main",
@@ -131,9 +126,6 @@ def extract_article_content(html):
         ):
             return content
 
-    # Fallback:
-    # if no useful article-specific container was found,
-    # inspect paragraphs across the whole document.
     content = extract_paragraphs(
         soup
     )
@@ -199,6 +191,13 @@ def fetch_article_content(url):
 
 
 def populate_article_content(article):
+    """
+    Populate Article.content in the current database session.
+
+    Transaction ownership belongs to the caller. This function
+    deliberately does not commit.
+    """
+
     if article.content:
         return article.content
 
@@ -211,14 +210,19 @@ def populate_article_content(article):
 
     article.content = content
 
-    db.session.commit()
-
     return content
 
 
 def populate_missing_article_content(
     limit=10,
 ):
+    """
+    Populate content for a batch of articles.
+
+    This helper mutates records in the current session but does
+    not commit. Application-level callers own the transaction.
+    """
+
     articles = Article.query.filter(
         Article.content.is_(None)
     ).limit(
