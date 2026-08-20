@@ -101,18 +101,27 @@ SOURCES = [
         "method": "sitemap",
         "enabled": True,
 
-        # Accel's sitemap contains hundreds of historical
-        # URLs. For the initial Source Network V2 pilot,
-        # consider only recently modified pages.
+        # Discovery guard:
+        #
+        # Limit sitemap traversal using <lastmod>. This keeps
+        # large historical sitemaps operationally manageable.
+        #
+        # lastmod is NOT treated as publication date.
         "max_age_days": 180,
 
-        # Restrict discovery to Accel's public news area.
+        # Intelligence guard:
+        #
+        # After the real page is retrieved and its actual
+        # publication date is known, only recent evidence is
+        # eligible for current intelligence processing.
+        #
+        # Older evidence remains stored in the corpus.
+        "max_published_age_days": 180,
+
         "include_url_patterns": [
             "/news/",
         ],
 
-        # Exclude navigation/index pages rather than
-        # individual evidence documents.
         "exclude_url_patterns": [
             "/news/insights",
             "/news/portfolio",
