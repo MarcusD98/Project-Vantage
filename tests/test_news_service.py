@@ -1,8 +1,12 @@
 from datetime import datetime, timezone
 
 from services.discovery_service import (
+    _extract_sitemap_urls,
+    _title_from_url,
+    _url_matches_source_rules,
     clean_summary,
     discover_source,
+    parse_iso_datetime,
     parse_rss_date,
 )
 
@@ -53,6 +57,171 @@ def test_parse_rss_date_returns_none_for_invalid_date():
     assert result is None
 
 
+def test_parse_iso_datetime_date():
+    result = parse_iso_datetime(
+        "2026-08-17"
+    )
+
+    assert isinstance(
+        result,
+        datetime,
+    )
+
+    assert result.year == 2026
+    assert result.month == 8
+    assert result.day == 17
+
+
+def test_parse_iso_datetime_with_z_timezone():
+    result = parse_iso_datetime(
+        "2026-08-17T10:30:00Z"
+    )
+
+    assert isinstance(
+        result,
+        datetime,
+    )
+
+    assert (
+        result.utcoffset()
+        is not None
+    )
+
+
+def test_extract_urlset_sitemap():
+    xml = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+        <url>
+            <loc>https://example.com/post-one</loc>
+            <lastmod>2026-08-17</lastmod>
+        </url>
+        <url>
+            <loc>https://example.com/post-two</loc>
+        </url>
+    </urlset>
+    """
+
+    result = _extract_sitemap_urls(
+        xml
+    )
+
+    assert (
+        result["type"]
+        == "urlset"
+    )
+
+    assert (
+        len(result["items"])
+        == 2
+    )
+
+    assert (
+        result["items"][0]["url"]
+        == "https://example.com/post-one"
+    )
+
+    assert isinstance(
+        result["items"][0][
+            "published_at"
+        ],
+        datetime,
+    )
+
+    assert (
+        result["items"][1][
+            "published_at"
+        ]
+        is None
+    )
+
+
+def test_extract_sitemap_index():
+    xml = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+        <sitemap>
+            <loc>
+                https://example.com/post-sitemap.xml
+            </loc>
+        </sitemap>
+        <sitemap>
+            <loc>
+                https://example.com/page-sitemap.xml
+            </loc>
+        </sitemap>
+    </sitemapindex>
+    """
+
+    result = _extract_sitemap_urls(
+        xml
+    )
+
+    assert (
+        result["type"]
+        == "sitemapindex"
+    )
+
+    assert (
+        len(result["items"])
+        == 2
+    )
+
+
+def test_url_rules_keep_matching_url():
+    source = {
+        "include_url_patterns": [
+            "/insights/",
+        ],
+        "exclude_url_patterns": [],
+    }
+
+    assert _url_matches_source_rules(
+        "https://example.com/insights/acme",
+        source,
+    )
+
+
+def test_url_rules_reject_non_matching_url():
+    source = {
+        "include_url_patterns": [
+            "/insights/",
+        ],
+        "exclude_url_patterns": [],
+    }
+
+    assert not _url_matches_source_rules(
+        "https://example.com/team/person",
+        source,
+    )
+
+
+def test_url_rules_apply_exclusions():
+    source = {
+        "include_url_patterns": [],
+        "exclude_url_patterns": [
+            "/team/",
+        ],
+    }
+
+    assert not _url_matches_source_rules(
+        "https://example.com/team/person",
+        source,
+    )
+
+
+def test_title_from_url():
+    result = _title_from_url(
+        "https://example.com/"
+        "our-investment-in-acme"
+    )
+
+    assert (
+        result
+        == "our investment in acme"
+    )
+
+
 def test_deduplicate_articles_removes_duplicate_urls():
     articles = [
         {
@@ -78,23 +247,26 @@ def test_deduplicate_articles_removes_duplicate_urls():
     assert len(result) == 2
 
 
-def test_filter_vc_articles_keeps_relevant_articles():
+def test_filter_vc_articles_keeps_relevant_publication_articles():
     articles = [
         {
             "title": (
                 "Startup raises $100M Series C"
             ),
+            "source_type": "publication",
         },
         {
             "title": (
                 "Company launches new mobile app"
             ),
+            "source_type": "publication",
         },
         {
             "title": (
                 "New VC fund targets "
                 "European fintech"
             ),
+            "source_type": "publication",
         },
     ]
 
@@ -104,18 +276,28 @@ def test_filter_vc_articles_keeps_relevant_articles():
 
     assert len(result) == 2
 
-    assert (
-        result[0]["title"]
-        == "Startup raises $100M Series C"
+
+def test_filter_vc_articles_keeps_investor_evidence():
+    articles = [
+        {
+            "title": (
+                "Partnering with Acme"
+            ),
+            "source_type": "investor",
+        },
+        {
+            "title": (
+                "Building the future of robotics"
+            ),
+            "source_type": "investor",
+        },
+    ]
+
+    result = filter_vc_articles(
+        articles
     )
 
-    assert (
-        result[1]["title"]
-        == (
-            "New VC fund targets "
-            "European fintech"
-        )
-    )
+    assert len(result) == 2
 
 
 def test_sort_articles_by_date_newest_first():

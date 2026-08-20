@@ -177,6 +177,17 @@ def sort_articles_by_date(articles):
 # ---------------------------------------------------------
 
 def filter_vc_articles(articles):
+    """
+    Apply source-aware relevance filtering.
+
+    Editorial publications require headline filtering because
+    their content universe is broad.
+
+    Investor first-party sources are already highly curated
+    venture evidence, so they are retained with much higher
+    recall and classified downstream.
+    """
+
     keywords = [
         "raises",
         "raised",
@@ -199,6 +210,22 @@ def filter_vc_articles(articles):
     filtered_articles = []
 
     for article in articles:
+        source_type = (
+            article.get(
+                "source_type",
+                "publication",
+            )
+            .strip()
+            .lower()
+        )
+
+        if source_type == "investor":
+            filtered_articles.append(
+                article
+            )
+
+            continue
+
         title = article[
             "title"
         ].lower()
@@ -212,7 +239,6 @@ def filter_vc_articles(articles):
             )
 
     return filtered_articles
-
 
 # ---------------------------------------------------------
 # Categorization

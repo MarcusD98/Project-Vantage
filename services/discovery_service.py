@@ -1,13 +1,31 @@
 import logging
-
+from datetime import datetime
 from email.utils import parsedate_to_datetime
+from xml.etree import ElementTree
 
 import feedparser
+import requests
 
 from bs4 import BeautifulSoup
 
 
 logger = logging.getLogger(__name__)
+
+
+REQUEST_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 "
+        "(Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 "
+        "(KHTML, like Gecko) "
+        "Chrome/126.0 Safari/537.36"
+    ),
+    "Accept": (
+        "text/html,application/xhtml+xml,"
+        "application/xml;q=0.9,*/*;q=0.8"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+}
 
 
 # ---------------------------------------------------------
@@ -38,8 +56,7 @@ def parse_rss_date(value):
     Convert an RSS-style publication date into a Python
     datetime.
 
-    Invalid or missing dates return None rather than causing
-    the evidence item to be discarded.
+    Invalid or missing dates return None.
     """
 
     if not value:
@@ -56,6 +73,74 @@ def parse_rss_date(value):
         OverflowError,
     ):
         return None
+
+
+def parse_iso_datetime(value):
+    """
+    Parse common ISO-8601 datetime values.
+
+    Sitemap <lastmod> values commonly use ISO-8601 dates or
+    datetimes.
+
+    Invalid or missing values return None.
+    """
+
+    if not value:
+        return None
+
+    value = value.strip()
+
+    if not value:
+        return None
+
+    try:
+        # Python's fromisoformat() does not use "Z" directly
+        # in all supported environments, so normalize it to
+        # an explicit UTC offset.
+        if value.endswith("Z"):
+            value = (
+                value[:-1]
+                + "+00:00"
+            )
+
+        return datetime.fromisoformat(
+            value
+        )
+
+    except ValueError:
+        return None
+
+
+def fetch_source_document(url):
+    """
+    Retrieve a source-discovery document.
+
+    Used for XML sitemaps and later reusable discovery
+    methods.
+
+    Returns response text when successful, otherwise None.
+    """
+
+    try:
+        response = requests.get(
+            url,
+            timeout=15,
+            headers=REQUEST_HEADERS,
+            allow_redirects=True,
+        )
+
+        response.raise_for_status()
+
+    except requests.RequestException as exc:
+        logger.warning(
+            "Could not fetch discovery document: %s (%s)",
+            url,
+            exc,
+        )
+
+        return None
+
+    return response.text
 
 
 # ---------------------------------------------------------
@@ -93,9 +178,6 @@ def fetch_rss_feed(feed_url):
 def discover_rss_source(source):
     """
     Discover normalized evidence items from one RSS source.
-
-    Dates are normalized here so downstream services do not
-    need to understand RSS-specific date formats.
     """
 
     feed = fetch_rss_feed(
@@ -148,6 +230,410 @@ def discover_rss_source(source):
 
 
 # ---------------------------------------------------------
+# Sitemap discovery
+# ---------------------------------------------------------
+
+def _xml_local_name(tag):
+    """
+    Return an XML tag name without any namespace prefix.
+    """
+
+    if tag is None:
+        return ""
+
+    return (
+        tag.name
+        .split("}")[-1]
+        .lower()
+    )
+
+def _extract_sitemap_urls(xml):
+    """
+    Extract URL records from one XML sitemap.
+
+    Supports both:
+
+    - standard <urlset> sitemaps
+    - <sitemapindex> files that point to child sitemaps
+
+    Uses Python's standard-library XML parser so sitemap
+    discovery does not require an additional XML dependency.
+
+    Returns:
+        {
+            "type": "urlset" | "sitemapindex" | None,
+            "items": [...]
+        }
+    """
+
+    if not xml:
+        return {
+            "type": None,
+            "items": [],
+        }
+
+    try:
+        root = ElementTree.fromstring(
+            xml.strip()
+        )
+
+    except ElementTree.ParseError:
+        return {
+            "type": None,
+            "items": [],
+        }
+
+    root_name = (
+        root.tag
+        .split("}")[-1]
+        .lower()
+    )
+
+    if root_name == "sitemapindex":
+        sitemap_urls = []
+
+        for sitemap in root:
+            sitemap_name = (
+                sitemap.tag
+                .split("}")[-1]
+                .lower()
+            )
+
+            if sitemap_name != "sitemap":
+                continue
+
+            for child in sitemap:
+                child_name = (
+                    child.tag
+                    .split("}")[-1]
+                    .lower()
+                )
+
+                if child_name != "loc":
+                    continue
+
+                if not child.text:
+                    continue
+
+                url = child.text.strip()
+
+                if url:
+                    sitemap_urls.append(
+                        url
+                    )
+
+                break
+
+        return {
+            "type": "sitemapindex",
+            "items": sitemap_urls,
+        }
+
+    if root_name == "urlset":
+        records = []
+
+        for url_element in root:
+            element_name = (
+                url_element.tag
+                .split("}")[-1]
+                .lower()
+            )
+
+            if element_name != "url":
+                continue
+
+            loc = None
+            lastmod = None
+
+            for child in url_element:
+                child_name = (
+                    child.tag
+                    .split("}")[-1]
+                    .lower()
+                )
+
+                if child_name == "loc":
+                    if child.text:
+                        loc = (
+                            child.text
+                            .strip()
+                        )
+
+                elif child_name == "lastmod":
+                    if child.text:
+                        lastmod = (
+                            child.text
+                            .strip()
+                        )
+
+            if not loc:
+                continue
+
+            records.append(
+                {
+                    "url": loc,
+                    "published_at": (
+                        parse_iso_datetime(
+                            lastmod
+                        )
+                        if lastmod
+                        else None
+                    ),
+                }
+            )
+
+        return {
+            "type": "urlset",
+            "items": records,
+        }
+
+    return {
+        "type": None,
+        "items": [],
+    }
+
+
+def _url_matches_source_rules(
+    url,
+    source,
+):
+    """
+    Apply optional generic URL inclusion/exclusion rules.
+
+    Example configuration:
+
+        "include_url_patterns": [
+            "/insights/",
+            "/companies/",
+        ]
+
+        "exclude_url_patterns": [
+            "/team/",
+            "/jobs/",
+        ]
+
+    No rules means keep the URL.
+    """
+
+    include_patterns = source.get(
+        "include_url_patterns",
+        [],
+    )
+
+    exclude_patterns = source.get(
+        "exclude_url_patterns",
+        [],
+    )
+
+    if include_patterns:
+        if not any(
+            pattern.lower()
+            in url.lower()
+            for pattern in include_patterns
+        ):
+            return False
+
+    if any(
+        pattern.lower()
+        in url.lower()
+        for pattern in exclude_patterns
+    ):
+        return False
+
+    return True
+
+
+def _title_from_url(url):
+    """
+    Produce a lightweight fallback title from the URL path.
+
+    Full page titles will eventually be available when content
+    is fetched. This title exists mainly so sitemap-discovered
+    items have a usable normalized shape immediately.
+    """
+
+    path = (
+        url
+        .rstrip("/")
+        .split("/")[-1]
+    )
+
+    if not path:
+        return "Untitled document"
+
+    title = (
+        path
+        .replace("-", " ")
+        .replace("_", " ")
+        .strip()
+    )
+
+    if not title:
+        return "Untitled document"
+
+    return title
+
+
+def _discover_sitemap_urlset(
+    source,
+    sitemap_url,
+):
+    """
+    Discover normalized evidence from one URL-set sitemap.
+    """
+
+    xml = fetch_source_document(
+        sitemap_url
+    )
+
+    if xml is None:
+        return None
+
+    parsed = _extract_sitemap_urls(
+        xml
+    )
+
+    if parsed["type"] != "urlset":
+        return None
+
+    items = []
+
+    for record in parsed["items"]:
+        url = record["url"]
+
+        if not _url_matches_source_rules(
+            url,
+            source,
+        ):
+            continue
+
+        items.append(
+            {
+                "title": _title_from_url(
+                    url
+                ),
+                "url": url,
+                "published_at": record[
+                    "published_at"
+                ],
+                "summary": "",
+                "source": source["name"],
+                "source_type": source.get(
+                    "type",
+                    "publication",
+                ),
+                "discovery_method": "sitemap",
+            }
+        )
+
+    return items
+
+
+def discover_sitemap_source(source):
+    """
+    Discover normalized evidence from a sitemap.
+
+    Supports either:
+
+    - a direct URL-set sitemap
+    - a sitemap index containing child sitemaps
+
+    Optional source configuration can limit which child
+    sitemaps and discovered URLs are considered.
+    """
+
+    sitemap_url = source["url"]
+
+    xml = fetch_source_document(
+        sitemap_url
+    )
+
+    if xml is None:
+        return None
+
+    parsed = _extract_sitemap_urls(
+        xml
+    )
+
+    if parsed["type"] == "urlset":
+        items = []
+
+        for record in parsed["items"]:
+            url = record["url"]
+
+            if not _url_matches_source_rules(
+                url,
+                source,
+            ):
+                continue
+
+            items.append(
+                {
+                    "title": _title_from_url(
+                        url
+                    ),
+                    "url": url,
+                    "published_at": record[
+                        "published_at"
+                    ],
+                    "summary": "",
+                    "source": source["name"],
+                    "source_type": source.get(
+                        "type",
+                        "publication",
+                    ),
+                    "discovery_method": "sitemap",
+                }
+            )
+
+        return items
+
+    if parsed["type"] == "sitemapindex":
+        all_items = []
+
+        child_patterns = source.get(
+            "sitemap_include_patterns",
+            [],
+        )
+
+        for child_url in parsed["items"]:
+            if child_patterns:
+                if not any(
+                    pattern.lower()
+                    in child_url.lower()
+                    for pattern in child_patterns
+                ):
+                    continue
+
+            child_items = (
+                _discover_sitemap_urlset(
+                    source,
+                    child_url,
+                )
+            )
+
+            if child_items is None:
+                continue
+
+            all_items.extend(
+                child_items
+            )
+
+        return all_items
+
+    logger.warning(
+        "Unsupported or invalid sitemap for source '%s': %s",
+        source.get(
+            "name",
+            "Unknown source",
+        ),
+        sitemap_url,
+    )
+
+    return None
+
+
+# ---------------------------------------------------------
 # Generic source dispatcher
 # ---------------------------------------------------------
 
@@ -170,6 +656,11 @@ def discover_source(source):
 
     if method == "rss":
         return discover_rss_source(
+            source
+        )
+
+    if method == "sitemap":
+        return discover_sitemap_source(
             source
         )
 
