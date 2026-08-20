@@ -7,47 +7,438 @@
 
 {% block content %}
 
-<section class="profile-header">
+<style>
+    .investor-intelligence-shell {
+        margin-bottom: 56px;
+    }
 
-    <div class="entity-avatar investor-avatar">
-        {{ investor.name[0] }}
-    </div>
+    .investor-profile-topline {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 34px;
+    }
 
-    <div>
+    .investor-profile-topline .profile-header {
+        margin-bottom: 0;
+    }
 
-        <div class="eyebrow">
-            INVESTOR
+    .investor-window-switcher {
+        display: inline-flex;
+        gap: 4px;
+        padding: 4px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        box-shadow: var(--shadow);
+    }
+
+    .investor-window-switcher a {
+        min-width: 58px;
+        padding: 7px 10px;
+        border-radius: 7px;
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    .investor-window-switcher a:hover {
+        color: var(--text);
+        background: var(--surface-soft);
+    }
+
+    .investor-window-switcher a.active {
+        color: white;
+        background: var(--text);
+    }
+
+    .intelligence-kicker {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 20px;
+        margin-bottom: 16px;
+    }
+
+    .intelligence-kicker h2 {
+        margin: 0;
+        font-size: 24px;
+        letter-spacing: -0.025em;
+    }
+
+    .intelligence-kicker p {
+        margin: 5px 0 0;
+        color: var(--text-muted);
+        font-size: 12px;
+    }
+
+    .intelligence-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .intelligence-metric {
+        min-height: 122px;
+        padding: 20px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+    }
+
+    .intelligence-metric-label {
+        color: var(--text-muted);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .intelligence-metric-value {
+        margin-top: 8px;
+        font-size: 34px;
+        line-height: 1;
+        font-weight: 650;
+        letter-spacing: -0.045em;
+    }
+
+    .intelligence-metric-note {
+        margin-top: 9px;
+        color: var(--text-secondary);
+        font-size: 11px;
+    }
+
+    .intelligence-two-column {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .intelligence-panel {
+        padding: 22px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+    }
+
+    .intelligence-panel h3 {
+        margin: 0;
+        font-size: 16px;
+        letter-spacing: -0.015em;
+    }
+
+    .confidence-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .confidence-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 9px;
+        border-radius: 7px;
+        font-size: 10px;
+        font-weight: 750;
+        letter-spacing: 0.04em;
+    }
+
+    .confidence-badge.corpus-supported {
+        color: #0f7d50;
+        background: var(--green-soft);
+    }
+
+    .confidence-badge.observational {
+        color: #976617;
+        background: var(--warning-soft);
+    }
+
+    .confidence-badge.insufficient {
+        color: #8d5454;
+        background: var(--danger-soft);
+    }
+
+    .trend-primary {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+
+    .trend-direction {
+        font-size: 30px;
+        line-height: 1;
+        font-weight: 650;
+        letter-spacing: -0.04em;
+    }
+
+    .trend-detail {
+        color: var(--text-secondary);
+        font-size: 13px;
+    }
+
+    .confidence-explainer {
+        margin: 12px 0 0;
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.55;
+    }
+
+    .coverage-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 13px;
+        margin-top: 16px;
+    }
+
+    .coverage-item {
+        display: grid;
+        grid-template-columns: 112px 1fr 66px;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .coverage-name,
+    .coverage-value {
+        color: var(--text-secondary);
+        font-size: 11px;
+    }
+
+    .coverage-value {
+        text-align: right;
+    }
+
+    .coverage-track {
+        height: 6px;
+        overflow: hidden;
+        background: #eef0f3;
+        border-radius: 999px;
+    }
+
+    .coverage-fill {
+        height: 100%;
+        background: var(--accent);
+        border-radius: inherit;
+    }
+
+    .temporal-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 16px;
+    }
+
+    .temporal-window {
+        padding: 13px;
+        background: var(--surface-soft);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+    }
+
+    .temporal-window-label {
+        color: var(--text-muted);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .temporal-window-value {
+        margin-top: 5px;
+        font-size: 16px;
+        font-weight: 650;
+    }
+
+    .temporal-window-note {
+        margin-top: 3px;
+        color: var(--text-muted);
+        font-size: 10px;
+    }
+
+    .signal-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .signal-summary-card {
+        padding: 18px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+    }
+
+    .signal-summary-card .label {
+        color: var(--text-muted);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .signal-summary-card .value {
+        margin-top: 7px;
+        font-size: 18px;
+        font-weight: 650;
+        letter-spacing: -0.02em;
+    }
+
+    .signal-summary-card .note {
+        margin-top: 5px;
+        color: var(--text-secondary);
+        font-size: 11px;
+    }
+
+    .recent-intelligence-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .recent-intelligence-item {
+        padding: 16px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 11px;
+    }
+
+    .recent-intelligence-item h3 {
+        margin: 4px 0 5px;
+        font-size: 16px;
+        letter-spacing: -0.02em;
+    }
+
+    .recent-intelligence-meta {
+        color: var(--text-muted);
+        font-size: 11px;
+    }
+
+    .recent-intelligence-evidence {
+        margin-top: 8px;
+        color: var(--text-secondary);
+        font-size: 10px;
+    }
+
+    .intelligence-disclaimer {
+        margin-top: 12px;
+        color: var(--text-muted);
+        font-size: 10px;
+        line-height: 1.5;
+    }
+
+    .section-divider {
+        margin: 54px 0;
+        border: 0;
+        border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 860px) {
+        .investor-profile-topline,
+        .intelligence-kicker {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .intelligence-grid,
+        .signal-grid,
+        .recent-intelligence-list {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .intelligence-two-column {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 620px) {
+        .intelligence-grid,
+        .signal-grid,
+        .recent-intelligence-list,
+        .temporal-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .coverage-item {
+            grid-template-columns: 92px 1fr 58px;
+        }
+
+        .investor-window-switcher {
+            width: 100%;
+        }
+
+        .investor-window-switcher a {
+            flex: 1;
+        }
+    }
+</style>
+
+
+<div class="investor-profile-topline">
+
+    <section class="profile-header">
+
+        <div class="entity-avatar investor-avatar">
+            {{ investor.name[0] }}
         </div>
 
-        <h1>
-            {{ investor.name }}
-        </h1>
+        <div>
 
-        <div class="profile-meta">
+            <div class="eyebrow">
+                INVESTOR INTELLIGENCE
+            </div>
 
-            {% if investor.headquarters %}
-                <span>
-                    {{ investor.headquarters }}
-                </span>
-            {% endif %}
+            <h1>
+                {{ investor.name }}
+            </h1>
 
-            {% if funds %}
-                <span>
-                    {{ funds|length }} recorded fund{% if funds|length != 1 %}s{% endif %}
-                </span>
-            {% endif %}
+            <div class="profile-meta">
 
-            {% if funding_rounds %}
-                <span>
-                    {{ funding_rounds|length }} recorded investment{% if funding_rounds|length != 1 %}s{% endif %}
-                </span>
-            {% endif %}
+                {% if investor.headquarters %}
+                    <span>
+                        {{ investor.headquarters }}
+                    </span>
+                {% endif %}
+
+                {% if funding_rounds %}
+                    <span>
+                        {{ funding_rounds|length }} observed investment{% if funding_rounds|length != 1 %}s{% endif %}
+                    </span>
+                {% endif %}
+
+                {% if funds %}
+                    <span>
+                        {{ funds|length }} recorded fund{% if funds|length != 1 %}s{% endif %}
+                    </span>
+                {% endif %}
+
+            </div>
 
         </div>
 
-    </div>
+    </section>
 
-</section>
+
+    <nav class="investor-window-switcher" aria-label="Investor intelligence window">
+        {% for option in window_options %}
+            <a
+                href="{{ url_for('investor_profile', investor_id=investor.id, window=option) }}"
+                class="{% if option == window_days %}active{% endif %}"
+            >
+                {{ option }}D
+            </a>
+        {% endfor %}
+    </nav>
+
+</div>
 
 
 {% if investor.description %}
@@ -72,6 +463,425 @@
     </p>
 
 {% endif %}
+
+
+{% if intelligence_profile %}
+
+    {% set current = intelligence_profile.current_window %}
+    {% set previous = intelligence_profile.previous_window %}
+    {% set change = intelligence_profile.change %}
+    {% set coverage = intelligence_profile.coverage %}
+    {% set signals = intelligence_profile.signals %}
+    {% set activity = signals.activity %}
+    {% set temporal = coverage.temporal_corpus %}
+
+    <section class="investor-intelligence-shell">
+
+        <div class="intelligence-kicker">
+
+            <div>
+                <div class="eyebrow">
+                    OBSERVED ACTIVITY
+                </div>
+
+                <h2>
+                    {{ window_days }}-day investor behaviour
+                </h2>
+
+                <p>
+                    Current {{ window_days }} days compared with the preceding {{ window_days }} days.
+                </p>
+            </div>
+
+            <span class="date">
+                As of {{ intelligence_profile.as_of.strftime("%d %b %Y") }}
+            </span>
+
+        </div>
+
+
+        <div class="intelligence-grid">
+
+            <div class="intelligence-metric">
+                <div class="intelligence-metric-label">
+                    Current investments
+                </div>
+                <div class="intelligence-metric-value">
+                    {{ current.investment_count }}
+                </div>
+                <div class="intelligence-metric-note">
+                    Observed rounds in current window
+                </div>
+            </div>
+
+            <div class="intelligence-metric">
+                <div class="intelligence-metric-label">
+                    Previous investments
+                </div>
+                <div class="intelligence-metric-value">
+                    {{ previous.investment_count }}
+                </div>
+                <div class="intelligence-metric-note">
+                    Observed rounds in prior window
+                </div>
+            </div>
+
+            <div class="intelligence-metric">
+                <div class="intelligence-metric-label">
+                    Observed change
+                </div>
+                <div class="intelligence-metric-value">
+                    {% if change.investment_delta > 0 %}+{% endif %}{{ change.investment_delta }}
+                </div>
+                <div class="intelligence-metric-note">
+                    Current minus previous window
+                </div>
+            </div>
+
+            <div class="intelligence-metric">
+                <div class="intelligence-metric-label">
+                    Lead investments
+                </div>
+                <div class="intelligence-metric-value">
+                    {{ current.lead_count }}
+                </div>
+                <div class="intelligence-metric-note">
+                    {{ previous.lead_count }} in previous window
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="intelligence-two-column">
+
+            <div class="intelligence-panel">
+
+                <div class="confidence-row">
+                    <h3>
+                        Activity signal
+                    </h3>
+
+                    {% if activity.confidence == "corpus_supported" %}
+                        <span class="confidence-badge corpus-supported">
+                            CORPUS-SUPPORTED
+                        </span>
+                    {% elif activity.confidence == "observational" %}
+                        <span class="confidence-badge observational">
+                            OBSERVATIONAL
+                        </span>
+                    {% else %}
+                        <span class="confidence-badge insufficient">
+                            INSUFFICIENT
+                        </span>
+                    {% endif %}
+                </div>
+
+                {% if activity.status == "supported" %}
+
+                    <div class="trend-primary">
+                        <span class="trend-direction">
+                            {% if activity.direction == "up" %}↑ UP
+                            {% elif activity.direction == "down" %}↓ DOWN
+                            {% else %}→ FLAT
+                            {% endif %}
+                        </span>
+
+                        <span class="trend-detail">
+                            {{ activity.previous }} → {{ activity.current }}
+                            ·
+                            {% if activity.delta > 0 %}+{% endif %}{{ activity.delta }}
+                            ·
+                            {% if activity.change_pct is not none %}
+                                {% if activity.change_pct > 0 %}+{% endif %}{{ "%.1f"|format(activity.change_pct) }}%
+                            {% endif %}
+                        </span>
+                    </div>
+
+                {% else %}
+
+                    <div class="trend-primary">
+                        <span class="trend-direction">
+                            Not enough history
+                        </span>
+                    </div>
+
+                {% endif %}
+
+                {% if activity.confidence == "corpus_supported" %}
+                    <p class="confidence-explainer">
+                        Vantage has enough observations for comparison and every discovered first-party Funding Round candidate in both matched source windows has been processed.
+                    </p>
+                {% elif activity.confidence == "observational" %}
+                    <p class="confidence-explainer">
+                        The graph contains enough observations to calculate a directional comparison, but matched first-party temporal corpus coverage is unavailable or incomplete.
+                    </p>
+                {% else %}
+                    <p class="confidence-explainer">
+                        {{ activity.confidence_reason or activity.reason }}
+                    </p>
+                {% endif %}
+
+            </div>
+
+
+            <div class="intelligence-panel">
+
+                <h3>
+                    Corpus coverage
+                </h3>
+
+                <div class="coverage-stack">
+
+                    {% for name, metric in [
+                        ('Date', coverage.date),
+                        ('Stage', coverage.stage),
+                        ('Sector', coverage.sector),
+                        ('Geography', coverage.geography)
+                    ] %}
+
+                        <div class="coverage-item">
+                            <span class="coverage-name">
+                                {{ name }}
+                            </span>
+
+                            <div class="coverage-track">
+                                <div
+                                    class="coverage-fill"
+                                    style="width: {{ [metric.percent, 100]|min }}%;"
+                                ></div>
+                            </div>
+
+                            <span class="coverage-value">
+                                {{ metric.known }}/{{ metric.total }}
+                            </span>
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+                {% if temporal.current_window and temporal.previous_window %}
+
+                    <div class="temporal-grid">
+
+                        <div class="temporal-window">
+                            <div class="temporal-window-label">
+                                Current source window
+                            </div>
+                            <div class="temporal-window-value">
+                                {{ temporal.current_window.processed_candidates }}/{{ temporal.current_window.total_candidates }}
+                            </div>
+                            <div class="temporal-window-note">
+                                {{ temporal.current_window.status|upper }} · processed candidates
+                            </div>
+                        </div>
+
+                        <div class="temporal-window">
+                            <div class="temporal-window-label">
+                                Previous source window
+                            </div>
+                            <div class="temporal-window-value">
+                                {{ temporal.previous_window.processed_candidates }}/{{ temporal.previous_window.total_candidates }}
+                            </div>
+                            <div class="temporal-window-note">
+                                {{ temporal.previous_window.status|upper }} · processed candidates
+                            </div>
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <p class="confidence-explainer">
+                        {{ temporal.reason }}
+                    </p>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <div class="signal-grid">
+
+            <div class="signal-summary-card">
+                <div class="label">
+                    Stage pattern
+                </div>
+
+                {% if signals.stage.status == "supported" %}
+                    <div class="value">
+                        {% if signals.stage.pattern == "mixed" %}
+                            Mixed
+                        {% else %}
+                            {{ signals.stage.leaders|join(" / ") }}
+                        {% endif %}
+                    </div>
+                    <div class="note">
+                        {% if signals.stage.pattern == "mixed" %}
+                            No single observed stage dominates.
+                        {% else %}
+                            {{ signals.stage.leader_count }}/{{ signals.stage.known_count }} known-stage rounds.
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="value">
+                        Unavailable
+                    </div>
+                    <div class="note">
+                        {{ signals.stage.reason }}
+                    </div>
+                {% endif %}
+            </div>
+
+
+            <div class="signal-summary-card">
+                <div class="label">
+                    Sector pattern
+                </div>
+
+                {% if signals.sector.status == "supported" %}
+                    <div class="value">
+                        {% if signals.sector.pattern == "mixed" %}
+                            Mixed
+                        {% else %}
+                            {{ signals.sector.leaders|join(" / ") }}
+                        {% endif %}
+                    </div>
+                    <div class="note">
+                        {% if signals.sector.pattern == "mixed" %}
+                            No single observed sector dominates.
+                        {% else %}
+                            {{ signals.sector.leader_count }}/{{ signals.sector.known_count }} known-sector rounds.
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="value">
+                        Unavailable
+                    </div>
+                    <div class="note">
+                        {{ signals.sector.reason }}
+                    </div>
+                {% endif %}
+            </div>
+
+
+            <div class="signal-summary-card">
+                <div class="label">
+                    Geography pattern
+                </div>
+
+                {% if signals.geography.status == "supported" %}
+                    <div class="value">
+                        {% if signals.geography.pattern == "mixed" %}
+                            Mixed
+                        {% else %}
+                            {{ signals.geography.leaders|join(" / ") }}
+                        {% endif %}
+                    </div>
+                    <div class="note">
+                        {% if signals.geography.pattern == "mixed" %}
+                            No single observed geography dominates.
+                        {% else %}
+                            {{ signals.geography.leader_count }}/{{ signals.geography.known_count }} known-geography rounds.
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="value">
+                        Unavailable
+                    </div>
+                    <div class="note">
+                        {{ signals.geography.reason }}
+                    </div>
+                {% endif %}
+            </div>
+
+        </div>
+
+
+        <p class="intelligence-disclaimer">
+            Observed activity is derived from the Vantage evidence corpus. Corpus-supported means the discovered first-party comparison windows are fully processed; it does not imply complete knowledge of every investment made by the firm.
+        </p>
+
+    </section>
+
+
+    <section class="profile-section">
+
+        <div class="section-header">
+
+            <div>
+                <div class="eyebrow">
+                    LATEST OBSERVATIONS
+                </div>
+                <h2>
+                    Recent investments
+                </h2>
+            </div>
+
+            <div class="section-meta">
+                Evidence-backed canonical events
+            </div>
+
+        </div>
+
+        {% if intelligence_profile.recent_investments %}
+
+            <div class="recent-intelligence-list">
+
+                {% for item in intelligence_profile.recent_investments %}
+
+                    <article class="recent-intelligence-item">
+
+                        <div class="date">
+                            {{ item.announced_at.strftime("%d %b %Y") }}
+                        </div>
+
+                        <h3>
+                            {{ item.company }}
+                        </h3>
+
+                        <div class="recent-intelligence-meta">
+                            {{ item.stage }}
+                            {% if item.is_lead %}
+                                · Lead
+                            {% endif %}
+
+                            {% if item.amount %}
+                                ·
+                                {{ item.currency or "" }}
+                                {{ "{:,.0f}".format(item.amount) }}
+                            {% endif %}
+                        </div>
+
+                        {% if item.evidence_sources %}
+                            <div class="recent-intelligence-evidence">
+                                Evidence: {{ item.evidence_sources|join(", ") }}
+                            </div>
+                        {% endif %}
+
+                    </article>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <div class="empty-state">
+                No dated investment observations in the corpus.
+            </div>
+
+        {% endif %}
+
+    </section>
+
+{% endif %}
+
+
+<hr class="section-divider">
 
 
 <section class="profile-section">
@@ -280,17 +1090,17 @@
         <div>
 
             <div class="eyebrow">
-                PORTFOLIO ACTIVITY
+                FULL OBSERVED HISTORY
             </div>
 
             <h2>
-                Investments
+                Investment evidence
             </h2>
 
         </div>
 
         <div class="section-meta">
-            {{ funding_rounds|length }} recorded rounds
+            {{ funding_rounds|length }} canonical round{% if funding_rounds|length != 1 %}s{% endif %}
         </div>
 
     </div>
@@ -321,6 +1131,12 @@
 
                             <div class="company-meta">
 
+                                {% if round.canonical_round_type or round.round_type %}
+                                    <span>
+                                        {{ round.canonical_round_type or round.round_type }}
+                                    </span>
+                                {% endif %}
+
                                 {% if round.company.sector %}
                                     <span>
                                         {{ round.company.sector }}
@@ -345,7 +1161,7 @@
                                 {% if round.currency == "USD" %}$
                                 {% elif round.currency == "EUR" %}€
                                 {% elif round.currency == "GBP" %}£
-                                {% endif %}
+                                {% else %}{{ round.currency or "" }} {% endif %}
 
                                 {{ "{:,.0f}".format(round.amount) }}
 

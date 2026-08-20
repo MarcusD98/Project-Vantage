@@ -59,6 +59,16 @@ from services.corpus_cli import (
     register_corpus_commands,
 )
 
+from services.investor_confidence_service import (
+    get_investor_profile as get_investor_intelligence_profile,
+)
+
+from services.investor_ui_service import (
+    INVESTOR_WINDOW_OPTIONS,
+    normalize_investor_window,
+)
+
+
 logging.basicConfig(
     level=logging.INFO
 )
@@ -250,6 +260,22 @@ def investor_profile(investor_id):
         )
     )
 
+    window_days = (
+        normalize_investor_window(
+            request.args.get(
+                "window"
+            )
+        )
+    )
+
+    intelligence_profile = (
+        get_investor_intelligence_profile(
+            identifier=investor.name,
+            window_days=window_days,
+            recent_limit=8,
+        )
+    )
+
     funding_rounds = (
         FundingRound.query
         .filter(
@@ -279,6 +305,13 @@ def investor_profile(investor_id):
         investor=investor,
         funding_rounds=funding_rounds,
         funds=funds,
+        intelligence_profile=(
+            intelligence_profile
+        ),
+        window_days=window_days,
+        window_options=(
+            INVESTOR_WINDOW_OPTIONS
+        ),
     )
 
 
@@ -572,6 +605,7 @@ def source_measurement_command():
     )
 
     click.echo("")
+
 
 # ---------------------------------------------------------
 # CLI: funding reconciliation
