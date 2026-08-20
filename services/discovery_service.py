@@ -869,6 +869,15 @@ def discover_source(source):
             source
         )
 
+    if method == "html":
+        from services.html_discovery_service import (
+            discover_html_source,
+        )
+
+        return discover_html_source(
+            source
+        )
+
     logger.warning(
         "Unsupported discovery method '%s' for source '%s'.",
         method,
@@ -879,3 +888,4 @@ def discover_source(source):
     )
 
     return None
+
