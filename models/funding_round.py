@@ -86,6 +86,11 @@ class FundingRound(db.Model):
         db.String(100)
     )
 
+    canonical_round_type = db.Column(
+        db.String(100),
+        nullable=True,
+    )
+
     announced_at = db.Column(
         db.DateTime
     )

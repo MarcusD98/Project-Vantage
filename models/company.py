@@ -8,6 +8,10 @@ class Company(db.Model):
     description = db.Column(db.Text)
 
     sector = db.Column(db.String(200))
+    canonical_sector = db.Column(
+        db.String(200),
+        nullable=True,
+    )
     headquarters = db.Column(db.String(200))
 
     city = db.Column(db.String(200))

@@ -56,7 +56,10 @@ def get_intelligence_summary():
     sector_counts = Counter()
 
     for funding_round in funding_rounds:
-        sector = funding_round.company.sector
+        sector = (
+            funding_round.company.canonical_sector
+            or funding_round.company.sector
+        )
 
         if not sector:
             continue
