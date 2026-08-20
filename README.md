@@ -1,15 +1,17 @@
 # Project Vantage
 
-A Python/Flask venture intelligence application that transforms public venture news into a structured, accumulating knowledge base of companies, investors, funds, financing events, and market activity.
+A Python/Flask venture intelligence application that transforms public venture information into a structured, accumulating knowledge base of companies, investors, funds, financing events, relationships, and market activity.
 
 Vantage began as a simple VC news aggregator.
 
 It is evolving into a lightweight venture-market intelligence system:
 
 ```text
-Public information
+Public venture ecosystem
         ↓
-News & articles
+Multi-source discovery
+        ↓
+Evidence documents
         ↓
 Structured events
         ↓
@@ -36,29 +38,52 @@ Who is doing what?
 What does it mean?
 ```
 
+Vantage increasingly treats **news as one source of evidence rather than the entire observable market**.
+
+The long-term information universe should combine:
+
+- Independent editorial reporting
+- Investor / VC first-party content
+- Accelerator and ecosystem signals
+- Select company first-party evidence
+- Targeted structured or official sources where they add clear value
+
+The objective is not simply to ingest more URLs.
+
+It is to build a broader, more representative and more evidence-rich view of venture-market activity.
+
 ---
 
 # Product Vision
 
 Vantage has three connected layers.
 
-## 1. Venture News Engine
+## 1. Venture Discovery Engine
 
 Understand **what is happening** across the venture ecosystem.
 
-Vantage ingests venture and startup news, filters signal from noise, categorizes articles, retrieves source content, and stores the resulting evidence.
+Vantage discovers relevant venture information, filters signal from noise, retrieves source content, and stores the resulting evidence.
+
+The discovery universe can include:
+
+- Editorial publications
+- VC firms
+- Investor blogs
+- Accelerator and ecosystem sources
+- Select company sources
+- Targeted structured sources
 
 ## 2. Venture Knowledge Base
 
 Understand **who is doing what**.
 
-Relevant articles are transformed into structured companies, investors, funds, financing events, relationships, and supporting evidence.
+Relevant evidence is transformed into structured companies, investors, funds, financing events, relationships, and supporting source material.
 
 ## 3. Venture Intelligence
 
 Understand **what the accumulated activity means**.
 
-As the knowledge base grows, Vantage can analyze investor activity, sector momentum, capital formation, funding patterns, geographies, relationships, and changes over time.
+As the knowledge base grows, Vantage can analyze investor activity, sector momentum, capital formation, funding patterns, geographies, relationships, strategic themes, and changes over time.
 
 These are not separate applications.
 
@@ -77,14 +102,14 @@ They are progressively richer layers of the same system.
                          │
               entities + relationships
                          │
-                    NEWS ENGINE
+                 DISCOVERY ENGINE
                "What is happening?"
                          ▲
                          │
-                     ingestion
+                  source discovery
                          │
               ─────────────────────
-                 PUBLIC SOURCES
+                 PUBLIC ECOSYSTEM
               ─────────────────────
 ```
 
@@ -97,9 +122,9 @@ Vantage has progressed substantially beyond its original RSS-aggregator prototyp
 The application now has a working end-to-end architecture:
 
 ```text
-News ingestion
+Source discovery
       ↓
-Article normalization
+Evidence normalization
       ↓
 Deduplication & classification
       ↓
@@ -108,6 +133,8 @@ Full-content retrieval
 LLM structured extraction
       ↓
 Entity normalization & resolution
+      ↓
+Event resolution
       ↓
 Human review where uncertain
       ↓
@@ -120,21 +147,28 @@ Profiles & market intelligence
 
 The current system includes:
 
-- Multi-source news ingestion
-- Persistent article storage
+- Multi-source editorial ingestion
+- Persistent evidence storage
 - Improved full-article extraction
 - Funding-round extraction
 - Fund-close extraction
 - Company and investor entities
 - Fund entities
 - Entity aliases
+- Stable entity identity
 - Entity resolution
 - Human review of uncertain resolutions
+- Canonical funding-event matching
+- Multi-source funding-event evidence
+- Historical funding-event reconciliation
+- Sector taxonomy normalization
+- Funding-stage taxonomy normalization
 - Data-quality monitoring
 - Company profiles
 - Investor profiles
 - Structured funding views
 - Market-intelligence dashboard
+- Unified intelligence pipeline
 - Automated tests
 
 Vantage is therefore no longer simply a news application.
@@ -143,22 +177,23 @@ It is an early **venture intelligence system**.
 
 ---
 
-# 1. News & Ingestion
+# 1. Source Discovery & Ingestion
 
 The ingestion layer provides the evidence foundation for the entire application.
 
+Vantage began with RSS-based editorial news ingestion. That remains useful, but the source model is evolving from a **news-feed architecture** toward a broader **venture-source discovery architecture**.
+
 Current capabilities include:
 
-- Multiple configurable RSS sources
+- Multiple configurable editorial sources
 - RSS parsing with `feedparser`
-- Article normalization
+- Evidence normalization
 - URL-based deduplication
 - HTML cleaning with BeautifulSoup
 - VC relevance filtering
 - Article categorization
 - Persistent storage
 - Source-health monitoring
-- In-memory feed caching
 
 Current article categories include:
 
@@ -175,18 +210,119 @@ The objective is to maximize:
 - Coverage
 - Relevance
 - Reliability
+- Evidence diversity
 - Classification quality
-- Evidence quality
+- Source provenance
+- Signal quality
 
-Over time, the source network can expand beyond RSS to include VC websites, company announcements, selected APIs, regulatory information, and other useful public sources.
+## Current Source Universe
+
+The current source network is primarily composed of venture and technology publications accessed through RSS.
+
+This provides useful broad discovery, but it introduces an important limitation:
+
+> **Editorial coverage is not the same thing as market coverage.**
+
+Media coverage is influenced by:
+
+- Geography
+- Company visibility
+- PR activity
+- Publication focus
+- Funding-round size
+- Editorial selection
+- Syndication patterns
+
+Vantage should therefore avoid treating its observed dataset as a complete representation of the venture market.
+
+## Source Network V2
+
+The next source architecture should combine several evidence classes:
+
+```text
+EDITORIAL SOURCES
+TechCrunch
+Sifted
+Tech.eu
+TechCabal
+Inc42
+etc.
+
+        +
+
+INVESTOR / VC FIRST-PARTY SOURCES
+Accel
+Sequoia
+Andreessen Horowitz
+Index Ventures
+Atomico
+Balderton
+etc.
+
+        +
+
+ECOSYSTEM SIGNALS
+Accelerators
+Venture programs
+Demo days
+Specialist investor publications
+Founder / investor ecosystems
+
+        +
+
+SELECTIVE COMPANY SOURCES
+Newsrooms
+Press releases
+Blogs
+
+        +
+
+TARGETED STRUCTURED / OFFICIAL SOURCES
+Selected APIs
+Public datasets
+Regulatory or registry information
+where a specific use case justifies them
+```
+
+Different source types provide different kinds of evidence:
+
+```text
+Publication
+    ↓
+Independent discovery / reporting
+
+Investor
+    ↓
+Investment confirmation / strategy / thesis
+
+Company
+    ↓
+First-party financing or company announcement
+
+Structured source
+    ↓
+Validation / enrichment
+```
+
+Over time, multiple sources should converge on the same canonical event:
+
+```text
+                    EVENT
+                      │
+          ┌───────────┼────────────┐
+          ▼           ▼            ▼
+    Publication   Investor Post   Company PR
+```
+
+This improves both coverage and confidence.
 
 ---
 
 # 2. Full-Article Processing
 
-RSS titles and summaries are often insufficient for reliable structured extraction.
+Titles and summaries are often insufficient for reliable structured extraction.
 
-Vantage can therefore retrieve and persist the underlying article content.
+Vantage can therefore retrieve and persist the underlying source content.
 
 The article-content service:
 
@@ -203,9 +339,7 @@ The article-content service:
 Conceptually:
 
 ```text
-RSS item
-   ↓
-Article URL
+Discovered URL
    ↓
 HTML retrieval
    ↓
@@ -220,7 +354,88 @@ Articles also maintain intelligence-processing state so that successfully proces
 
 ---
 
-# 3. AI-Assisted Event Extraction
+# 3. Source Discovery Architecture
+
+Vantage should avoid creating a bespoke scraper or service for every external website.
+
+The scalable model is:
+
+```text
+                         SOURCE REGISTRY
+                               │
+                 ┌─────────────┼─────────────┐
+                 ▼             ▼             ▼
+               RSS         Sitemap       HTML Index
+                 │             │             │
+                 └─────────────┼─────────────┘
+                               ▼
+                       DISCOVERY ITEM
+                               │
+                               ▼
+                    EXISTING VANTAGE PIPELINE
+```
+
+A source should primarily describe **how content can be discovered**, rather than requiring its own Python implementation.
+
+Conceptually:
+
+```text
+Source
+├── name
+├── source_type
+│      ├── publication
+│      ├── investor
+│      ├── ecosystem
+│      ├── company
+│      └── structured
+├── acquisition_method
+│      ├── rss
+│      ├── sitemap
+│      ├── html
+│      └── api
+├── region
+├── URL / discovery configuration
+└── enabled
+```
+
+The initial reusable discovery adapters should remain deliberately small:
+
+- RSS
+- Sitemap
+- Generic HTML listing
+
+Each adapter should emit the same normalized evidence object:
+
+```text
+title
+url
+published_at
+summary
+source
+source_type
+```
+
+Everything downstream should remain source-agnostic.
+
+This creates an important architectural boundary:
+
+```text
+DISCOVERY
+    ↓
+NORMALIZED EVIDENCE
+    ↓
+CONTENT EXTRACTION
+    ↓
+INTELLIGENCE PIPELINE
+```
+
+A new VC firm should therefore usually require **configuration**, not a new service file.
+
+This keeps the source network lean, adaptable and scalable.
+
+---
+
+# 4. AI-Assisted Event Extraction
 
 Vantage uses the OpenAI API with validated structured outputs to transform unstructured reporting into machine-readable venture events.
 
@@ -248,7 +463,7 @@ For company financing events, Vantage can currently extract:
 Conceptually:
 
 ```text
-Article
+Evidence document
    ↓
 Funding-event extraction
    ↓
@@ -304,7 +519,7 @@ This prevents company financing and VC fund formation from being incorrectly rep
 
 ---
 
-# 4. Structured Knowledge Base
+# 5. Structured Knowledge Base
 
 The core value of Vantage increasingly resides in its structured knowledge base rather than in the article feed itself.
 
@@ -323,6 +538,19 @@ FundClose
 EntityAlias
 EntityResolutionReview
 ```
+
+The `Article` model increasingly represents an **evidence document**, rather than only a traditional news article.
+
+An evidence document may ultimately originate from:
+
+- An independent publication
+- An investor investment announcement
+- A VC thesis or portfolio update
+- An accelerator announcement
+- A company newsroom
+- Another selected public source
+
+This allows the downstream knowledge architecture to remain largely unchanged even as the upstream source universe expands.
 
 The relationships increasingly resemble:
 
@@ -358,12 +586,14 @@ An investor can accumulate:
 - Funds
 - Fund-close activity
 - Relationships with companies and other investors
+- First-party investment announcements
+- Potential strategic or thesis signals
 
 This is the foundation of the Vantage ecosystem map.
 
 ---
 
-# 5. Entity Resolution
+# 6. Entity Resolution
 
 Reliable intelligence requires reliable entity identity.
 
@@ -415,6 +645,8 @@ Defence tech investor and builder Gallos
 Gallos Technologies
 ```
 
+Aliases now use stable database-backed entity identity rather than relying solely on mutable name strings.
+
 Entity matching is intentionally conservative.
 
 Generic venture-industry terms such as:
@@ -439,7 +671,52 @@ This matters because poor entity resolution would corrupt:
 
 ---
 
-# 6. Human Review & Data Quality
+# 7. Event Resolution & Multi-Source Evidence
+
+Multiple sources frequently describe the same underlying venture event.
+
+For example:
+
+```text
+Tech publication:
+Acme raises $40M Series B
+
+Investor:
+Why we invested in Acme
+
+Company:
+Acme closes Series B led by Sequoia
+```
+
+should ultimately become:
+
+```text
+3 source documents
+        ↓
+1 canonical funding event
+        ↓
+Acme
+$40M
+Series B
+Sequoia
+```
+
+rather than three independent funding rounds.
+
+Vantage now includes:
+
+- Canonical funding-event matching
+- Multi-source article relationships
+- Historical duplicate auditing
+- Generic historical reconciliation
+- Safe canonical event selection
+- Preservation of supporting evidence across merges
+
+This allows the knowledge base to increasingly represent **real-world events**, rather than merely individual articles.
+
+---
+
+# 8. Human Review & Data Quality
 
 Vantage does not automatically force uncertain entity matches.
 
@@ -459,6 +736,8 @@ Confident match ──────→ Canonical entity
                          Human decision
 ```
 
+Review candidates are linked to stable entity identities.
+
 The Data Quality dashboard provides visibility into the health of the knowledge base.
 
 Current monitoring includes:
@@ -477,7 +756,62 @@ This layer exists because Vantage should prefer a smaller trustworthy dataset ov
 
 ---
 
-# 7. Product Interface
+# 9. Taxonomy & Analytical Consistency
+
+Free-form source-derived descriptions are useful for fidelity, but aggregated intelligence requires consistent analytical categories.
+
+Vantage therefore preserves source-derived descriptions while introducing canonical analytical taxonomies.
+
+Current examples include:
+
+```text
+raw_sector
+     ↓
+canonical_sector
+```
+
+and:
+
+```text
+raw_round_type
+     ↓
+canonical_round_type
+```
+
+Examples:
+
+```text
+Healthtech
+Health technology
+Digital health
+        ↓
+Health Tech
+```
+
+and:
+
+```text
+pre-seed
+Pre Seed
+pre-Seed
+        ↓
+Pre-Seed
+```
+
+The objective is not to build an enormous taxonomy.
+
+It is to make aggregated intelligence trustworthy.
+
+Future taxonomy areas may include:
+
+- Geography
+- Investor type
+- Fund strategy
+- Investment theme
+
+---
+
+# 10. Product Interface
 
 The original article feed has evolved into a shared Vantage product interface.
 
@@ -498,7 +832,7 @@ Structured company financing activity including:
 - Investors
 - Lead investors
 - Evidence
-- Source article
+- Supporting source documents
 
 ## Company Profiles
 
@@ -514,13 +848,20 @@ Company pages can expose:
 
 ## Investor Profiles
 
-Investor pages can expose:
+Investor pages can increasingly expose:
 
 - Recorded investment activity
 - Portfolio companies
 - Financing events
 - Lead-investor activity
-- Fund activity where available
+- Fund activity
+- Stage exposure
+- Sector exposure
+- Geographic exposure
+- Frequent co-investors
+- Activity over time
+- First-party investment announcements
+- Emerging investment themes
 
 ## Sources
 
@@ -545,7 +886,88 @@ Current intelligence surfaces include:
 
 The Intelligence page is deliberately evidence-driven.
 
-Vantage does not yet present misleading aggregate market totals where the underlying dataset or currency normalization cannot support them reliably.
+Vantage does not yet present misleading aggregate market totals where the underlying dataset or source coverage cannot support them reliably.
+
+---
+
+# 11. Investor Intelligence
+
+Investor intelligence is strategically important because leading VC firms provide two different classes of signal.
+
+## Investment Signals
+
+```text
+Investor
+   ↓
+backs Company
+   ↓
+Funding Round
+```
+
+Examples include:
+
+- New investment
+- Lead / co-lead investment
+- Follow-on investment
+- New fund
+- New geography
+- New sector exposure
+
+## Thesis Signals
+
+Investor publications can also reveal what firms are increasingly focused on before those themes are fully visible in market-wide funding statistics.
+
+Potential future signals include:
+
+- Repeated writing on a technology theme
+- New specialist partners
+- New sector theses
+- Changes in investment strategy
+- Clusters of new investments in a theme
+
+For example:
+
+```text
+Several AI-infrastructure investments
+        +
+multiple AI-infrastructure essays
+        +
+new specialist partner
+        ↓
+possible emerging investor conviction
+```
+
+Vantage should initially focus on capturing investor first-party content reliably before attempting sophisticated thesis inference.
+
+---
+
+# Architecture & Data Integrity Hardening v1
+
+Vantage completed an initial architecture and data-integrity hardening phase before expanding the source universe further.
+
+Key improvements include:
+
+- Unified intelligence-pipeline orchestration
+- Explicit transaction ownership
+- Idempotent processing behavior
+- Canonical funding-event matching
+- Multi-source funding-event evidence
+- Historical funding-event reconciliation
+- Sector taxonomy normalization
+- Funding-stage taxonomy normalization
+- Stable entity identity
+- Scoped entity aliases
+- Foreign-key-backed alias resolution
+- Human review backed by stable entity references
+- Expanded automated test coverage
+
+This phase was intentionally completed before aggressively scaling the dataset.
+
+The principle is:
+
+> **Scaling a weak data model creates larger data-quality problems.**
+
+The objective was therefore to establish a trustworthy foundation before expanding coverage.
 
 ---
 
@@ -554,46 +976,56 @@ Vantage does not yet present misleading aggregate market totals where the underl
 At the current checkpoint:
 
 ```text
-                    PUBLIC SOURCES
-                         │
-                         ▼
-                   NEWS INGESTION
-                         │
-                         ▼
-              NORMALIZE / DEDUPLICATE
-                         │
-                         ▼
+                     PUBLIC ECOSYSTEM
+                           │
+                           ▼
+                      SOURCE REGISTRY
+                           │
+             ┌─────────────┼─────────────┐
+             ▼             ▼             ▼
+        Publications    Investors     Ecosystem
+             │             │             │
+             └─────────────┼─────────────┘
+                           ▼
+                    SOURCE DISCOVERY
+                           │
+                           ▼
+                  NORMALIZED EVIDENCE
+                           │
+                           ▼
+                 CONTENT EXTRACTION
+                           │
+                           ▼
                     CLASSIFICATION
-                         │
-                         ▼
-                ARTICLE EXTRACTION
-                         │
-                         ▼
-                  LLM EXTRACTION
-                         │
-                         ▼
+                           │
+                           ▼
+                   LLM EXTRACTION
+                           │
+                           ▼
                   ENTITY RESOLUTION
-                         │
-              ┌──────────┴──────────┐
-              │                     │
-              ▼                     ▼
-       CONFIDENT RECORD       REVIEW REQUIRED
-              │                     │
-              └──────────┬──────────┘
-                         ▼
-                  KNOWLEDGE BASE
-                         │
-          ┌──────────────┼──────────────┐
-          ▼              ▼              ▼
-      Companies       Investors        Funds
-          │              │              │
-          └─────── Events & Relationships
-                         │
-                         ▼
-                   DATA QUALITY
-                         │
-                         ▼
-             PROFILES / INTELLIGENCE
+                           │
+              ┌────────────┴────────────┐
+              ▼                         ▼
+       CONFIDENT RECORD           REVIEW REQUIRED
+              │                         │
+              └────────────┬────────────┘
+                           ▼
+                    EVENT RESOLUTION
+                           │
+                           ▼
+                    KNOWLEDGE BASE
+                           │
+           ┌───────────────┼───────────────┐
+           ▼               ▼               ▼
+       Companies        Investors         Funds
+           │               │               │
+           └──────── Events & Relationships
+                           │
+                           ▼
+                     DATA QUALITY
+                           │
+                           ▼
+                PROFILES / INTELLIGENCE
 ```
 
 This is the architectural core of Vantage.
@@ -636,11 +1068,11 @@ Every major capability should strengthen this progression.
 
 ## 2. News is evidence, not the final product
 
-Articles are source material from which structured ecosystem knowledge is created.
+Articles and other public documents are source material from which structured ecosystem knowledge is created.
 
 ## 3. Reliability precedes sophisticated analytics
 
-A beautiful dashboard built on fragmented entities or duplicated events produces misleading intelligence.
+A beautiful dashboard built on fragmented entities, duplicated events or weak source coverage produces misleading intelligence.
 
 ## 4. Prefer useful product capabilities over premature infrastructure
 
@@ -659,17 +1091,35 @@ Deterministic code remains preferable for:
 - Aggregation
 - Business rules
 - Idempotency
+- Transaction ownership
+- Event reconciliation rules
 
 ## 6. Keep human review for genuinely ambiguous cases
 
 Not every uncertain entity or event should be automatically resolved.
 
-## 7. Build progressively
+## 7. Prefer configuration over bespoke source code
+
+A new source should usually require source configuration rather than a dedicated scraper or service.
+
+## 8. Measure the observed universe
+
+Vantage should distinguish:
+
+> **Observed activity**
+
+from:
+
+> **Total market activity**
+
+until source coverage is broad enough to support stronger claims.
+
+## 9. Build progressively
 
 ```text
 Source
   ↓
-Article
+Evidence
   ↓
 Event
   ↓
@@ -694,7 +1144,7 @@ Each layer should make the next one possible.
 
 ## Phase 1 — News & Ingestion Foundation
 
-**Status: largely achieved**
+**Status: substantially achieved**
 
 Delivered:
 
@@ -711,7 +1161,7 @@ Delivered:
 
 ---
 
-## Phase 2 — Knowledge Layer
+## Phase 2 — Structured Knowledge Layer
 
 **Status: substantially achieved**
 
@@ -732,230 +1182,209 @@ Delivered:
 - Entity normalization
 - Entity aliases
 - Entity resolution
-- Conservative duplicate detection
-- Entity merge tooling
 - Human resolution review
-- Data-quality dashboard
-- Batch intelligence processing
-
-This phase established the first trustworthy structured VC knowledge layer.
+- Data-quality monitoring
 
 ---
 
-## Phase 3 — Intelligence Engine
+## Phase 3 — Pipeline, Event & Entity Integrity
+
+**Status: v1 complete**
+
+Delivered:
+
+- Unified `vantage ingest` lifecycle
+- Safe failure handling
+- Idempotent intelligence processing
+- Processing counters and operational reporting
+- Canonical funding-event matching
+- Multi-source funding evidence
+- Historical duplicate reconciliation
+- Stable entity identity
+- Foreign-key-backed aliases
+- Stable human-review candidate references
+- Sector taxonomy normalization
+- Funding-stage taxonomy normalization
+- Expanded regression testing
+
+This established the first reliable Vantage knowledge-building engine.
+
+---
+
+## Phase 4 — Source Network V2
 
 **Status: current development focus**
 
-The highest-impact next objective is to turn the existing collection of working services into a systematic intelligence pipeline.
+The next major constraint is no longer basic data structure.
 
-Today, individual pipeline stages work.
+It is **coverage**.
 
-The next step is to orchestrate them.
+The existing dataset is derived primarily from editorial RSS sources.
 
-Target flow:
+The next objective is to broaden the observable venture universe without creating a large collection of bespoke scrapers.
 
-```text
-Fetch sources
-      ↓
-Discover new articles
-      ↓
-Normalize & deduplicate
-      ↓
-Classify
-      ↓
-Retrieve article content
-      ↓
-Extract structured intelligence
-      ↓
-Resolve entities
-      ↓
-Resolve events
-      ↓
-Persist
-      ↓
-Create reviews where necessary
-      ↓
-Report pipeline results
-```
-
-The desired developer experience is eventually something conceptually similar to:
-
-```bash
-flask ingest
-```
-
-producing a summary such as:
+Target architecture:
 
 ```text
-Vantage ingestion complete
-
-Articles discovered:       143
-New articles:               28
-Content retrieved:          24
-Funding events:             11
-Fund closes:                 2
-Reviews created:             3
-Failures:                     4
+SOURCE REGISTRY
+      │
+      ├── RSS
+      ├── Sitemap
+      └── HTML listing
+              ↓
+       Normalized evidence
+              ↓
+       Existing Vantage pipeline
 ```
 
-### Immediate priorities
+### Priority Source Expansion
 
-1. Unified ingestion/intelligence orchestration
-2. Safe failure isolation
-3. Idempotent processing
-4. Useful processing counters and logging
-5. Larger-scale corpus processing
-6. Extraction observability
+#### Investor / VC First-Party Sources
 
-The objective is to move from:
+Highest priority.
 
-> Vantage **can** generate intelligence.
+Track strategically important firms across:
 
-to:
+- Global multi-stage VC
+- US venture
+- European venture
+- Seed investors
+- Growth investors
+- AI specialists
+- Fintech specialists
+- Climate investors
+- Deep-tech investors
+- Defence investors
+- Important regional firms
 
-> Vantage **systematically builds its own knowledge base**.
+Investor first-party sources can provide:
+
+- Investment announcements
+- Lead / co-lead confirmation
+- Portfolio activity
+- Fund announcements
+- Investment theses
+- Strategic themes
+
+#### Ecosystem Signals
+
+Potential sources include:
+
+- Accelerators
+- Venture programs
+- Demo days
+- Specialist investor publications
+- Important founder and investor ecosystems
+- Selected sector communities
+
+These may provide earlier signals than mainstream editorial coverage.
+
+#### Company Sources
+
+Company first-party monitoring should remain selective rather than universal.
+
+Possible future candidates include:
+
+- Watchlisted companies
+- High-momentum companies
+- Companies backed by tracked investors
+- Companies already prominent in the Vantage graph
+
+#### Structured / Official Sources
+
+Use selectively where they answer a concrete question.
+
+Potential uses:
+
+- Identity validation
+- Legal names
+- Corporate existence
+- Specific financing signals
+- Fund registration
+- Structured enrichment
+
+Vantage should not become a generic regulatory-document processing platform.
+
+### Source Architecture Principles
+
+1. Prefer configuration over bespoke source code.
+2. Add acquisition adapters only when they generalize across multiple sources.
+3. Preserve source provenance.
+4. Treat first-party evidence as authoritative for certain facts, but not as unbiased commentary.
+5. Measure observed coverage rather than pretending the dataset represents the entire market.
 
 ---
 
-## Phase 4 — Scale, Taxonomy & Event Quality
+## Phase 5 — Corpus Expansion & Coverage Intelligence
 
-**Status: next**
+**Status: follows Source Network V2**
 
-Once the pipeline is operational, the priority becomes dataset depth and analytical consistency.
+The objective is to move from dozens of canonical observations toward hundreds and eventually thousands.
 
-### Dataset expansion
+Scale should expose remaining weaknesses in:
 
-Vantage needs to move from dozens of structured events toward hundreds and eventually thousands.
+- Entity resolution
+- Event resolution
+- Content extraction
+- Classification
+- Taxonomy
+- Source reliability
+- Geographic coverage
+- Source-type coverage
 
-Scale is important not merely for coverage.
+Coverage itself should become measurable.
 
-It exposes problems that small test datasets cannot:
-
-- Entity duplication
-- Event duplication
-- Classification errors
-- Extraction failures
-- Weak article retrieval
-- Sector fragmentation
-- Naming inconsistencies
-- Currency inconsistencies
-- Repeated syndicated reporting
-
-### Event resolution
-
-Multiple articles may describe the same underlying event.
-
-For example:
+Potential future metrics:
 
 ```text
-Tech publication:
-Acme raises $40M Series B
+Tracked editorial sources
+Tracked investor sources
+Tracked ecosystem sources
 
-Another publication:
-Acme bags $40M in new funding
+Events by source type
 
-Company announcement:
-Acme closes Series B led by Sequoia
+Events with:
+1 supporting source
+2 supporting sources
+3+ supporting sources
+
+Geographic source coverage
+Sector source coverage
+Investor-source coverage
 ```
 
-should ultimately become:
+Vantage should distinguish:
 
-```text
-3 source articles
-        ↓
-1 canonical funding event
-        ↓
-Acme
-$40M
-Series B
-Sequoia
-```
+> **Observed activity**
 
-rather than three independent funding rounds.
+from:
 
-### Taxonomy normalization
+> **Total market activity**
 
-Free-form extracted metadata eventually needs controlled analytical categories.
-
-Priority taxonomies include:
-
-- Sector
-- Stage / round type
-- Geography
-- Investor type
-- Fund strategy
-
-For example:
-
-```text
-Generative AI
-AI infrastructure
-Enterprise AI
-Machine Learning
-AI applications
-```
-
-may need to roll up into a canonical analytical hierarchy while preserving the raw source-derived description.
-
-Conceptually:
-
-```text
-raw_sector
-     ↓
-canonical_sector
-```
-
-The objective is not to create an enormous taxonomy.
-
-It is to make aggregated intelligence trustworthy.
+until dataset coverage supports stronger claims.
 
 ---
 
-## Phase 5 — Product Intelligence
+## Phase 6 — Product Intelligence V2
 
-**Status: early foundation built**
+**Status: foundation exists**
 
-The first `/intelligence` dashboard now exists.
-
-The next stage is to deepen intelligence once dataset scale supports it.
+Once the source universe and corpus are broader, deepen the intelligence layer.
 
 ### Investor Intelligence
 
-Investor profiles should increasingly answer:
+Investor profiles should answer:
 
 - How active is this investor?
 - Which companies has it backed?
-- How frequently does it lead?
-- Which sectors does it invest in?
+- How often does it lead?
+- Which sectors does it target?
 - Which stages does it target?
 - Which geographies does it cover?
 - Which investors does it frequently co-invest with?
 - Which funds has it raised?
-- How is its activity changing over time?
-
-Potential future profile:
-
-```text
-SEQUOIA CAPITAL
-
-Tracked investments       18
-Lead investments           6
-
-Stage activity
-Seed                      7
-Series A                  5
-Series B                  3
-
-Sector exposure
-AI                       38%
-Fintech                  21%
-Enterprise Software      17%
-
-Frequent co-investors
-Andreessen Horowitz       6
-Accel                     4
-Index Ventures            3
-```
+- How is its activity changing?
+- What themes is it increasingly discussing or investing behind?
 
 ### Company Intelligence
 
@@ -971,120 +1400,64 @@ Company profiles can evolve toward:
 
 ### Fund Intelligence
 
-Fund intelligence can include:
+Potential analysis:
 
 - Fund history by VC firm
 - Fund sizes
-- Fund strategy
+- Strategies
 - Geography
 - Vintage
-- Capital-formation activity over time
+- Capital formation over time
 
 ### Market Intelligence
 
-Potential analysis areas include:
+Potential analysis:
 
 - Investor activity
-- Sector momentum
+- Sector activity
+- Stage activity
 - Geography activity
-- Funding-stage trends
 - Fund formation
 - Co-investment relationships
-- Company funding velocity
 - Ecosystem concentration
-- Emerging market signals
+- Emerging themes
 
 ---
 
-## Phase 6 — Time-Series Intelligence
+## Phase 7 — Time-Series & Signal Intelligence
 
-A market-intelligence system needs to understand not only state, but change.
-
-The analytical model should eventually become:
+A market-intelligence platform should understand change, not merely state.
 
 ```text
-Current state
-      +
-Historical state
-      +
+Current activity
+        +
+Historical activity
+        +
 Change over time
-      =
+        =
 Market signal
 ```
 
-This can unlock:
+Potential signals:
 
 - Trending sectors
 - Emerging investors
+- Investor strategy changes
 - Funding acceleration
 - Stage shifts
 - Geographic momentum
 - Fundraising cycles
-- Investor activity changes
+- Co-investment changes
 
-For example, the useful question is not merely:
-
-> How many AI funding rounds has Vantage tracked?
-
-but eventually:
-
-> Is AI financing activity accelerating relative to the previous period?
-
-This is an important transition from database aggregation toward actual market intelligence.
+Vantage should initially expose transparent period-over-period data before creating opaque composite momentum scores.
 
 ---
 
-## Phase 7 — Search & Ecosystem Discovery
+## Phase 8 — Search & Ecosystem Discovery
 
-As the knowledge base grows, the ecosystem should become directly searchable and browseable.
+As the knowledge base grows, Vantage should become directly explorable.
 
-Potential navigation:
-
-```text
-VANTAGE
-
-News
-Funding
-Intelligence
-Companies
-Investors
-Funds
-Sources
-Data Quality
-```
-
-### Companies
-
-Search and filter by:
-
-- Sector
-- Geography
-- Funding stage
-- Investors
-- Recent activity
-
-### Investors
-
-Search and filter by:
-
-- Sector activity
-- Geography
-- Stage
-- Portfolio
-- Lead activity
-- Fund activity
-
-### Funds
-
-Search and filter by:
-
-- Manager
-- Strategy
-- Geography
-- Vintage
-- Size
-
-Eventually Vantage should support questions such as:
+Potential queries:
 
 ```text
 European defence startups
@@ -1098,62 +1471,24 @@ Fintech investors active at Series A
 VC funds closed in 2026
 
 Companies backed by both Accel and Sequoia
+
+Investors increasing activity in robotics
 ```
 
----
-
-## Phase 8 — Source Network V2
-
-Source expansion should prioritize **quality and evidence diversity**, not simply the number of feeds.
-
-Potential source network:
+Potential navigation:
 
 ```text
-EDITORIAL SOURCES
-TechCrunch
-Sifted
-Tech.eu
-TechCabal
-Inc42
-etc.
+VANTAGE
 
-        +
-
-VC FIRMS
-Accel
-Sequoia
-Index Ventures
-Andreessen Horowitz
-Atomico
-Balderton
-etc.
-
-        +
-
-COMPANY SOURCES
-Newsrooms
-Press releases
-Blogs
-
-        +
-
-STRUCTURED / PUBLIC SOURCES
-Selected APIs
-Regulatory information
-Public datasets
+News
+Funding
+Companies
+Investors
+Funds
+Intelligence
+Sources
+Data Quality
 ```
-
-The long-term goal is multi-source evidence:
-
-```text
-                    EVENT
-                      │
-          ┌───────────┼───────────┐
-          ▼           ▼           ▼
-    Publication   Company PR   Investor Post
-```
-
-This can improve both coverage and confidence.
 
 ---
 
@@ -1161,9 +1496,9 @@ This can improve both coverage and confidence.
 
 **Status: intentionally deferred**
 
-The current local architecture remains appropriate while product and data-model iteration are rapid.
+Production infrastructure should be introduced only when operating requirements justify it.
 
-Eventually Vantage may move from:
+Potential future transition:
 
 ```text
 Flask
@@ -1182,22 +1517,22 @@ Background processing
 Cloud deployment
 Monitoring
 CI/CD
-Containerization
+Docker
 Backups
 ```
 
-Potential technologies and capabilities include:
+Potential capabilities include:
 
 - PostgreSQL
+- Scheduled ingestion
 - Background workers
-- Scheduled jobs
 - Production WSGI server
 - Docker
 - Cloud deployment
-- Logging and monitoring
 - CI/CD
-- Environment and secret management
-- Database backups
+- Secret management
+- Logging and monitoring
+- Automated backups
 
 These should be introduced when they solve real constraints rather than because they are conventional components of production software.
 
@@ -1205,47 +1540,59 @@ These should be introduced when they solve real constraints rather than because 
 
 # Near-Term Execution Plan
 
-From the current checkpoint, the highest-impact sequence is:
+From the current checkpoint:
 
 ```text
 CURRENT CHECKPOINT
-Working Vantage knowledge + intelligence prototype
+
+Trustworthy Vantage knowledge-building engine
         │
         ▼
-1. UNIFIED INTELLIGENCE PIPELINE
-One orchestrated ingestion → intelligence lifecycle
+1. SOURCE DISCOVERY ABSTRACTION
+
+Generic discovery interface
+RSS + sitemap + HTML
         │
         ▼
-2. SCALE THE CORPUS
-Hundreds → thousands of structured observations
+2. INVESTOR SOURCE NETWORK
+
+Add a focused first group of top VC firms
         │
         ▼
-3. EVENT DEDUPLICATION
-Multiple articles → one canonical event
+3. ECOSYSTEM SIGNAL SOURCES
+
+Accelerators / specialist ecosystems
         │
         ▼
-4. TAXONOMY NORMALIZATION
-Consistent sectors, stages, geographies and strategies
+4. CORPUS EXPANSION
+
+Dozens → hundreds → thousands
+of canonical observations
         │
         ▼
-5. DEEPER PRODUCT INTELLIGENCE
-Investors / companies / funds / sectors
+5. COVERAGE MEASUREMENT
+
+Understand what Vantage can and cannot observe
         │
         ▼
-6. TIME-SERIES INTELLIGENCE
-Momentum, acceleration and changing activity
+6. PRODUCT INTELLIGENCE V2
+
+Investor / company / market intelligence
         │
         ▼
-7. SEARCH & DISCOVERY
-Cross-entity exploration and structured filtering
+7. TIME-SERIES SIGNALS
+
+Momentum and changing activity
         │
         ▼
-8. SOURCE NETWORK V2
-Primary sources and richer evidence
+8. SEARCH & DISCOVERY
+
+Structured exploration across the ecosystem
         │
         ▼
 9. PRODUCTIONIZATION
-Postgres / jobs / Docker / deployment / monitoring
+
+Only when continuous operation justifies it
 ```
 
 ---
@@ -1254,33 +1601,46 @@ Postgres / jobs / Docker / deployment / monitoring
 
 The immediate engineering objective is:
 
-> **Turn Vantage's existing ingestion, extraction, resolution, and persistence services into one reliable, repeatable intelligence pipeline.**
+> **Expand Vantage from an RSS-centric news ingestion system into a generic multi-source venture discovery engine without materially increasing architectural complexity.**
 
-Most individual components already exist.
+The downstream intelligence architecture already largely exists.
 
-The next challenge is orchestration.
+The next challenge is upstream coverage.
 
-Vantage should be able to move systematically from:
+Target:
 
 ```text
-Fresh public information
-        ↓
-New article
-        ↓
-Retrieved evidence
-        ↓
-Structured event
-        ↓
-Resolved entities
-        ↓
-Canonical knowledge
-        ↓
-Updated intelligence
+Source Registry
+      ↓
+Reusable Discovery Adapters
+      ↓
+Normalized Evidence
+      ↓
+Existing Vantage Intelligence Pipeline
 ```
 
-without manually invoking each stage.
+The first implementation should remain deliberately narrow:
 
-This is the bridge between the current working prototype and an actual self-updating venture intelligence system.
+```text
+RSS
+Sitemap
+Generic HTML listing
+```
+
+The objective is not to anticipate every possible website architecture.
+
+It is to prove that a small number of reusable acquisition methods can support a materially broader venture-information universe.
+
+The first major source expansion should prioritize **leading VC firms**, because they provide especially valuable information about:
+
+- New investments
+- Lead investments
+- Portfolio formation
+- Fund formation
+- Sector conviction
+- Emerging investment theses
+
+Once this architecture is proven across a small but diverse set of investor websites, Vantage can expand the source registry primarily through configuration rather than source-specific code.
 
 ---
 
@@ -1300,11 +1660,13 @@ Not current priorities:
 - Mobile applications
 - Elaborate visualizations on small datasets
 - Large numbers of low-quality sources
+- Universal company-site crawling
+- Generic regulatory-document processing
 - Recommendation engines
 - Premature cloud infrastructure
 - Replacing Flask/Jinja without a genuine product constraint
 
-The system should remain as simple as possible while the data, intelligence, and product model mature.
+The system should remain as simple as possible while the source universe, data, intelligence, and product model mature.
 
 ---
 
@@ -1316,26 +1678,48 @@ Vantage started with:
 "Show me relevant VC news."
 ```
 
-It has progressed to:
+It progressed to:
 
 ```text
-"Turn venture news into structured companies,
+"Turn venture reporting into structured companies,
 investors, funds and financing events."
 ```
 
-The next stage is:
+The current stage is:
 
 ```text
 "Continuously build a trustworthy historical
-model of venture-market activity."
+model of venture-market activity from a broader
+and more diverse evidence universe."
 ```
 
-And the longer-term product ambition is:
+The next product stage is:
 
 ```text
-"Use that model to tell me what is happening
-across the venture ecosystem, who is driving it,
-and how the market is changing."
+"Show me what the most important investors,
+companies and ecosystems are actually doing."
 ```
 
-That is the path from **news aggregator → knowledge base → venture intelligence platform**.
+And the longer-term ambition is:
+
+```text
+"Tell me what is changing across the venture ecosystem,
+who is driving that change, and where meaningful
+new signals are beginning to emerge."
+```
+
+That is the path from:
+
+```text
+NEWS AGGREGATOR
+      ↓
+KNOWLEDGE BASE
+      ↓
+VENTURE INTELLIGENCE SYSTEM
+      ↓
+VENTURE SIGNAL PLATFORM
+```
+
+The objective is not merely to collect venture information.
+
+It is to build a trustworthy system that continuously converts a broad public evidence universe into structured market knowledge and increasingly useful signals.
