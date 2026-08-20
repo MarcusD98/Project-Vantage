@@ -75,6 +75,13 @@ def test_select_incremental_investor_fleet():
         "Accel",
         "Index Ventures",
         "Sequoia Capital",
+        "Andreessen Horowitz",
+        "General Catalyst",
+        "Bessemer Venture Partners",
+        "Greylock",
+        "NEA",
+        "Balderton Capital",
+        "Insight Partners",
     }
 
 

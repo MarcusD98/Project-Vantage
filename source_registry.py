@@ -330,6 +330,273 @@ SOURCE_REGISTRY = [
             },
         },
     },
+
+    # -----------------------------------------------------
+    # Investor network scale-test cohort
+    # -----------------------------------------------------
+
+    {
+        "key": "a16z",
+        "name": "Andreessen Horowitz",
+        "type": "investor",
+        "region": "Global",
+        "enabled": True,
+
+        "discovery": {
+            "incremental": {
+                # a16z exposes a dedicated Investment News
+                # page. The individual articles are not
+                # contained beneath one clean URL prefix, so
+                # the HTML listing itself provides the
+                # discovery boundary.
+                "method": "html",
+                "url": (
+                    "https://a16z.com/category/"
+                    "general/investment-news/"
+                ),
+
+                # Investment cards are heading-linked.
+                # Using heading anchors avoids treating every
+                # navigation/footer link as evidence.
+                "link_selector": (
+                    "h2 a, h3 a, h4 a"
+                ),
+
+                "exclude_url_patterns": [
+                    "/category/",
+                    "/news-content/",
+                    "/search/",
+                    "/team/",
+                    "/portfolio/",
+                ],
+
+                "max_discovery_pages": 1,
+                "max_discovery_items": 50,
+
+                "max_published_age_days": 180,
+            },
+        },
+    },
+
+    {
+        "key": "general-catalyst",
+        "name": "General Catalyst",
+        "type": "investor",
+        "region": "Global",
+        "enabled": True,
+
+        "discovery": {
+            "incremental": {
+                # GC's Stories surface mixes investment
+                # announcements, company-creation updates,
+                # firm news and investment theses.
+                "method": "html",
+                "url": (
+                    "https://www.generalcatalyst.com/"
+                    "stories"
+                ),
+
+                "link_selector": "a[href]",
+
+                # Individual GC evidence pages live below
+                # /stories/<slug>. The listing itself is
+                # /stories and therefore does not match this
+                # trailing-slash pattern.
+                "include_url_patterns": [
+                    "generalcatalyst.com/stories/",
+                ],
+
+                "max_discovery_pages": 1,
+                "max_discovery_items": 100,
+
+                "max_published_age_days": 180,
+            },
+        },
+    },
+
+    {
+        "key": "bessemer-venture-partners",
+        "name": "Bessemer Venture Partners",
+        "type": "investor",
+        "region": "Global",
+        "enabled": True,
+
+        "discovery": {
+            "incremental": {
+                # Atlas is Bessemer's broad first-party
+                # research and portfolio-content corpus.
+                "method": "html",
+                "url": (
+                    "https://www.bvp.com/atlas"
+                ),
+
+                "link_selector": "a[href]",
+
+                # Individual Atlas content lives under
+                # /atlas/<slug>.
+                "include_url_patterns": [
+                    "bvp.com/atlas/",
+                ],
+
+                "max_discovery_pages": 1,
+                "max_discovery_items": 100,
+
+                "max_published_age_days": 180,
+            },
+        },
+    },
+
+    {
+        "key": "greylock",
+        "name": "Greylock",
+        "type": "investor",
+        "region": "United States",
+        "enabled": True,
+
+        "discovery": {
+            "incremental": {
+                # Greylock exposes a dedicated Portfolio News
+                # listing. Individual portfolio announcements
+                # are normal /blog/<slug>/ articles.
+                "method": "html",
+                "url": (
+                    "https://greylock.com/"
+                    "blog/portfolio-news/"
+                ),
+
+                "link_selector": "a[href]",
+
+                "include_url_patterns": [
+                    "greylock.com/blog/",
+                ],
+
+                # Exclude category/navigation and pagination
+                # URLs while retaining individual articles.
+                "exclude_url_patterns": [
+                    "/blog/portfolio-news/",
+                    "/blog/greymatter/",
+                    "/blog/firm-news/",
+                    "/blog/change-agents/",
+                    "/page/",
+                ],
+
+                "max_discovery_pages": 1,
+                "max_discovery_items": 100,
+
+                "max_published_age_days": 180,
+            },
+        },
+    },
+
+    {
+        "key": "nea",
+        "name": "NEA",
+        "type": "investor",
+        "region": "Global",
+        "enabled": True,
+
+        "discovery": {
+            "incremental": {
+                # NEA's blog contains a dedicated Investment
+                # topic alongside thesis and company-building
+                # material. Vantage retains the broader
+                # investor corpus and classifies downstream.
+                "method": "html",
+                "url": (
+                    "https://www.nea.com/blog"
+                ),
+
+                "link_selector": "a[href]",
+
+                # Individual evidence pages live beneath
+                # /blog/<slug>.
+                "include_url_patterns": [
+                    "nea.com/blog/",
+                ],
+
+                "max_discovery_pages": 1,
+                "max_discovery_items": 100,
+
+                "max_published_age_days": 180,
+            },
+        },
+    },
+
+    {
+        "key": "balderton-capital",
+        "name": "Balderton Capital",
+        "type": "investor",
+        "region": "Europe",
+        "enabled": True,
+
+        "discovery": {
+            "incremental": {
+                # Balderton maintains a dedicated Portfolio
+                # News category containing financing and
+                # portfolio-company activity.
+                "method": "html",
+                "url": (
+                    "https://www.balderton.com/"
+                    "news/category/portfolio-news/"
+                ),
+
+                "link_selector": "a[href]",
+
+                "include_url_patterns": [
+                    "balderton.com/news/",
+                ],
+
+                # Category pages are navigation rather than
+                # evidence documents.
+                "exclude_url_patterns": [
+                    "/news/category/",
+                ],
+
+                "max_discovery_pages": 1,
+                "max_discovery_items": 100,
+
+                "max_published_age_days": 180,
+            },
+        },
+    },
+
+    {
+        "key": "insight-partners",
+        "name": "Insight Partners",
+        "type": "investor",
+        "region": "Global",
+        "enabled": True,
+
+        "discovery": {
+            "incremental": {
+                # Insight's Ideas surface contains investor
+                # POVs, Behind the Investment pieces,
+                # portfolio stories and operating research.
+                "method": "html",
+                "url": (
+                    "https://www.insightpartners.com/"
+                    "ideas/"
+                ),
+
+                "link_selector": "a[href]",
+
+                "include_url_patterns": [
+                    "insightpartners.com/ideas/",
+                ],
+
+                # Do not persist the Ideas landing page as an
+                # evidence document.
+                "exclude_url_regex_patterns": [
+                    r"/ideas/$",
+                ],
+
+                "max_discovery_pages": 1,
+                "max_discovery_items": 100,
+
+                "max_published_age_days": 180,
+            },
+        },
+    },
 ]
 
 

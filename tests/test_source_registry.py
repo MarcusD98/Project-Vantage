@@ -129,7 +129,78 @@ def test_incremental_investor_fleet():
         "Accel",
         "Index Ventures",
         "Sequoia Capital",
+        "Andreessen Horowitz",
+        "General Catalyst",
+        "Bessemer Venture Partners",
+        "Greylock",
+        "NEA",
+        "Balderton Capital",
+        "Insight Partners",
     }
+
+
+def test_scale_cohort_has_ten_enabled_investors():
+    names = get_source_names(
+        source_type="investor",
+        enabled_only=True,
+    )
+
+    assert len(
+        names
+    ) == 10
+
+
+def test_new_scale_cohort_uses_existing_html_adapter():
+    names = [
+        "Andreessen Horowitz",
+        "General Catalyst",
+        "Bessemer Venture Partners",
+        "Greylock",
+        "NEA",
+        "Balderton Capital",
+        "Insight Partners",
+    ]
+
+    for name in names:
+        config = get_discovery_config(
+            name,
+            mode="incremental",
+        )
+
+        assert config is not None
+
+        assert (
+            config["method"]
+            == "html"
+        )
+
+
+def test_general_catalyst_story_boundary():
+    config = get_discovery_config(
+        "General Catalyst",
+        mode="incremental",
+    )
+
+    assert (
+        "generalcatalyst.com/stories/"
+        in config[
+            "include_url_patterns"
+        ]
+    )
+
+
+def test_bessemer_atlas_boundary():
+    config = get_discovery_config(
+        "Bessemer Venture Partners",
+        mode="incremental",
+    )
+
+    assert (
+        "bvp.com/atlas/"
+        in config[
+            "include_url_patterns"
+        ]
+    )
 
 
 def test_enabled_source_names_exclude_disabled_sources():
