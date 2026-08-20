@@ -5,7 +5,6 @@ from flask import Flask
 from models.article import db
 from models.company import Company
 from models.investor import Investor
-from models.funding_round import FundingRound
 from models.entity_alias import EntityAlias
 
 from services.entity_resolution_service import (
@@ -18,51 +17,70 @@ def test_app():
     app = Flask(__name__)
 
     app.config["TESTING"] = True
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config[
+        "SQLALCHEMY_DATABASE_URI"
+    ] = "sqlite:///:memory:"
 
-    db.init_app(app)
+    app.config[
+        "SQLALCHEMY_TRACK_MODIFICATIONS"
+    ] = False
+
+    db.init_app(
+        app
+    )
 
     with app.app_context():
         db.create_all()
 
         yield app
 
+        db.session.rollback()
         db.session.remove()
         db.drop_all()
 
+
 @pytest.fixture
-def resolution_data(test_app):
+def resolution_data(
+    test_app,
+):
     with test_app.app_context():
-        db.session.add(
-            Investor(
-                name="Andreessen Horowitz"
-            )
+        andreessen = Investor(
+            name="Andreessen Horowitz"
+        )
+
+        sequoia = Investor(
+            name="Sequoia Capital"
+        )
+
+        quantumlight = Company(
+            name="QuantumLight"
+        )
+
+        db.session.add_all(
+            [
+                andreessen,
+                sequoia,
+                quantumlight,
+            ]
+        )
+
+        db.session.flush()
+
+        alias = EntityAlias(
+            alias="a16z",
+            entity_type="investor",
+            canonical_name=andreessen.name,
+            canonical_investor=andreessen,
         )
 
         db.session.add(
-            Investor(
-                name="Sequoia Capital"
-            )
-        )
-
-        db.session.add(
-            Company(
-                name="QuantumLight"
-            )
-        )
-
-        db.session.add(
-            EntityAlias(
-                alias="a16z",
-                entity_type="investor",
-                canonical_name="Andreessen Horowitz",
-            )
+            alias
         )
 
         db.session.commit()
 
         yield
+
 
 def test_resolves_known_alias(
     test_app,
@@ -74,14 +92,26 @@ def test_resolves_known_alias(
             "investor",
         )
 
-        assert result["status"] == "alias"
+        assert (
+            result["status"]
+            == "alias"
+        )
 
         assert (
             result["canonical_name"]
             == "Andreessen Horowitz"
         )
 
-        assert result["entity"] is not None
+        assert (
+            result["entity"]
+            is not None
+        )
+
+        assert (
+            result["entity"].name
+            == "Andreessen Horowitz"
+        )
+
 
 def test_resolves_exact_existing_entity(
     test_app,
@@ -93,14 +123,21 @@ def test_resolves_exact_existing_entity(
             "investor",
         )
 
-        assert result["status"] == "exact"
+        assert (
+            result["status"]
+            == "exact"
+        )
 
         assert (
             result["canonical_name"]
             == "Sequoia Capital"
         )
 
-        assert result["entity"] is not None
+        assert (
+            result["entity"]
+            is not None
+        )
+
 
 def test_resolves_exact_company(
     test_app,
@@ -112,14 +149,21 @@ def test_resolves_exact_company(
             "company",
         )
 
-        assert result["status"] == "exact"
+        assert (
+            result["status"]
+            == "exact"
+        )
 
         assert (
             result["canonical_name"]
             == "QuantumLight"
         )
 
-        assert result["entity"] is not None
+        assert (
+            result["entity"]
+            is not None
+        )
+
 
 def test_new_entity_is_not_forced_into_existing_entity(
     test_app,
@@ -131,12 +175,19 @@ def test_new_entity_is_not_forced_into_existing_entity(
             "investor",
         )
 
-        assert result["status"] in {
-            "new",
-            "review",
-        }
+        assert (
+            result["status"]
+            in {
+                "new",
+                "review",
+            }
+        )
 
-        assert result["entity"] is None
+        assert (
+            result["entity"]
+            is None
+        )
+
 
 def test_invalid_name(
     test_app,
@@ -148,5 +199,12 @@ def test_invalid_name(
             "company",
         )
 
-        assert result["status"] == "invalid"
-        assert result["entity"] is None
+        assert (
+            result["status"]
+            == "invalid"
+        )
+
+        assert (
+            result["entity"]
+            is None
+        )
