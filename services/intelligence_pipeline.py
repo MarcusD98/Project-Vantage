@@ -17,6 +17,10 @@ from services.article_service import (
     populate_article_content,
 )
 
+from services.compound_evidence_service import (
+    is_compound_funding_evidence,
+)
+
 from services.llm_extractor import (
     extract_funding_with_llm,
     extract_fund_close_with_llm,
@@ -142,7 +146,10 @@ def _article_is_within_publication_window(
         )
     )
 
-    return published_at >= cutoff
+    return (
+        published_at
+        >= cutoff
+    )
 
 
 def _source_requires_publication_date(
@@ -181,16 +188,40 @@ def _prepare_candidate_article(
     Prepare one evidence document before intelligence
     selection.
 
-    For sources with publication-age policies:
+    Funding evidence that is clearly compound is preserved but
+    excluded from Vantage's single-event funding extractor.
+
+    For remaining sources with publication-age policies:
 
     1. Recover missing page metadata when necessary.
     2. Preserve any recovered publication date.
     3. Exclude genuinely stale evidence from current
        intelligence processing.
 
-    Historical evidence remains stored in Article and is not
-    marked as LLM-processed.
+    Historical and compound evidence remains stored in Article
+    and is not marked as LLM-processed.
     """
+
+    if is_compound_funding_evidence(
+        article
+    ):
+        stats.setdefault(
+            "compound_articles_skipped",
+            0,
+        )
+
+        stats[
+            "compound_articles_skipped"
+        ] += 1
+
+        logger.info(
+            "Skipping compound funding evidence "
+            "article %s: %s",
+            article.id,
+            article.title,
+        )
+
+        return False
 
     requires_date = (
         _source_requires_publication_date(
@@ -250,8 +281,12 @@ def _select_articles_for_intelligence(
     category.
 
     Candidate preparation occurs before the final batch limit,
-    so stale evidence does not consume processing capacity.
+    so stale or compound evidence does not consume processing
+    capacity.
     """
+
+    if limit <= 0:
+        return []
 
     candidates = (
         Article.query
@@ -301,11 +336,13 @@ def run_intelligence_pipeline(
 
     1. Refresh public evidence sources.
     2. Persist newly discovered relevant evidence.
-    3. Enrich page metadata where required.
-    4. Apply source-specific publication recency policy.
-    5. Process current company-funding evidence.
-    6. Process current VC fund-news evidence.
-    7. Return a consolidated pipeline report.
+    3. Exclude obvious compound funding evidence from the
+       single-event extractor.
+    4. Enrich page metadata where required.
+    5. Apply source-specific publication recency policy.
+    6. Process current company-funding evidence.
+    7. Process current VC fund-news evidence.
+    8. Return a consolidated pipeline report.
     """
 
     try:
@@ -350,23 +387,37 @@ def run_intelligence_pipeline(
                 "articles_saved"
             ],
 
-        "articles_selected": 0,
-        "stale_articles_skipped": 0,
+        "articles_selected":
+            0,
 
-        "content_retrieved": 0,
-        "content_failed": 0,
+        "stale_articles_skipped":
+            0,
 
-        "funding_processed": 0,
-        "funding_rounds": 0,
+        "compound_articles_skipped":
+            0,
 
-        "fund_news_processed": 0,
-        "fund_closes": 0,
+        "content_retrieved":
+            0,
 
-        "processing_failed": 0,
+        "content_failed":
+            0,
+
+        "funding_processed":
+            0,
+
+        "funding_rounds":
+            0,
+
+        "fund_news_processed":
+            0,
+
+        "fund_closes":
+            0,
+
+        "processing_failed":
+            0,
     }
 
-    # Use one consistent clock value for all recency decisions
-    # during this pipeline run.
     now = datetime.now(
         timezone.utc
     )
@@ -390,9 +441,6 @@ def run_intelligence_pipeline(
             )
         )
 
-        # Persist publication metadata recovered while preparing
-        # candidates, including dates on evidence that turns out
-        # to be stale.
         db.session.commit()
 
     except Exception:
@@ -404,7 +452,9 @@ def run_intelligence_pipeline(
 
         raise
 
-    stats["articles_selected"] = (
+    stats[
+        "articles_selected"
+    ] = (
         len(funding_articles)
         + len(fund_news_articles)
     )

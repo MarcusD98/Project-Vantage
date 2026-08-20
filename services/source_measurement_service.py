@@ -8,6 +8,9 @@ from config import SOURCES
 
 from models.article import Article
 
+from services.compound_evidence_service import (
+    is_compound_funding_evidence,
+)
 
 # ---------------------------------------------------------
 # Date handling
@@ -99,16 +102,16 @@ def _funding_events_for_article(article):
     for funding_round in (
         article.supported_funding_rounds
     ):
-        events[funding_round.id] = (
-            funding_round
-        )
+        events[
+            funding_round.id
+        ] = funding_round
 
     for funding_round in (
         article.primary_funding_rounds
     ):
-        events[funding_round.id] = (
-            funding_round
-        )
+        events[
+            funding_round.id
+        ] = funding_round
 
     return list(
         events.values()
@@ -119,9 +122,6 @@ def _fund_close_events_for_article(article):
     """
     Return all canonical fund-close events supported by one
     evidence document.
-
-    Include both the multi-source evidence relationship and
-    the historical primary-article relationship.
     """
 
     events = {}
@@ -129,14 +129,14 @@ def _fund_close_events_for_article(article):
     for fund_close in (
         article.supported_fund_closes
     ):
-        events[fund_close.id] = (
-            fund_close
-        )
+        events[
+            fund_close.id
+        ] = fund_close
 
     for fund_close in article.fund_closes:
-        events[fund_close.id] = (
-            fund_close
-        )
+        events[
+            fund_close.id
+        ] = fund_close
 
     return list(
         events.values()
@@ -203,16 +203,28 @@ def measure_source(
     now=None,
 ):
     """
-    Measure the persisted contribution of one configured
-    source.
+    Measure the persisted contribution and operating state of
+    one configured source.
 
-    These metrics describe the current Vantage knowledge base.
+    Measurement V2 separates:
 
-    They deliberately do not attempt to reconstruct historical
-    pipeline-run telemetry that was never persisted.
+        coverage
+        processing
+        confirmation quality
+        canonical event contribution
+        source overlap
+
+    Current event metrics are calculated from confirmed,
+    eligible funding evidence so numerator and denominator
+    describe the same operating corpus.
+
+    Historical stale evidence remains persisted but does not
+    distort current processing or event-conversion metrics.
     """
 
-    source_name = source["name"]
+    source_name = source[
+        "name"
+    ]
 
     articles = (
         Article.query
@@ -264,15 +276,55 @@ def measure_source(
         )
     ]
 
+    stale_funding_ids = {
+        article.id
+        for article
+        in stale_funding_candidates
+    }
+
+    compound_funding_candidates = [
+        article
+        for article in funding_candidates
+        if is_compound_funding_evidence(
+            article
+        )
+    ]
+
+    compound_funding_ids = {
+        article.id
+        for article
+        in compound_funding_candidates
+    }
+
     # ---------------------------------------------------------
-    # Intelligence processing
+    # Eligible funding corpus
     # ---------------------------------------------------------
+
+    eligible_funding_candidates = [
+        article
+        for article in funding_candidates
+        if (
+            article.id
+            not in stale_funding_ids
+            and article.id
+            not in compound_funding_ids
+        )
+    ]
 
     processed_funding = [
         article
-        for article in funding_candidates
+        for article
+        in eligible_funding_candidates
         if article.llm_processed_at
         is not None
+    ]
+
+    funding_backlog = [
+        article
+        for article
+        in eligible_funding_candidates
+        if article.llm_processed_at
+        is None
     ]
 
     confirmed_funding = [
@@ -290,13 +342,12 @@ def measure_source(
     ]
 
     # ---------------------------------------------------------
-    # Canonical event contribution
+    # Current canonical funding-event contribution
     # ---------------------------------------------------------
 
     funding_events = {}
-    fund_close_events = {}
 
-    for article in articles:
+    for article in confirmed_funding:
         for funding_round in (
             _funding_events_for_article(
                 article
@@ -306,6 +357,38 @@ def measure_source(
                 funding_round.id
             ] = funding_round
 
+    multi_source_funding_events = [
+        event
+        for event
+        in funding_events.values()
+        if len(
+            _event_source_names(
+                event
+            )
+        ) > 1
+    ]
+
+    unique_funding_events = [
+        event
+        for event
+        in funding_events.values()
+        if (
+            _event_source_names(
+                event
+            )
+            == {
+                source_name
+            }
+        )
+    ]
+
+    # ---------------------------------------------------------
+    # Fund-close contribution
+    # ---------------------------------------------------------
+
+    fund_close_events = {}
+
+    for article in articles:
         for fund_close in (
             _fund_close_events_for_article(
                 article
@@ -315,19 +398,10 @@ def measure_source(
                 fund_close.id
             ] = fund_close
 
-    multi_source_funding_events = [
-        event
-        for event in funding_events.values()
-        if len(
-            _event_source_names(
-                event
-            )
-        ) > 1
-    ]
-
     multi_source_fund_close_events = [
         event
-        for event in fund_close_events.values()
+        for event
+        in fund_close_events.values()
         if len(
             _event_source_names(
                 event
@@ -352,8 +426,17 @@ def measure_source(
     )
 
     # ---------------------------------------------------------
-    # Yield metrics
+    # Measurement V2 ratios
     # ---------------------------------------------------------
+
+    funding_processing_rate = (
+        _safe_ratio(
+            len(processed_funding),
+            len(
+                eligible_funding_candidates
+            ),
+        )
+    )
 
     funding_confirmation_rate = (
         _safe_ratio(
@@ -362,10 +445,19 @@ def measure_source(
         )
     )
 
-    funding_event_yield = (
+    funding_event_conversion_rate = (
         _safe_ratio(
             len(funding_events),
-            len(articles),
+            len(confirmed_funding),
+        )
+    )
+
+    funding_overlap_rate = (
+        _safe_ratio(
+            len(
+                multi_source_funding_events
+            ),
+            len(funding_events),
         )
     )
 
@@ -401,54 +493,94 @@ def measure_source(
             dated_evidence,
 
         "funding_candidates":
-            len(funding_candidates),
+            len(
+                funding_candidates
+            ),
 
         "stale_funding_candidates":
             len(
                 stale_funding_candidates
             ),
 
-        "fund_news_candidates":
-            len(fund_news_candidates),
-
-        "stale_fund_news_candidates":
+        "eligible_funding_candidates":
             len(
-                stale_fund_news_candidates
+                eligible_funding_candidates
             ),
 
-        "processed_intelligence":
-            processed_intelligence,
-
         "processed_funding":
-            len(processed_funding),
+            len(
+                processed_funding
+            ),
 
-        "processed_fund_news":
-            len(processed_fund_news),
+        "funding_backlog":
+            len(
+                funding_backlog
+            ),
+
+        "funding_processing_rate":
+            funding_processing_rate,
+
+        "compound_funding_candidates":
+            len(
+                compound_funding_candidates
+            ),
 
         "confirmed_funding_evidence":
-            len(confirmed_funding),
+            len(
+                confirmed_funding
+            ),
 
         "funding_confirmation_rate":
             funding_confirmation_rate,
 
         "supported_funding_events":
-            len(funding_events),
+            len(
+                funding_events
+            ),
 
-        "supported_fund_close_events":
-            len(fund_close_events),
+        "funding_event_conversion_rate":
+            funding_event_conversion_rate,
 
-        "funding_event_yield":
-            funding_event_yield,
+        "unique_funding_events":
+            len(
+                unique_funding_events
+            ),
 
         "multi_source_funding_events":
             len(
                 multi_source_funding_events
             ),
 
+        "funding_overlap_rate":
+            funding_overlap_rate,
+
+        "fund_news_candidates":
+            len(
+                fund_news_candidates
+            ),
+
+        "stale_fund_news_candidates":
+            len(
+                stale_fund_news_candidates
+            ),
+
+        "processed_fund_news":
+            len(
+                processed_fund_news
+            ),
+
+        "supported_fund_close_events":
+            len(
+                fund_close_events
+            ),
+
         "multi_source_fund_close_events":
             len(
                 multi_source_fund_close_events
             ),
+
+        "processed_intelligence":
+            processed_intelligence,
     }
 
 
@@ -480,23 +612,27 @@ def format_source_measurement_report(
     measurements,
 ):
     """
-    Produce a compact terminal report for source comparison.
+    Produce the Measurement V2 terminal report.
+
+    The table emphasizes operational readiness, extraction
+    quality, and differentiated canonical event contribution.
     """
 
     headers = [
         "Source",
         "Type",
         "Stored",
-        "Funding",
-        "F-Stale",
-        "Fund News",
-        "FN-Stale",
-        "Processed",
-        "Confirmed",
+        "Eligible",
+        "Proc",
+        "Backlog",
+        "Proc %",
+        "Confirm",
         "Confirm %",
         "Events",
-        "Yield %",
+        "Event %",
+        "Unique",
         "Multi",
+        "Overlap %",
     ]
 
     rows = []
@@ -504,62 +640,84 @@ def format_source_measurement_report(
     for item in measurements:
         rows.append(
             [
-                item["name"],
-                item["source_type"]
+                item[
+                    "name"
+                ],
+
+                item[
+                    "source_type"
+                ]
                 or "-",
+
                 str(
                     item[
                         "stored_evidence"
                     ]
                 ),
+
                 str(
                     item[
-                        "funding_candidates"
+                        "eligible_funding_candidates"
                     ]
                 ),
-                str(
-                    item[
-                        "stale_funding_candidates"
-                    ]
-                ),
-                str(
-                    item[
-                        "fund_news_candidates"
-                    ]
-                ),
-                str(
-                    item[
-                        "stale_fund_news_candidates"
-                    ]
-                ),
+
                 str(
                     item[
                         "processed_funding"
                     ]
                 ),
+
+                str(
+                    item[
+                        "funding_backlog"
+                    ]
+                ),
+
+                _format_percentage(
+                    item[
+                        "funding_processing_rate"
+                    ]
+                ),
+
                 str(
                     item[
                         "confirmed_funding_evidence"
                     ]
                 ),
+
                 _format_percentage(
                     item[
                         "funding_confirmation_rate"
                     ]
                 ),
+
                 str(
                     item[
                         "supported_funding_events"
                     ]
                 ),
+
                 _format_percentage(
                     item[
-                        "funding_event_yield"
+                        "funding_event_conversion_rate"
                     ]
                 ),
+
+                str(
+                    item[
+                        "unique_funding_events"
+                    ]
+                ),
+
                 str(
                     item[
                         "multi_source_funding_events"
+                    ]
+                ),
+
+                _format_percentage(
+                    item[
+                        "funding_overlap_rate"
                     ]
                 ),
             ]
@@ -567,10 +725,14 @@ def format_source_measurement_report(
 
     widths = [
         max(
-            len(headers[index]),
+            len(
+                headers[index]
+            ),
             max(
                 (
-                    len(row[index])
+                    len(
+                        row[index]
+                    )
                     for row in rows
                 ),
                 default=0,
@@ -597,12 +759,16 @@ def format_source_measurement_report(
     )
 
     lines = [
-        format_row(headers),
+        format_row(
+            headers
+        ),
         separator,
     ]
 
     lines.extend(
-        format_row(row)
+        format_row(
+            row
+        )
         for row in rows
     )
 

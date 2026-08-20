@@ -183,6 +183,11 @@ def process_command(
     )
 
     click.echo(
+        f"Compound articles skipped:"
+        f" {result['compound_articles_skipped']}"
+    )
+
+    click.echo(
         f"Content retrieved:       "
         f"{result['content_retrieved']}"
     )

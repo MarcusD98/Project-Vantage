@@ -469,6 +469,11 @@ def ingest_command(
     )
 
     click.echo(
+        f"Compound articles skipped:"
+        f" {result['compound_articles_skipped']}"
+    )
+
+    click.echo(
         f"Content retrieved:       "
         f"{result['content_retrieved']}"
     )
@@ -522,7 +527,7 @@ def ingest_command(
 @vantage.command("sources")
 def source_measurement_command():
     """
-    Report persisted source contribution and yield.
+    Report persisted source contribution and operating state.
     """
 
     measurements = (
@@ -547,17 +552,26 @@ def source_measurement_command():
     click.echo("")
 
     click.echo(
-        "Confirmation % = confirmed funding evidence "
-        "/ processed funding evidence"
+        "Proc % = processed eligible funding evidence "
+        "/ eligible funding candidates"
     )
 
     click.echo(
-        "Yield % = canonical funding events "
-        "/ stored evidence documents"
+        "Confirm % = confirmed funding evidence "
+        "/ processed eligible funding evidence"
+    )
+
+    click.echo(
+        "Event % = canonical funding events "
+        "/ confirmed funding evidence"
+    )
+
+    click.echo(
+        "Overlap % = multi-source funding events "
+        "/ supported funding events"
     )
 
     click.echo("")
-
 
 # ---------------------------------------------------------
 # CLI: funding reconciliation

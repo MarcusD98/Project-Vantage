@@ -222,6 +222,9 @@ def run_stored_intelligence(
         "stale_articles_skipped":
             0,
 
+        "compound_articles_skipped":
+            0,
+
         "content_retrieved":
             0,
 

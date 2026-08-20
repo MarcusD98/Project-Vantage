@@ -90,7 +90,7 @@ def test_undated_article_is_not_called_stale():
     )
 
 
-def test_measure_source_counts_evidence_and_events(
+def test_measure_source_counts_v2_metrics(
     app,
 ):
     article = Article(
@@ -173,20 +173,38 @@ def test_measure_source_counts_evidence_and_events(
     )
 
     assert (
-        result["funding_candidates"]
+        result[
+            "funding_candidates"
+        ]
         == 1
     )
 
     assert (
         result[
-            "stale_funding_candidates"
+            "eligible_funding_candidates"
+        ]
+        == 1
+    )
+
+    assert (
+        result[
+            "processed_funding"
+        ]
+        == 1
+    )
+
+    assert (
+        result[
+            "funding_backlog"
         ]
         == 0
     )
 
     assert (
-        result["processed_funding"]
-        == 1
+        result[
+            "funding_processing_rate"
+        ]
+        == 1.0
     )
 
     assert (
@@ -212,9 +230,16 @@ def test_measure_source_counts_evidence_and_events(
 
     assert (
         result[
-            "funding_event_yield"
+            "funding_event_conversion_rate"
         ]
         == 1.0
+    )
+
+    assert (
+        result[
+            "unique_funding_events"
+        ]
+        == 1
     )
 
     assert (
@@ -222,6 +247,184 @@ def test_measure_source_counts_evidence_and_events(
             "multi_source_funding_events"
         ]
         == 0
+    )
+
+    assert (
+        result[
+            "funding_overlap_rate"
+        ]
+        == 0.0
+    )
+
+
+def test_measure_source_detects_backlog(
+    app,
+):
+    processed = Article(
+        title="Acme raises $10M",
+        source="Test Publication",
+        source_type="publication",
+        discovery_method="rss",
+        url="https://example.com/processed",
+        published_at=datetime(
+            2026,
+            8,
+            1,
+        ),
+        category="Funding Round",
+        llm_processed_at=datetime(
+            2026,
+            8,
+            2,
+        ),
+        llm_is_funding_round=True,
+    )
+
+    unprocessed = Article(
+        title="Beta raises $5M",
+        source="Test Publication",
+        source_type="publication",
+        discovery_method="rss",
+        url="https://example.com/unprocessed",
+        published_at=datetime(
+            2026,
+            8,
+            2,
+        ),
+        category="Funding Round",
+    )
+
+    db.session.add_all(
+        [
+            processed,
+            unprocessed,
+        ]
+    )
+
+    db.session.commit()
+
+    source = {
+        "name": "Test Publication",
+        "type": "publication",
+        "method": "rss",
+    }
+
+    result = measure_source(
+        source
+    )
+
+    assert (
+        result[
+            "eligible_funding_candidates"
+        ]
+        == 2
+    )
+
+    assert (
+        result[
+            "processed_funding"
+        ]
+        == 1
+    )
+
+    assert (
+        result[
+            "funding_backlog"
+        ]
+        == 1
+    )
+
+    assert (
+        result[
+            "funding_processing_rate"
+        ]
+        == 0.5
+    )
+
+
+def test_stale_candidates_do_not_count_as_backlog(
+    app,
+):
+    stale = Article(
+        title="Old funding event",
+        source="Test Investor",
+        source_type="investor",
+        discovery_method="sitemap",
+        url="https://example.com/old",
+        published_at=datetime(
+            2025,
+            1,
+            1,
+        ),
+        category="Funding Round",
+    )
+
+    current = Article(
+        title="Current funding event",
+        source="Test Investor",
+        source_type="investor",
+        discovery_method="sitemap",
+        url="https://example.com/current",
+        published_at=datetime(
+            2026,
+            8,
+            1,
+        ),
+        category="Funding Round",
+    )
+
+    db.session.add_all(
+        [
+            stale,
+            current,
+        ]
+    )
+
+    db.session.commit()
+
+    source = {
+        "name": "Test Investor",
+        "type": "investor",
+        "method": "sitemap",
+        "max_published_age_days": 180,
+    }
+
+    result = measure_source(
+        source,
+        now=datetime(
+            2026,
+            8,
+            20,
+            tzinfo=timezone.utc,
+        ),
+    )
+
+    assert (
+        result[
+            "funding_candidates"
+        ]
+        == 2
+    )
+
+    assert (
+        result[
+            "stale_funding_candidates"
+        ]
+        == 1
+    )
+
+    assert (
+        result[
+            "eligible_funding_candidates"
+        ]
+        == 1
+    )
+
+    assert (
+        result[
+            "funding_backlog"
+        ]
+        == 1
     )
 
 
@@ -313,13 +516,11 @@ def test_measure_source_detects_multi_source_event(
             "name": "Test Investor",
             "type": "investor",
             "method": "sitemap",
-            "enabled": True,
         },
         {
             "name": "Test Publication",
             "type": "publication",
             "method": "rss",
-            "enabled": True,
         },
     ]
 
@@ -327,23 +528,27 @@ def test_measure_source_detects_multi_source_event(
         sources=sources
     )
 
-    investor_result = results[0]
+    for result in results:
+        assert (
+            result[
+                "multi_source_funding_events"
+            ]
+            == 1
+        )
 
-    publication_result = results[1]
+        assert (
+            result[
+                "unique_funding_events"
+            ]
+            == 0
+        )
 
-    assert (
-        investor_result[
-            "multi_source_funding_events"
-        ]
-        == 1
-    )
-
-    assert (
-        publication_result[
-            "multi_source_funding_events"
-        ]
-        == 1
-    )
+        assert (
+            result[
+                "funding_overlap_rate"
+            ]
+            == 1.0
+        )
 
 
 def test_measure_source_separates_stale_categories(
@@ -433,6 +638,13 @@ def test_measure_source_returns_none_for_empty_ratios(
 
     assert (
         result[
+            "funding_processing_rate"
+        ]
+        is None
+    )
+
+    assert (
+        result[
             "funding_confirmation_rate"
         ]
         is None
@@ -440,7 +652,14 @@ def test_measure_source_returns_none_for_empty_ratios(
 
     assert (
         result[
-            "funding_event_yield"
+            "funding_event_conversion_rate"
+        ]
+        is None
+    )
+
+    assert (
+        result[
+            "funding_overlap_rate"
         ]
         is None
     )
@@ -449,19 +668,47 @@ def test_measure_source_returns_none_for_empty_ratios(
 def test_format_source_measurement_report():
     measurements = [
         {
-            "name": "Example",
-            "source_type": "investor",
-            "stored_evidence": 10,
-            "funding_candidates": 5,
-            "stale_funding_candidates": 2,
-            "fund_news_candidates": 1,
-            "stale_fund_news_candidates": 1,
-            "processed_funding": 3,
-            "confirmed_funding_evidence": 3,
-            "funding_confirmation_rate": 1.0,
-            "supported_funding_events": 2,
-            "funding_event_yield": 0.2,
-            "multi_source_funding_events": 1,
+            "name":
+                "Example",
+
+            "source_type":
+                "investor",
+
+            "stored_evidence":
+                10,
+
+            "eligible_funding_candidates":
+                5,
+
+            "processed_funding":
+                4,
+
+            "funding_backlog":
+                1,
+
+            "funding_processing_rate":
+                0.8,
+
+            "confirmed_funding_evidence":
+                4,
+
+            "funding_confirmation_rate":
+                1.0,
+
+            "supported_funding_events":
+                3,
+
+            "funding_event_conversion_rate":
+                0.75,
+
+            "unique_funding_events":
+                2,
+
+            "multi_source_funding_events":
+                1,
+
+            "funding_overlap_rate":
+                1 / 3,
         }
     ]
 
@@ -472,7 +719,224 @@ def test_format_source_measurement_report():
     )
 
     assert "Example" in report
+    assert "80.0%" in report
     assert "100.0%" in report
-    assert "20.0%" in report
-    assert "F-Stale" in report
-    assert "FN-Stale" in report
+    assert "75.0%" in report
+    assert "33.3%" in report
+    assert "Backlog" in report
+    assert "Unique" in report
+    assert "Overlap %" in report
+
+def test_stale_confirmed_event_does_not_inflate_current_event_rate(
+    app,
+):
+    current_article = Article(
+        title="Current Acme funding",
+        source="Test Investor",
+        source_type="investor",
+        discovery_method="sitemap",
+        url="https://example.com/current-acme",
+        published_at=datetime(
+            2026,
+            8,
+            1,
+        ),
+        category="Funding Round",
+        llm_processed_at=datetime(
+            2026,
+            8,
+            2,
+        ),
+        llm_is_funding_round=True,
+    )
+
+    stale_article = Article(
+        title="Historical Beta funding",
+        source="Test Investor",
+        source_type="investor",
+        discovery_method="sitemap",
+        url="https://example.com/historical-beta",
+        published_at=datetime(
+            2025,
+            1,
+            1,
+        ),
+        category="Funding Round",
+        llm_processed_at=datetime(
+            2025,
+            1,
+            2,
+        ),
+        llm_is_funding_round=True,
+    )
+
+    current_company = Company(
+        name="Current Acme"
+    )
+
+    historical_company = Company(
+        name="Historical Beta"
+    )
+
+    db.session.add_all(
+        [
+            current_article,
+            stale_article,
+            current_company,
+            historical_company,
+        ]
+    )
+
+    db.session.flush()
+
+    current_round = FundingRound(
+        company=current_company,
+        amount=10_000_000,
+        currency="USD",
+        round_type="Series A",
+        announced_at=datetime(
+            2026,
+            8,
+            1,
+        ),
+        article=current_article,
+    )
+
+    historical_round = FundingRound(
+        company=historical_company,
+        amount=5_000_000,
+        currency="USD",
+        round_type="Seed",
+        announced_at=datetime(
+            2025,
+            1,
+            1,
+        ),
+        article=stale_article,
+    )
+
+    current_round.articles.append(
+        current_article
+    )
+
+    historical_round.articles.append(
+        stale_article
+    )
+
+    db.session.add_all(
+        [
+            current_round,
+            historical_round,
+        ]
+    )
+
+    db.session.commit()
+
+    source = {
+        "name": "Test Investor",
+        "type": "investor",
+        "method": "sitemap",
+        "max_published_age_days": 180,
+    }
+
+    result = measure_source(
+        source,
+        now=datetime(
+            2026,
+            8,
+            20,
+            tzinfo=timezone.utc,
+        ),
+    )
+
+    assert (
+        result[
+            "eligible_funding_candidates"
+        ]
+        == 1
+    )
+
+    assert (
+        result[
+            "confirmed_funding_evidence"
+        ]
+        == 1
+    )
+
+    assert (
+        result[
+            "supported_funding_events"
+        ]
+        == 1
+    )
+
+    assert (
+        result[
+            "funding_event_conversion_rate"
+        ]
+        == 1.0
+    )
+
+def test_compound_funding_evidence_is_not_eligible_backlog(
+    app,
+):
+    article = Article(
+        title=(
+            "The Week's 10 Biggest Funding Rounds: "
+            "AI, Fintech And Defense"
+        ),
+        source="Test Publication",
+        source_type="publication",
+        discovery_method="rss",
+        url="https://example.com/roundup",
+        published_at=datetime(
+            2026,
+            8,
+            20,
+        ),
+        category="Funding Round",
+    )
+
+    db.session.add(
+        article
+    )
+
+    db.session.commit()
+
+    source = {
+        "name": "Test Publication",
+        "type": "publication",
+        "method": "rss",
+    }
+
+    result = measure_source(
+        source
+    )
+
+    assert (
+        result[
+            "funding_candidates"
+        ]
+        == 1
+    )
+
+    assert (
+        result[
+            "compound_funding_candidates"
+        ]
+        == 1
+    )
+
+    assert (
+        result[
+            "eligible_funding_candidates"
+        ]
+        == 0
+    )
+
+    assert (
+        result[
+            "funding_backlog"
+        ]
+        == 0
+    )
