@@ -2,8 +2,12 @@ from models.company import Company
 from models.investor import Investor
 from models.entity_alias import EntityAlias
 
-from services.entity_normalizer import normalize_entity_name
-from services.entity_candidate_service import similarity_score
+from services.entity_normalizer import (
+    normalize_entity_name,
+)
+from services.entity_candidate_service import (
+    similarity_score,
+)
 
 
 AUTO_MATCH_THRESHOLD = 0.92
@@ -21,7 +25,19 @@ def _get_model(entity_type):
         f"Unsupported entity type: {entity_type}"
     )
 
-def _find_alias(raw_name, entity_type):
+
+def _find_alias(
+    raw_name,
+    entity_type,
+):
+    """
+    Resolve an explicit alias directly to its canonical entity.
+
+    The stable foreign-key reference is authoritative.
+    canonical_name is retained only as compatibility/display
+    metadata.
+    """
+
     alias = EntityAlias.query.filter_by(
         alias=raw_name.strip(),
         entity_type=entity_type,
@@ -30,17 +46,29 @@ def _find_alias(raw_name, entity_type):
     if alias is None:
         return None
 
-    return alias.canonical_name
+    return alias.canonical_entity
 
-def _find_exact_entity(name, entity_type):
-    model = _get_model(entity_type)
+
+def _find_exact_entity(
+    name,
+    entity_type,
+):
+    model = _get_model(
+        entity_type
+    )
 
     return model.query.filter_by(
         name=name
     ).first()
 
-def _find_best_candidate(name, entity_type):
-    model = _get_model(entity_type)
+
+def _find_best_candidate(
+    name,
+    entity_type,
+):
+    model = _get_model(
+        entity_type
+    )
 
     best_entity = None
     best_score = 0
@@ -55,13 +83,23 @@ def _find_best_candidate(name, entity_type):
             best_entity = entity
             best_score = score
 
-    return best_entity, best_score
+    return (
+        best_entity,
+        best_score,
+    )
 
-def resolve_entity_name(raw_name, entity_type):
+
+def resolve_entity_name(
+    raw_name,
+    entity_type,
+):
     """
     Resolve a raw extracted entity name against the Vantage
     knowledge base without automatically creating or merging
-    database entities.
+    entities.
+
+    Explicit aliases resolve through stable foreign-key
+    references.
 
     Possible statuses:
 
@@ -94,32 +132,39 @@ def resolve_entity_name(raw_name, entity_type):
 
     raw_name = raw_name.strip()
 
-    # 1. Explicit aliases are our strongest resolution signal.
-    alias_name = _find_alias(
+    # ---------------------------------------------------------
+    # 1. Explicit aliases are the strongest signal.
+    # ---------------------------------------------------------
+
+    alias_entity = _find_alias(
         raw_name,
         entity_type,
     )
 
-    if alias_name:
-        entity = _find_exact_entity(
-            alias_name,
-            entity_type,
-        )
-
+    if alias_entity is not None:
         return {
             "status": "alias",
             "raw_name": raw_name,
-            "normalized_name": alias_name,
-            "canonical_name": alias_name,
-            "entity": entity,
-            "candidate": entity,
+            "normalized_name":
+                alias_entity.name,
+            "canonical_name":
+                alias_entity.name,
+            "entity":
+                alias_entity,
+            "candidate":
+                alias_entity,
             "score": 1.0,
         }
 
-    # 2. Apply deterministic normalization.
-    normalized_name = normalize_entity_name(
-        raw_name,
-        entity_type=entity_type,
+    # ---------------------------------------------------------
+    # 2. Deterministic normalization.
+    # ---------------------------------------------------------
+
+    normalized_name = (
+        normalize_entity_name(
+            raw_name,
+            entity_type=entity_type,
+        )
     )
 
     if not normalized_name:
@@ -133,75 +178,98 @@ def resolve_entity_name(raw_name, entity_type):
             "score": None,
         }
 
+    # ---------------------------------------------------------
     # 3. Exact canonical match.
+    # ---------------------------------------------------------
+
     exact_entity = _find_exact_entity(
         normalized_name,
         entity_type,
     )
 
-    if exact_entity:
+    if exact_entity is not None:
         return {
             "status": "exact",
             "raw_name": raw_name,
-            "normalized_name": normalized_name,
-            "canonical_name": exact_entity.name,
-            "entity": exact_entity,
-            "candidate": exact_entity,
+            "normalized_name":
+                normalized_name,
+            "canonical_name":
+                exact_entity.name,
+            "entity":
+                exact_entity,
+            "candidate":
+                exact_entity,
             "score": 1.0,
         }
 
-    # 4. Search existing entities for the best fuzzy candidate.
-    candidate, score = _find_best_candidate(
-        normalized_name,
-        entity_type,
+    # ---------------------------------------------------------
+    # 4. Fuzzy candidate search.
+    # ---------------------------------------------------------
+
+    candidate, score = (
+        _find_best_candidate(
+            normalized_name,
+            entity_type,
+        )
     )
 
     if candidate is None:
         return {
             "status": "new",
             "raw_name": raw_name,
-            "normalized_name": normalized_name,
-            "canonical_name": normalized_name,
+            "normalized_name":
+                normalized_name,
+            "canonical_name":
+                normalized_name,
             "entity": None,
             "candidate": None,
             "score": None,
         }
 
-    # Extremely strong similarity.
-    #
-    # IMPORTANT:
-    # We still do NOT merge anything here.
-    # This only identifies a strong candidate.
     if score >= AUTO_MATCH_THRESHOLD:
         return {
-            "status": "strong_candidate",
-            "raw_name": raw_name,
-            "normalized_name": normalized_name,
-            "canonical_name": candidate.name,
-            "entity": None,
-            "candidate": candidate,
-            "score": score,
+            "status":
+                "strong_candidate",
+            "raw_name":
+                raw_name,
+            "normalized_name":
+                normalized_name,
+            "canonical_name":
+                candidate.name,
+            "entity":
+                None,
+            "candidate":
+                candidate,
+            "score":
+                score,
         }
 
-    # Plausible but uncertain.
     if score >= REVIEW_THRESHOLD:
         return {
             "status": "review",
             "raw_name": raw_name,
-            "normalized_name": normalized_name,
-            "canonical_name": normalized_name,
-            "entity": None,
-            "candidate": candidate,
-            "score": score,
+            "normalized_name":
+                normalized_name,
+            "canonical_name":
+                normalized_name,
+            "entity":
+                None,
+            "candidate":
+                candidate,
+            "score":
+                score,
         }
 
-    # Nothing convincing exists.
     return {
         "status": "new",
         "raw_name": raw_name,
-        "normalized_name": normalized_name,
-        "canonical_name": normalized_name,
+        "normalized_name":
+            normalized_name,
+        "canonical_name":
+            normalized_name,
         "entity": None,
-        "candidate": candidate,
-        "score": score,
+        "candidate":
+            candidate,
+        "score":
+            score,
     }

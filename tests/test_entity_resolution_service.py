@@ -17,6 +17,7 @@ def test_app():
     app = Flask(__name__)
 
     app.config["TESTING"] = True
+
     app.config[
         "SQLALCHEMY_DATABASE_URI"
     ] = "sqlite:///:memory:"
@@ -111,6 +112,52 @@ def test_resolves_known_alias(
             result["entity"].name
             == "Andreessen Horowitz"
         )
+
+
+def test_alias_resolution_uses_stable_reference(
+    test_app,
+    resolution_data,
+):
+    """
+    Prove canonical_name is no longer authoritative.
+
+    Even if the compatibility string becomes stale, the alias
+    still resolves through its foreign-key relationship.
+    """
+
+    with test_app.app_context():
+        alias = EntityAlias.query.filter_by(
+            alias="a16z",
+            entity_type="investor",
+        ).one()
+
+        alias.canonical_name = (
+            "Stale Historical Name"
+        )
+
+        db.session.flush()
+
+        result = resolve_entity_name(
+            "a16z",
+            "investor",
+        )
+
+        assert (
+            result["status"]
+            == "alias"
+        )
+
+        assert (
+            result["entity"].name
+            == "Andreessen Horowitz"
+        )
+
+        assert (
+            result["canonical_name"]
+            == "Andreessen Horowitz"
+        )
+
+        db.session.rollback()
 
 
 def test_resolves_exact_existing_entity(
