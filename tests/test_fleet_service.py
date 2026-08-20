@@ -1,3 +1,7 @@
+from types import (
+    SimpleNamespace,
+)
+
 import pytest
 
 from services import (
@@ -8,6 +12,50 @@ from services.fleet_service import (
     run_source_fleet,
     select_source_fleet,
 )
+
+
+def _patch_run_persistence(
+    monkeypatch,
+):
+    counter = {
+        "value": 0,
+    }
+
+    def fake_start(
+        source,
+        mode,
+        process_enabled,
+    ):
+        counter[
+            "value"
+        ] += 1
+
+        return SimpleNamespace(
+            id=counter[
+                "value"
+            ]
+        )
+
+    def fake_finish(
+        source_run,
+        status,
+        discovery=None,
+        processing=None,
+        error=None,
+    ):
+        return source_run
+
+    monkeypatch.setattr(
+        fleet_service,
+        "start_source_run",
+        fake_start,
+    )
+
+    monkeypatch.setattr(
+        fleet_service,
+        "finish_source_run",
+        fake_finish,
+    )
 
 
 def test_select_incremental_investor_fleet():
@@ -102,6 +150,10 @@ def test_unavailable_source_raises():
 def test_fleet_continues_after_source_failure(
     monkeypatch,
 ):
+    _patch_run_persistence(
+        monkeypatch
+    )
+
     fleet = [
         {
             "key": "one",
@@ -203,6 +255,10 @@ def test_fleet_continues_after_source_failure(
 def test_fleet_does_not_process_by_default(
     monkeypatch,
 ):
+    _patch_run_persistence(
+        monkeypatch
+    )
+
     fleet = [
         {
             "key": "one",
@@ -266,6 +322,10 @@ def test_fleet_does_not_process_by_default(
 def test_fleet_aggregates_processing(
     monkeypatch,
 ):
+    _patch_run_persistence(
+        monkeypatch
+    )
+
     fleet = [
         {
             "key": "one",
@@ -309,6 +369,18 @@ def test_fleet_aggregates_processing(
             "articles_selected":
                 2,
 
+            "stale_articles_skipped":
+                0,
+
+            "compound_articles_skipped":
+                0,
+
+            "content_retrieved":
+                0,
+
+            "content_failed":
+                0,
+
             "funding_processed":
                 2,
 
@@ -341,6 +413,13 @@ def test_fleet_aggregates_processing(
             "sources_succeeded"
         ]
         == 2
+    )
+
+    assert (
+        totals[
+            "sources_warning"
+        ]
+        == 0
     )
 
     assert (

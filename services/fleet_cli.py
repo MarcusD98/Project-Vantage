@@ -4,6 +4,31 @@ from services.fleet_service import (
     run_source_fleet,
 )
 
+from services.source_run_service import (
+    get_recent_source_runs,
+)
+
+
+def _short(
+    value,
+    width,
+):
+    value = str(
+        value
+        if value is not None
+        else ""
+    )
+
+    if len(value) <= width:
+        return value
+
+    return (
+        value[
+            :width - 1
+        ]
+        + "…"
+    )
+
 
 @click.command(
     "sync"
@@ -181,7 +206,8 @@ def sync_command(
 
         click.echo(
             f"[{status}] "
-            f"{source_result['source']}"
+            f"{source_result['source']} "
+            f"(run #{source_result['run_id']})"
         )
 
         discovery = (
@@ -272,6 +298,11 @@ def sync_command(
     )
 
     click.echo(
+        f"Sources warning:         "
+        f"{totals['sources_warning']}"
+    )
+
+    click.echo(
         f"Sources partial:         "
         f"{totals['sources_partial']}"
     )
@@ -344,3 +375,137 @@ def sync_command(
     click.echo(
         "Fleet sync complete."
     )
+
+
+@click.command(
+    "runs"
+)
+@click.option(
+    "--limit",
+    default=20,
+    type=int,
+    show_default=True,
+    help=(
+        "Maximum source runs to display."
+    ),
+)
+@click.option(
+    "--source",
+    "source_name",
+    default=None,
+    type=str,
+    help=(
+        "Show only runs for one source."
+    ),
+)
+@click.option(
+    "--status",
+    type=click.Choice(
+        [
+            "running",
+            "success",
+            "warning",
+            "partial",
+            "failed",
+        ],
+        case_sensitive=False,
+    ),
+    default=None,
+    help=(
+        "Show only runs with this status."
+    ),
+)
+def runs_command(
+    limit,
+    source_name,
+    status,
+):
+    """
+    Show recent persisted source operations.
+    """
+
+    try:
+        runs = (
+            get_recent_source_runs(
+                limit=limit,
+                source_name=source_name,
+                status=status,
+            )
+        )
+
+    except ValueError as exc:
+        raise click.ClickException(
+            str(exc)
+        ) from exc
+
+    click.echo("")
+    click.echo(
+        "Vantage Source Runs"
+    )
+    click.echo(
+        "-------------------"
+    )
+    click.echo("")
+
+    if not runs:
+        click.echo(
+            "No source runs found."
+        )
+
+        return
+
+    header = (
+        f"{'ID':>4} | "
+        f"{'Started UTC':19} | "
+        f"{'Source':18} | "
+        f"{'Mode':11} | "
+        f"{'Proc':4} | "
+        f"{'Status':7} | "
+        f"{'Disc':>5} | "
+        f"{'Saved':>5} | "
+        f"{'Events':>6}"
+    )
+
+    click.echo(
+        header
+    )
+
+    click.echo(
+        "-" * len(
+            header
+        )
+    )
+
+    for run in runs:
+        started = (
+            run.started_at.strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+            if run.started_at
+            else "-"
+        )
+
+        event_count = (
+            run.funding_rounds
+            + run.fund_closes
+        )
+
+        click.echo(
+            f"{run.id:>4} | "
+            f"{started:19} | "
+            f"{_short(run.source_name, 18):18} | "
+            f"{_short(run.mode, 11):11} | "
+            f"{'yes' if run.process_enabled else 'no':4} | "
+            f"{run.status:7} | "
+            f"{run.articles_discovered:>5} | "
+            f"{run.articles_saved:>5} | "
+            f"{event_count:>6}"
+        )
+
+        if run.error:
+            click.echo(
+                "     Error: "
+                f"{run.error}"
+            )
+
+    click.echo("")

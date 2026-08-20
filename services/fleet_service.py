@@ -6,6 +6,11 @@ from services.corpus_operations_service import (
     run_stored_intelligence,
 )
 
+from services.source_run_service import (
+    finish_source_run,
+    start_source_run,
+)
+
 from services.source_sync_service import (
     run_source_sync,
 )
@@ -62,7 +67,6 @@ def select_source_fleet(
         return fleet
 
     selected = []
-
     matched = set()
 
     for source in fleet:
@@ -73,7 +77,7 @@ def select_source_fleet(
             _normalize_identifier(
                 source.get(
                     "key",
-                    ""
+                    "",
                 )
             ),
         }
@@ -119,6 +123,7 @@ def _empty_totals():
     return {
         "sources_selected": 0,
         "sources_succeeded": 0,
+        "sources_warning": 0,
         "sources_partial": 0,
         "sources_failed": 0,
 
@@ -180,6 +185,31 @@ def _add_processing_totals(
         )
 
 
+def _increment_status_total(
+    totals,
+    status,
+):
+    if status == "success":
+        totals[
+            "sources_succeeded"
+        ] += 1
+
+    elif status == "warning":
+        totals[
+            "sources_warning"
+        ] += 1
+
+    elif status == "partial":
+        totals[
+            "sources_partial"
+        ] += 1
+
+    elif status == "failed":
+        totals[
+            "sources_failed"
+        ] += 1
+
+
 def run_source_fleet(
     mode="incremental",
     source_type=None,
@@ -192,21 +222,36 @@ def run_source_fleet(
     """
     Operate a selected Vantage source fleet.
 
-    Each source runs independently.
+    Every source execution creates a persistent SourceRun.
 
-    A discovery failure for one source does not prevent later
-    sources from running.
+    Sources operate independently.
 
-    By default the fleet only:
+    A failed source does not prevent later sources from
+    running.
 
-        discovers
-        normalizes
-        persists
+    Status semantics:
 
-    Historical mode also performs page/date enrichment.
+        success
+            Discovery succeeded and optional intelligence
+            processing completed without recorded failures.
 
-    LLM intelligence processing occurs only when process=True.
-    Funding and fund-news limits are applied per source.
+        warning
+            The source completed, but one or more evidence
+            documents failed intelligence processing.
+
+        partial
+            Discovery succeeded but the optional processing
+            operation raised an exception.
+
+        failed
+            Discovery or persistence failed.
+
+    By default the fleet only discovers and persists evidence.
+
+    Historical mode additionally performs page/date
+    enrichment.
+
+    LLM processing occurs only when process=True.
     """
 
     fleet = (
@@ -217,7 +262,9 @@ def run_source_fleet(
         )
     )
 
-    totals = _empty_totals()
+    totals = (
+        _empty_totals()
+    )
 
     totals[
         "sources_selected"
@@ -228,7 +275,18 @@ def run_source_fleet(
     results = []
 
     for source in fleet:
+        source_run = (
+            start_source_run(
+                source=source,
+                mode=mode,
+                process_enabled=process,
+            )
+        )
+
         source_result = {
+            "run_id":
+                source_run.id,
+
             "source":
                 source["name"],
 
@@ -246,7 +304,7 @@ def run_source_fleet(
                 mode,
 
             "status":
-                "pending",
+                "running",
 
             "error":
                 None,
@@ -293,9 +351,18 @@ def run_source_fleet(
                 exc
             )
 
-            totals[
-                "sources_failed"
-            ] += 1
+            finish_source_run(
+                source_run=source_run,
+                status="failed",
+                discovery=None,
+                processing=None,
+                error=exc,
+            )
+
+            _increment_status_total(
+                totals,
+                "failed",
+            )
 
             results.append(
                 source_result
@@ -361,9 +428,18 @@ def run_source_fleet(
                     exc
                 )
 
-                totals[
-                    "sources_partial"
-                ] += 1
+                finish_source_run(
+                    source_run=source_run,
+                    status="partial",
+                    discovery=discovery_result,
+                    processing=None,
+                    error=exc,
+                )
+
+                _increment_status_total(
+                    totals,
+                    "partial",
+                )
 
                 results.append(
                     source_result
@@ -376,9 +452,28 @@ def run_source_fleet(
                 "status"
             ] = "success"
 
-        totals[
-            "sources_succeeded"
-        ] += 1
+        # -------------------------------------------------
+        # Persist completed operation
+        # -------------------------------------------------
+
+        finish_source_run(
+            source_run=source_run,
+            status=source_result[
+                "status"
+            ],
+            discovery=discovery_result,
+            processing=source_result[
+                "processing"
+            ],
+            error=None,
+        )
+
+        _increment_status_total(
+            totals,
+            source_result[
+                "status"
+            ],
+        )
 
         results.append(
             source_result

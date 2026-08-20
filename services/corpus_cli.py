@@ -6,6 +6,7 @@ from services.corpus_operations_service import (
 )
 
 from services.fleet_cli import (
+    runs_command,
     sync_command,
 )
 
@@ -259,4 +260,8 @@ def register_corpus_commands(
 
     vantage_group.add_command(
         sync_command
+    )
+
+    vantage_group.add_command(
+        runs_command
     )
