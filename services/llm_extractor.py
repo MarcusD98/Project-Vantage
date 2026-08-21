@@ -8,6 +8,12 @@ from services.compound_evidence_service import (
 )
 
 
+EXTRACTION_MODEL = "gpt-5.6-luna"
+
+FUNDING_EXTRACTOR_VERSION = "funding-v1"
+FUND_CLOSE_EXTRACTOR_VERSION = "fund-close-v1"
+
+
 client = OpenAI()
 
 
@@ -96,7 +102,7 @@ def extract_funding_with_llm(article):
     )
 
     response = client.responses.parse(
-        model="gpt-5.6-luna",
+        model=EXTRACTION_MODEL,
         input=[
             {
                 "role": "developer",
@@ -214,7 +220,7 @@ def extract_funding_with_llm(article):
 
 def extract_fund_close_with_llm(article):
     response = client.responses.parse(
-        model="gpt-5.6-luna",
+        model=EXTRACTION_MODEL,
         input=[
             {
                 "role": "developer",

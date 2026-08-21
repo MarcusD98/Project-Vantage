@@ -23,6 +23,7 @@ from models.entity_resolution_review import (
 )
 from models.fund import Fund
 from models.fund_close import FundClose
+from models.extraction_record import ExtractionRecord
 
 from services.news_service import (
     get_source_health,

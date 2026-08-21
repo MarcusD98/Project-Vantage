@@ -13,6 +13,15 @@ from models.article import (
     Article,
 )
 
+from models.extraction_record import (
+    EVENT_TYPE_FUNDING_ROUND,
+    EVENT_TYPE_FUND_CLOSE,
+)
+
+from services.extraction_record_service import (
+    create_extraction_record,
+)
+
 from services.article_service import (
     populate_article_content,
 )
@@ -22,6 +31,9 @@ from services.compound_evidence_service import (
 )
 
 from services.llm_extractor import (
+    EXTRACTION_MODEL,
+    FUNDING_EXTRACTOR_VERSION,
+    FUND_CLOSE_EXTRACTOR_VERSION,
     extract_funding_with_llm,
     extract_fund_close_with_llm,
 )
@@ -513,6 +525,26 @@ def _process_funding_article(
 
             return
 
+        # Persist the extractor's interpretation before it can
+        # influence canonical knowledge.
+        create_extraction_record(
+            article=article,
+            event_type=EVENT_TYPE_FUNDING_ROUND,
+            extraction=extraction,
+            extractor_version=(
+                FUNDING_EXTRACTOR_VERSION
+            ),
+            model=EXTRACTION_MODEL,
+        )
+
+        # Commit the extraction independently from canonicalization.
+        #
+        # If canonical persistence subsequently fails, Vantage still
+        # retains a durable record of what the extractor believed.
+        db.session.commit()
+
+        # Existing compatibility state remains in place during the
+        # Phase 7 migration.
         article.llm_processed_at = (
             datetime.now()
         )
@@ -521,6 +553,10 @@ def _process_funding_article(
             extraction.is_funding_round
         )
 
+        # Phase 7.1 deliberately preserves existing canonicalization.
+        #
+        # Phase 7.2 will place validation between the ExtractionRecord
+        # and this promotion step.
         funding_round = (
             save_funding_extraction(
                 article,
@@ -582,10 +618,27 @@ def _process_fund_news_article(
 
             return
 
+        # Persist the extractor's interpretation before it can
+        # influence canonical knowledge.
+        create_extraction_record(
+            article=article,
+            event_type=EVENT_TYPE_FUND_CLOSE,
+            extraction=extraction,
+            extractor_version=(
+                FUND_CLOSE_EXTRACTOR_VERSION
+            ),
+            model=EXTRACTION_MODEL,
+        )
+
+        db.session.commit()
+
+        # Existing compatibility state remains in place during the
+        # Phase 7 migration.
         article.llm_processed_at = (
             datetime.now()
         )
 
+        # Phase 7.1 preserves the current canonicalization behavior.
         fund_close = (
             save_fund_close_extraction(
                 article,
