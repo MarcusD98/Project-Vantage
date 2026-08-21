@@ -254,3 +254,99 @@ def test_distant_event_is_not_same_event():
             10,
         ),
     )
+
+
+def test_sparse_event_can_match_when_amount_is_missing():
+    assert funding_event_matches(
+        company_id_a=1,
+        amount_a=None,
+        currency_a="USD",
+        round_type_a="Series A",
+        announced_at_a=datetime(
+            2026,
+            8,
+            10,
+        ),
+
+        company_id_b=1,
+        amount_b=20_000_000,
+        currency_b="USD",
+        round_type_b="Series A",
+        announced_at_b=datetime(
+            2026,
+            8,
+            11,
+        ),
+    )
+
+
+def test_sparse_event_can_match_when_currency_is_missing():
+    assert funding_event_matches(
+        company_id_a=1,
+        amount_a=20_000_000,
+        currency_a=None,
+        round_type_a="Series A",
+        announced_at_a=datetime(
+            2026,
+            8,
+            10,
+        ),
+
+        company_id_b=1,
+        amount_b=20_000_000,
+        currency_b="USD",
+        round_type_b="Series A",
+        announced_at_b=datetime(
+            2026,
+            8,
+            11,
+        ),
+    )
+
+
+def test_sparse_event_requires_known_matching_round_type():
+    assert not funding_event_matches(
+        company_id_a=1,
+        amount_a=None,
+        currency_a=None,
+        round_type_a=None,
+        announced_at_a=datetime(
+            2026,
+            8,
+            10,
+        ),
+
+        company_id_b=1,
+        amount_b=None,
+        currency_b=None,
+        round_type_b=None,
+        announced_at_b=datetime(
+            2026,
+            8,
+            11,
+        ),
+    )
+
+
+def test_sparse_event_uses_tight_date_window():
+    assert not funding_event_matches(
+        company_id_a=1,
+        amount_a=None,
+        currency_a=None,
+        round_type_a="Series A",
+        announced_at_a=datetime(
+            2026,
+            8,
+            10,
+        ),
+
+        company_id_b=1,
+        amount_b=None,
+        currency_b=None,
+        round_type_b="Series A",
+        announced_at_b=datetime(
+            2026,
+            8,
+            14,
+        ),
+    )
