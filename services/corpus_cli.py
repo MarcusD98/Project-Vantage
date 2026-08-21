@@ -6,6 +6,10 @@ from services.market_intelligence_cli import (
     market_signals_command,
 )
 
+from services.source_probe_cli import (
+    source_probe_command,
+)
+
 from services.corpus_operations_service import (
     run_backfill_operation,
     run_stored_intelligence,
@@ -1759,4 +1763,8 @@ def register_corpus_commands(
 
     vantage_group.add_command(
     market_signals_command
+    )
+
+    vantage_group.add_command(
+    source_probe_command
     )
