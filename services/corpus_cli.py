@@ -7,6 +7,10 @@ from services.corpus_operations_service import (
     run_stored_intelligence,
 )
 
+from services.extraction_measurement_service import (
+    get_extraction_measurements,
+)
+
 from services.extraction_replay_service import (
     replay_article_by_id,
 )
@@ -53,6 +57,10 @@ def _format_optional_amount(
         prefix
         + f"{amount:,.0f}"
     )
+
+
+def _format_percentage(value):
+    return f"{value:.1f}%"
 
 
 @click.command(
@@ -455,6 +463,399 @@ def replay_command(
 
 
 @click.command(
+    "pipeline-report"
+)
+@click.option(
+    "--source",
+    default=None,
+    type=str,
+    help=(
+        "Restrict measurements to one "
+        "evidence source."
+    ),
+)
+@click.option(
+    "--event-type",
+    default=None,
+    type=click.Choice(
+        [
+            "funding_round",
+            "fund_close",
+        ],
+        case_sensitive=True,
+    ),
+    help=(
+        "Restrict measurements to one "
+        "structured event type."
+    ),
+)
+@click.option(
+    "--extractor-version",
+    default=None,
+    type=str,
+    help=(
+        "Restrict measurements to one "
+        "extractor version."
+    ),
+)
+def pipeline_report_command(
+    source,
+    event_type,
+    extractor_version,
+):
+    """
+    Report extraction, validation, promotion, replay, and source
+    quality measurements for the Vantage knowledge pipeline.
+    """
+
+    report = get_extraction_measurements(
+        source=source,
+        event_type=event_type,
+        extractor_version=(
+            extractor_version
+        ),
+    )
+
+    click.echo("")
+    click.echo(
+        "Vantage Knowledge Pipeline"
+    )
+    click.echo(
+        "--------------------------"
+    )
+    click.echo("")
+
+    filters = report[
+        "filters"
+    ]
+
+    if any(
+        value is not None
+        for value in filters.values()
+    ):
+        click.echo(
+            "Filters"
+        )
+        click.echo(
+            "-------"
+        )
+
+        click.echo(
+            f"Source:                  "
+            f"{filters['source'] or 'all'}"
+        )
+
+        click.echo(
+            f"Event type:              "
+            f"{filters['event_type'] or 'all'}"
+        )
+
+        click.echo(
+            f"Extractor version:       "
+            f"{filters['extractor_version'] or 'all'}"
+        )
+
+        click.echo("")
+
+    attempts = report[
+        "extraction_attempts"
+    ]
+
+    click.echo(
+        f"Extraction attempts:     "
+        f"{attempts}"
+    )
+
+    click.echo("")
+
+    click.echo(
+        "Validation"
+    )
+    click.echo(
+        "----------"
+    )
+
+    for state in (
+        "promote",
+        "review",
+        "reject",
+        "pending",
+    ):
+        row = report[
+            "validation"
+        ][
+            state
+        ]
+
+        click.echo(
+            f"{state.upper():<24}"
+            f"{row['count']:>6}   "
+            f"{_format_percentage(row['percentage']):>6}"
+        )
+
+    if (
+        "unknown"
+        in report[
+            "validation"
+        ]
+    ):
+        row = report[
+            "validation"
+        ][
+            "unknown"
+        ]
+
+        click.echo(
+            f"{'UNKNOWN':<24}"
+            f"{row['count']:>6}   "
+            f"{_format_percentage(row['percentage']):>6}"
+        )
+
+    click.echo("")
+
+    quarantine = report[
+        "quarantined"
+    ]
+
+    click.echo(
+        f"Quarantined:             "
+        f"{quarantine['count']} "
+        f"({_format_percentage(quarantine['percentage'])})"
+    )
+
+    click.echo("")
+
+    promotion = report[
+        "promotion"
+    ]
+
+    click.echo(
+        "Promotion"
+    )
+    click.echo(
+        "---------"
+    )
+
+    click.echo(
+        f"Eligible for promotion:  "
+        f"{promotion['eligible_for_promotion']}"
+    )
+
+    click.echo(
+        f"Successfully promoted:   "
+        f"{promotion['promoted']}"
+    )
+
+    click.echo(
+        f"Unpromoted PROMOTE:      "
+        f"{promotion['unpromoted_promote']}"
+    )
+
+    click.echo(
+        f"Promotion rate:          "
+        f"{_format_percentage(promotion['promotion_rate'])}"
+    )
+
+    click.echo("")
+
+    replay = report[
+        "replay"
+    ]
+
+    click.echo(
+        "Replay / Reprocessing"
+    )
+    click.echo(
+        "---------------------"
+    )
+
+    click.echo(
+        f"Evidence/event pairs:    "
+        f"{replay['unique_evidence_event_pairs']}"
+    )
+
+    click.echo(
+        f"Pairs replayed:          "
+        f"{replay['replayed_evidence_event_pairs']}"
+    )
+
+    click.echo(
+        f"Replay attempts:         "
+        f"{replay['replay_attempts']}"
+    )
+
+    click.echo("")
+
+    click.echo(
+        "By Event Type"
+    )
+    click.echo(
+        "-------------"
+    )
+
+    if report[
+        "by_event_type"
+    ]:
+        for row in report[
+            "by_event_type"
+        ]:
+            click.echo(
+                f"{row['event_type']:<24}"
+                f"{row['count']:>6}"
+            )
+
+    else:
+        click.echo(
+            "No extraction records."
+        )
+
+    click.echo("")
+
+    click.echo(
+        "By Extractor Version"
+    )
+    click.echo(
+        "--------------------"
+    )
+
+    if report[
+        "by_extractor_version"
+    ]:
+        for row in report[
+            "by_extractor_version"
+        ]:
+            click.echo(
+                f"{row['extractor_version']:<24}"
+                f"{row['count']:>6}"
+            )
+
+    else:
+        click.echo(
+            "No extraction records."
+        )
+
+    click.echo("")
+
+    click.echo(
+        "By Model"
+    )
+    click.echo(
+        "--------"
+    )
+
+    if report[
+        "by_model"
+    ]:
+        for row in report[
+            "by_model"
+        ]:
+            click.echo(
+                f"{row['model']:<24}"
+                f"{row['count']:>6}"
+            )
+
+    else:
+        click.echo(
+            "No extraction records."
+        )
+
+    click.echo("")
+
+    click.echo(
+        "Validation Flags"
+    )
+    click.echo(
+        "----------------"
+    )
+
+    if report[
+        "validation_flags"
+    ]:
+        for row in report[
+            "validation_flags"
+        ]:
+            click.echo(
+                f"{row['flag']:<32}"
+                f"{row['count']:>6}"
+            )
+
+    else:
+        click.echo(
+            "No validation flags."
+        )
+
+    click.echo("")
+
+    click.echo(
+        "By Source"
+    )
+    click.echo(
+        "---------"
+    )
+
+    if report[
+        "by_source"
+    ]:
+        for row in report[
+            "by_source"
+        ]:
+            click.echo(
+                row[
+                    "source"
+                ]
+            )
+
+            click.echo(
+                f"  Attempts:              "
+                f"{row['attempts']}"
+            )
+
+            click.echo(
+                f"  PROMOTE / REVIEW / REJECT / PENDING: "
+                f"{row['promote']} / "
+                f"{row['review']} / "
+                f"{row['reject']} / "
+                f"{row['pending']}"
+            )
+
+            click.echo(
+                f"  Promoted:              "
+                f"{row['promoted']}"
+            )
+
+            click.echo(
+                f"  Unpromoted PROMOTE:    "
+                f"{row['unpromoted_promote']}"
+            )
+
+            click.echo(
+                f"  Promotion rate:        "
+                f"{_format_percentage(row['promotion_rate'])}"
+            )
+
+            click.echo("")
+
+    else:
+        click.echo(
+            "No source measurements."
+        )
+        click.echo("")
+
+    click.echo(
+        "Note: 'Unpromoted PROMOTE' does not necessarily "
+        "mean promotion failure."
+    )
+
+    click.echo(
+        "The current schema cannot distinguish a failed "
+        "canonical write from a PROMOTE record that produced "
+        "no canonical object."
+    )
+
+    click.echo("")
+
+
+@click.command(
     "multi-rounds"
 )
 @click.option(
@@ -811,9 +1212,9 @@ def register_corpus_commands(
     vantage_group,
 ):
     """
-    Register corpus, source-platform, integrity, replay, and
-    investor-intelligence commands under the Vantage Flask CLI
-    group.
+    Register corpus, source-platform, integrity, replay,
+    measurement, and investor-intelligence commands under the
+    Vantage Flask CLI group.
     """
 
     vantage_group.add_command(
@@ -826,6 +1227,10 @@ def register_corpus_commands(
 
     vantage_group.add_command(
         replay_command
+    )
+
+    vantage_group.add_command(
+        pipeline_report_command
     )
 
     vantage_group.add_command(
