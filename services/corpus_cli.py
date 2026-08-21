@@ -7,6 +7,10 @@ from services.corpus_operations_service import (
     run_stored_intelligence,
 )
 
+from services.extraction_replay_service import (
+    replay_article_by_id,
+)
+
 from services.fleet_cli import (
     runs_command,
     sync_command,
@@ -297,6 +301,157 @@ def process_command(
     click.echo(
         "Stored intelligence processing complete."
     )
+
+
+@click.command(
+    "replay"
+)
+@click.option(
+    "--article-id",
+    required=True,
+    type=int,
+    help=(
+        "Stored Article ID to reprocess."
+    ),
+)
+@click.option(
+    "--event-type",
+    required=True,
+    type=click.Choice(
+        [
+            "funding_round",
+            "fund_close",
+        ],
+        case_sensitive=True,
+    ),
+    help=(
+        "Structured event extractor to replay."
+    ),
+)
+def replay_command(
+    article_id,
+    event_type,
+):
+    """
+    Reprocess one stored evidence document using the current
+    extractor version.
+
+    Replay ignores legacy Article.llm_processed_at state and
+    appends a new ExtractionRecord rather than overwriting
+    previous extraction history.
+    """
+
+    click.echo("")
+    click.echo(
+        "Vantage Extraction Replay"
+    )
+    click.echo(
+        "-------------------------"
+    )
+    click.echo("")
+
+    try:
+        result = replay_article_by_id(
+            article_id=article_id,
+            event_type=event_type,
+        )
+
+    except (
+        ValueError,
+        RuntimeError,
+    ) as exc:
+        raise click.ClickException(
+            str(exc)
+        ) from exc
+
+    click.echo(
+        f"Article ID:              "
+        f"{result['article_id']}"
+    )
+
+    click.echo(
+        f"Event type:              "
+        f"{result['event_type']}"
+    )
+
+    click.echo(
+        f"Extraction record:       "
+        f"#{result['record_id']}"
+    )
+
+    click.echo(
+        f"Extractor version:       "
+        f"{result['extractor_version']}"
+    )
+
+    click.echo(
+        f"Model:                   "
+        f"{result['model']}"
+    )
+
+    click.echo("")
+
+    click.echo(
+        f"Validation state:        "
+        f"{result['validation_state'].upper()}"
+    )
+
+    flags = (
+        result[
+            "validation_flags"
+        ]
+        or []
+    )
+
+    click.echo(
+        "Validation flags:        "
+        + (
+            ", ".join(
+                flags
+            )
+            if flags
+            else "none"
+        )
+    )
+
+    click.echo("")
+
+    click.echo(
+        f"Promoted:                "
+        f"{'yes' if result['promoted'] else 'no'}"
+    )
+
+    click.echo("")
+
+    if result[
+        "promoted"
+    ]:
+        click.echo(
+            "Replay successfully reached "
+            "canonical knowledge."
+        )
+
+    elif (
+        result[
+            "validation_state"
+        ]
+        in {
+            "review",
+            "reject",
+        }
+    ):
+        click.echo(
+            "Replay was durably recorded but "
+            "quarantined from canonical knowledge."
+        )
+
+    else:
+        click.echo(
+            "Replay completed without canonical "
+            "promotion."
+        )
+
+    click.echo("")
 
 
 @click.command(
@@ -656,7 +811,7 @@ def register_corpus_commands(
     vantage_group,
 ):
     """
-    Register corpus, source-platform, integrity and
+    Register corpus, source-platform, integrity, replay, and
     investor-intelligence commands under the Vantage Flask CLI
     group.
     """
@@ -667,6 +822,10 @@ def register_corpus_commands(
 
     vantage_group.add_command(
         process_command
+    )
+
+    vantage_group.add_command(
+        replay_command
     )
 
     vantage_group.add_command(
