@@ -2,7 +2,14 @@ import json
 import logging
 import re
 
-from datetime import datetime, timezone
+from datetime import (
+    datetime,
+    timezone,
+)
+
+from email.utils import (
+    parsedate_to_datetime,
+)
 
 import requests
 
@@ -54,45 +61,15 @@ def clean_text(text):
 # Publication-date extraction
 # ---------------------------------------------------------
 
-def parse_page_datetime(value):
+def _normalize_page_datetime(
+    parsed,
+):
     """
-    Parse a page-supplied publication datetime.
+    Normalize a parsed page datetime to timezone-naive UTC.
 
-    HTML metadata commonly uses ISO-8601 values such as:
-
-        2026-07-08
-        2026-07-08T10:30:00
-        2026-07-08T10:30:00Z
-        2026-07-08T10:30:00+00:00
-
-    Returned datetimes are normalized to timezone-naive UTC
-    because Article.published_at currently uses SQLAlchemy's
+    Article.published_at currently uses SQLAlchemy's
     timezone-naive DateTime column.
-
-    Invalid or missing values return None.
     """
-
-    if not value:
-        return None
-
-    value = value.strip()
-
-    if not value:
-        return None
-
-    try:
-        if value.endswith("Z"):
-            value = (
-                value[:-1]
-                + "+00:00"
-            )
-
-        parsed = datetime.fromisoformat(
-            value
-        )
-
-    except ValueError:
-        return None
 
     if parsed.tzinfo is not None:
         parsed = (
@@ -108,9 +85,127 @@ def parse_page_datetime(value):
     return parsed
 
 
+def parse_page_datetime(value):
+    """
+    Parse a structured page-supplied publication datetime.
+
+    Supported forms include common ISO-8601 values:
+
+        2026-07-08
+        2026-07-08T10:30:00
+        2026-07-08T10:30:00Z
+        2026-07-08T10:30:00+00:00
+
+    and common machine-readable HTTP / RFC forms such as:
+
+        Wed, 08 Jul 2026 10:30:00 GMT
+
+    A small number of conventional publication-date formats
+    are also accepted when they come from structured page
+    elements:
+
+        July 8, 2026
+        Jul 8, 2026
+        8 July 2026
+        08 Jul 2026
+        2026/07/08
+        07/08/2026
+
+    This helper is used only for explicitly identified
+    publication-date metadata or semantic date elements.
+
+    It is not used to scan arbitrary page prose.
+
+    Returned datetimes are normalized to timezone-naive UTC.
+
+    Invalid or missing values return None.
+    """
+
+    if not value:
+        return None
+
+    value = clean_text(
+        str(
+            value
+        )
+    )
+
+    if not value:
+        return None
+
+    iso_value = value
+
+    if iso_value.endswith(
+        "Z"
+    ):
+        iso_value = (
+            iso_value[
+                :-1
+            ]
+            + "+00:00"
+        )
+
+    try:
+        parsed = datetime.fromisoformat(
+            iso_value
+        )
+
+        return _normalize_page_datetime(
+            parsed
+        )
+
+    except ValueError:
+        pass
+
+    try:
+        parsed = parsedate_to_datetime(
+            value
+        )
+
+        if parsed is not None:
+            return _normalize_page_datetime(
+                parsed
+            )
+
+    except (
+        TypeError,
+        ValueError,
+        OverflowError,
+    ):
+        pass
+
+    structured_formats = [
+        "%B %d, %Y",
+        "%b %d, %Y",
+        "%d %B %Y",
+        "%d %b %Y",
+        "%Y/%m/%d",
+        "%m/%d/%Y",
+    ]
+
+    for date_format in structured_formats:
+        try:
+            return datetime.strptime(
+                value,
+                date_format,
+            )
+
+        except ValueError:
+            continue
+
+    return None
+
+
 def _find_json_ld_date(value):
     """
-    Recursively search JSON-LD data for datePublished.
+    Recursively search JSON-LD data for an explicit published
+    date.
+
+    datePublished is preferred.
+
+    Some publishers use dateCreated when datePublished is
+    absent. dateModified is deliberately not accepted because
+    it may describe a later edit rather than publication.
 
     Returns the first parseable value found.
     """
@@ -119,16 +214,20 @@ def _find_json_ld_date(value):
         value,
         dict,
     ):
-        date_value = value.get(
-            "datePublished"
-        )
+        for key in [
+            "datePublished",
+            "dateCreated",
+        ]:
+            date_value = value.get(
+                key
+            )
 
-        parsed = parse_page_datetime(
-            date_value
-        )
+            parsed = parse_page_datetime(
+                date_value
+            )
 
-        if parsed is not None:
-            return parsed
+            if parsed is not None:
+                return parsed
 
         for child in value.values():
             parsed = _find_json_ld_date(
@@ -153,19 +252,51 @@ def _find_json_ld_date(value):
     return None
 
 
+def _extract_date_from_tag(
+    tag,
+    attributes,
+):
+    """
+    Try a sequence of structured date-bearing attributes on one
+    HTML tag.
+    """
+
+    if tag is None:
+        return None
+
+    for attribute in attributes:
+        value = tag.get(
+            attribute
+        )
+
+        parsed = parse_page_datetime(
+            value
+        )
+
+        if parsed is not None:
+            return parsed
+
+    return None
+
+
 def extract_article_published_at(html):
     """
     Extract a reliable publication datetime from an HTML page.
 
     Preference order:
 
-    1. article:published_time metadata
-    2. other explicit publication-date metadata
-    3. JSON-LD datePublished
-    4. semantic <time datetime="..."> elements
+    1. explicit publication metadata
+    2. schema.org / itemprop datePublished metadata
+    3. JSON-LD datePublished / dateCreated
+    4. semantic <time> elements
+    5. explicit date-bearing attributes on semantic elements
 
-    The function deliberately does not infer dates from
-    arbitrary visible text.
+    The function deliberately does not infer dates by scanning
+    arbitrary visible page text.
+
+    A visible date is accepted only when the website has
+    explicitly marked the containing element as a semantic
+    publication/date element.
     """
 
     if not html:
@@ -175,6 +306,10 @@ def extract_article_published_at(html):
         html,
         "html.parser",
     )
+
+    # -----------------------------------------------------
+    # Explicit publication metadata
+    # -----------------------------------------------------
 
     meta_selectors = [
         (
@@ -201,48 +336,93 @@ def extract_article_published_at(html):
         (
             "meta",
             {
-                "name": "date",
+                "property":
+                    "og:article:published_time",
             },
         ),
         (
             "meta",
             {
-                "name": "pubdate",
+                "name":
+                    "date",
             },
         ),
         (
             "meta",
             {
-                "name": "publish-date",
+                "name":
+                    "pubdate",
             },
         ),
         (
             "meta",
             {
-                "name": "published_date",
+                "name":
+                    "publish-date",
+            },
+        ),
+        (
+            "meta",
+            {
+                "name":
+                    "published_date",
+            },
+        ),
+        (
+            "meta",
+            {
+                "name":
+                    "datePublished",
+            },
+        ),
+        (
+            "meta",
+            {
+                "property":
+                    "datePublished",
+            },
+        ),
+        (
+            "meta",
+            {
+                "itemprop":
+                    "datePublished",
+            },
+        ),
+        (
+            "meta",
+            {
+                "itemprop":
+                    "dateCreated",
             },
         ),
     ]
 
     for tag_name, attrs in meta_selectors:
-        tag = soup.find(
+        tags = soup.find_all(
             tag_name,
             attrs=attrs,
         )
 
-        if tag is None:
-            continue
-
-        parsed = parse_page_datetime(
-            tag.get(
-                "content"
+        for tag in tags:
+            parsed = (
+                _extract_date_from_tag(
+                    tag,
+                    [
+                        "content",
+                        "datetime",
+                        "value",
+                    ],
+                )
             )
-        )
 
-        if parsed is not None:
-            return parsed
+            if parsed is not None:
+                return parsed
 
-    # JSON-LD is common on modern article and news pages.
+    # -----------------------------------------------------
+    # JSON-LD
+    # -----------------------------------------------------
+
     json_ld_tags = soup.find_all(
         "script",
         attrs={
@@ -280,31 +460,94 @@ def extract_article_published_at(html):
         if parsed is not None:
             return parsed
 
-    # Prefer a time element inside article/main content before
-    # falling back to any time element on the page.
+    # -----------------------------------------------------
+    # Semantic <time> elements
+    # -----------------------------------------------------
+
     time_selectors = [
-        "article time[datetime]",
-        "main time[datetime]",
-        "[role='main'] time[datetime]",
-        "time[datetime]",
+        "article time",
+        "main time",
+        "[role='main'] time",
+        "time[itemprop='datePublished']",
+        "time[itemprop='dateCreated']",
+        "time",
     ]
 
     for selector in time_selectors:
-        tag = soup.select_one(
+        tags = soup.select(
             selector
         )
 
-        if tag is None:
-            continue
-
-        parsed = parse_page_datetime(
-            tag.get(
-                "datetime"
+        for tag in tags:
+            parsed = (
+                _extract_date_from_tag(
+                    tag,
+                    [
+                        "datetime",
+                        "content",
+                        "data-date",
+                        "data-published",
+                        "data-published-at",
+                    ],
+                )
             )
+
+            if parsed is not None:
+                return parsed
+
+            # Visible text inside an actual semantic <time>
+            # element is sufficiently explicit to parse.
+            parsed = parse_page_datetime(
+                tag.get_text(
+                    " ",
+                    strip=True,
+                )
+            )
+
+            if parsed is not None:
+                return parsed
+
+    # -----------------------------------------------------
+    # Explicit schema.org date elements
+    # -----------------------------------------------------
+
+    schema_date_selectors = [
+        "[itemprop='datePublished']",
+        "[itemprop='dateCreated']",
+    ]
+
+    for selector in schema_date_selectors:
+        tags = soup.select(
+            selector
         )
 
-        if parsed is not None:
-            return parsed
+        for tag in tags:
+            parsed = (
+                _extract_date_from_tag(
+                    tag,
+                    [
+                        "content",
+                        "datetime",
+                        "value",
+                        "data-date",
+                        "data-published",
+                        "data-published-at",
+                    ],
+                )
+            )
+
+            if parsed is not None:
+                return parsed
+
+            parsed = parse_page_datetime(
+                tag.get_text(
+                    " ",
+                    strip=True,
+                )
+            )
+
+            if parsed is not None:
+                return parsed
 
     return None
 
@@ -562,7 +805,6 @@ def populate_article_content(article):
     deliberately does not commit.
     """
 
-    # Nothing left to enrich.
     if (
         article.content
         and article.published_at
@@ -575,26 +817,29 @@ def populate_article_content(article):
     )
 
     if page is None:
-        # Preserve historical behavior for an article whose
-        # content was already stored.
         return article.content
 
     if (
         not article.content
-        and page["content"]
+        and page[
+            "content"
+        ]
     ):
-        article.content = (
-            page["content"]
-        )
+        article.content = page[
+            "content"
+        ]
 
     if (
-        article.published_at is None
-        and page["published_at"]
+        article.published_at
+        is None
+        and page[
+            "published_at"
+        ]
         is not None
     ):
-        article.published_at = (
-            page["published_at"]
-        )
+        article.published_at = page[
+            "published_at"
+        ]
 
     return article.content
 
@@ -680,9 +925,7 @@ def populate_missing_article_dates(
     populated_count = 0
 
     for article in articles:
-        before = (
-            article.published_at
-        )
+        before = article.published_at
 
         populate_article_content(
             article

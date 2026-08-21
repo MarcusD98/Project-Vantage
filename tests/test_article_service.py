@@ -47,6 +47,44 @@ def test_parse_page_datetime_normalizes_utc():
     assert result.tzinfo is None
 
 
+def test_parse_page_datetime_rfc_date():
+    result = parse_page_datetime(
+        "Wed, 08 Jul 2026 10:30:00 GMT"
+    )
+
+    assert result == datetime(
+        2026,
+        7,
+        8,
+        10,
+        30,
+    )
+
+
+def test_parse_page_datetime_human_structured_date():
+    result = parse_page_datetime(
+        "July 8, 2026"
+    )
+
+    assert result == datetime(
+        2026,
+        7,
+        8,
+    )
+
+
+def test_parse_page_datetime_day_first_date():
+    result = parse_page_datetime(
+        "8 July 2026"
+    )
+
+    assert result == datetime(
+        2026,
+        7,
+        8,
+    )
+
+
 def test_parse_page_datetime_invalid_returns_none():
     result = parse_page_datetime(
         "not-a-date"
@@ -78,6 +116,30 @@ def test_extract_published_at_from_article_meta():
         8,
         10,
         30,
+    )
+
+
+def test_extract_published_at_from_itemprop_meta():
+    html = """
+    <html>
+        <head>
+            <meta
+                itemprop="datePublished"
+                content="July 8, 2026"
+            >
+        </head>
+        <body></body>
+    </html>
+    """
+
+    result = extract_article_published_at(
+        html
+    )
+
+    assert result == datetime(
+        2026,
+        7,
+        8,
     )
 
 
@@ -113,6 +175,102 @@ def test_extract_published_at_from_json_ld():
     )
 
 
+def test_extract_published_at_from_nested_json_ld_graph():
+    html = """
+    <html>
+        <head>
+            <script type="application/ld+json">
+                {
+                    "@context":
+                        "https://schema.org",
+                    "@graph": [
+                        {
+                            "@type":
+                                "Organization",
+                            "name":
+                                "Example"
+                        },
+                        {
+                            "@type":
+                                "Article",
+                            "datePublished":
+                                "2026-04-12"
+                        }
+                    ]
+                }
+            </script>
+        </head>
+        <body></body>
+    </html>
+    """
+
+    result = extract_article_published_at(
+        html
+    )
+
+    assert result == datetime(
+        2026,
+        4,
+        12,
+    )
+
+
+def test_extract_published_at_from_json_ld_date_created():
+    html = """
+    <html>
+        <head>
+            <script type="application/ld+json">
+                {
+                    "@context":
+                        "https://schema.org",
+                    "@type":
+                        "Article",
+                    "dateCreated":
+                        "2026-03-05"
+                }
+            </script>
+        </head>
+        <body></body>
+    </html>
+    """
+
+    result = extract_article_published_at(
+        html
+    )
+
+    assert result == datetime(
+        2026,
+        3,
+        5,
+    )
+
+
+def test_json_ld_does_not_use_date_modified_as_publication():
+    html = """
+    <html>
+        <head>
+            <script type="application/ld+json">
+                {
+                    "@context":
+                        "https://schema.org",
+                    "@type":
+                        "Article",
+                    "dateModified":
+                        "2026-08-20"
+                }
+            </script>
+        </head>
+        <body></body>
+    </html>
+    """
+
+    result = extract_article_published_at(
+        html
+    )
+
+    assert result is None
+
+
 def test_extract_published_at_from_time_element():
     html = """
     <html>
@@ -134,6 +292,78 @@ def test_extract_published_at_from_time_element():
         2026,
         5,
         26,
+    )
+
+
+def test_extract_published_at_from_time_visible_text():
+    html = """
+    <html>
+        <body>
+            <article>
+                <time>
+                    July 8, 2026
+                </time>
+            </article>
+        </body>
+    </html>
+    """
+
+    result = extract_article_published_at(
+        html
+    )
+
+    assert result == datetime(
+        2026,
+        7,
+        8,
+    )
+
+
+def test_extract_published_at_from_time_data_attribute():
+    html = """
+    <html>
+        <body>
+            <main>
+                <time
+                    data-published-at="2026-02-14"
+                >
+                    Publication date
+                </time>
+            </main>
+        </body>
+    </html>
+    """
+
+    result = extract_article_published_at(
+        html
+    )
+
+    assert result == datetime(
+        2026,
+        2,
+        14,
+    )
+
+
+def test_extract_published_at_from_schema_visible_text():
+    html = """
+    <html>
+        <body>
+            <span itemprop="datePublished">
+                8 July 2026
+            </span>
+        </body>
+    </html>
+    """
+
+    result = extract_article_published_at(
+        html
+    )
+
+    assert result == datetime(
+        2026,
+        7,
+        8,
     )
 
 

@@ -7,6 +7,10 @@ from services.corpus_operations_service import (
     run_stored_intelligence,
 )
 
+from services.date_enrichment_service import (
+    run_date_enrichment,
+)
+
 from services.extraction_measurement_service import (
     get_extraction_measurements,
 )
@@ -189,6 +193,151 @@ def backfill_command(
     click.echo(
         "Backfill complete."
     )
+
+
+@click.command(
+    "enrich-dates"
+)
+@click.option(
+    "--source",
+    required=True,
+    type=str,
+    help=(
+        "Configured source whose stored "
+        "undated evidence should be enriched."
+    ),
+)
+@click.option(
+    "--limit",
+    default=20,
+    type=click.IntRange(
+        min=0,
+    ),
+    show_default=True,
+    help=(
+        "Maximum undated evidence documents "
+        "to attempt in this run."
+    ),
+)
+def enrich_dates_command(
+    source,
+    limit,
+):
+    """
+    Recover publication dates for existing stored evidence.
+
+    This command performs no source discovery, LLM extraction,
+    or canonical knowledge mutation.
+    """
+
+    click.echo("")
+    click.echo(
+        "Vantage Date Enrichment"
+    )
+    click.echo(
+        "-----------------------"
+    )
+    click.echo("")
+
+    try:
+        result = run_date_enrichment(
+            source_name=source,
+            limit=limit,
+        )
+
+    except (
+        ValueError,
+        TypeError,
+    ) as exc:
+        raise click.ClickException(
+            str(exc)
+        ) from exc
+
+    click.echo(
+        f"Source:                  "
+        f"{result['source']}"
+    )
+
+    click.echo(
+        f"Source key:              "
+        f"{result['source_key']}"
+    )
+
+    click.echo(
+        f"Batch limit:             "
+        f"{result['limit']}"
+    )
+
+    click.echo("")
+
+    click.echo(
+        f"Undated before:          "
+        f"{result['undated_before']}"
+    )
+
+    click.echo(
+        f"Attempted:               "
+        f"{result['attempted']}"
+    )
+
+    click.echo(
+        f"Dates recovered:         "
+        f"{result['dates_recovered']}"
+    )
+
+    click.echo(
+        f"Still undated:           "
+        f"{result['remaining_undated']}"
+    )
+
+    click.echo(
+        f"Recovery rate:           "
+        f"{_format_percentage(result['recovery_rate'])}"
+    )
+
+    click.echo("")
+
+    if (
+        result[
+            "attempted"
+        ]
+        == 0
+    ):
+        click.echo(
+            "No undated evidence was selected."
+        )
+
+    elif (
+        result[
+            "dates_recovered"
+        ]
+        == 0
+    ):
+        click.echo(
+            "No publication dates were recovered "
+            "from the attempted batch."
+        )
+
+    elif (
+        result[
+            "dates_recovered"
+        ]
+        == result[
+            "attempted"
+        ]
+    ):
+        click.echo(
+            "Publication dates were recovered for "
+            "the entire attempted batch."
+        )
+
+    else:
+        click.echo(
+            "Publication dates were recovered for "
+            "part of the attempted batch."
+        )
+
+    click.echo("")
 
 
 @click.command(
@@ -1551,12 +1700,17 @@ def register_corpus_commands(
 ):
     """
     Register corpus, source-platform, integrity, replay,
-    measurement, observation-scale, and investor-intelligence
-    commands under the Vantage Flask CLI group.
+    measurement, observation-scale, enrichment, and
+    investor-intelligence commands under the Vantage Flask CLI
+    group.
     """
 
     vantage_group.add_command(
         backfill_command
+    )
+
+    vantage_group.add_command(
+        enrich_dates_command
     )
 
     vantage_group.add_command(
