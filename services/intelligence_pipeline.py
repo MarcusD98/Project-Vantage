@@ -16,10 +16,7 @@ from models.article import (
 from models.extraction_record import (
     EVENT_TYPE_FUNDING_ROUND,
     EVENT_TYPE_FUND_CLOSE,
-)
-
-from services.extraction_record_service import (
-    create_extraction_record,
+    VALIDATION_STATE_PROMOTE,
 )
 
 from services.article_service import (
@@ -36,6 +33,14 @@ from services.llm_extractor import (
     FUND_CLOSE_EXTRACTOR_VERSION,
     extract_funding_with_llm,
     extract_fund_close_with_llm,
+)
+
+from services.extraction_record_service import (
+    create_extraction_record,
+)
+
+from services.extraction_validation_service import (
+    validate_extraction_record,
 )
 
 from services.entity_service import (
@@ -304,6 +309,10 @@ def _select_articles_for_intelligence(
 
     This is the live/current pipeline and therefore always uses
     the normal publication-recency policy.
+
+    Article.llm_processed_at remains the compatibility selector
+    during Phase 7. A later migration will make extraction
+    records authoritative for processing state.
     """
 
     if limit <= 0:
@@ -363,9 +372,11 @@ def run_intelligence_pipeline(
        single-event extractor.
     4. Enrich page metadata where required.
     5. Apply source-specific publication recency policy.
-    6. Process current company-funding evidence.
-    7. Process current VC fund-news evidence.
-    8. Return a consolidated pipeline report.
+    6. Extract and validate current company-funding evidence.
+    7. Promote only validated company-funding extractions.
+    8. Extract and validate current VC fund-news evidence.
+    9. Promote only validated fund-close extractions.
+    10. Return a consolidated pipeline report.
     """
 
     try:
@@ -505,6 +516,21 @@ def _process_funding_article(
     article,
     stats,
 ):
+    """
+    Extract, validate, and conditionally promote one company
+    funding evidence document.
+
+    Validation state is durably committed before canonical
+    promotion begins.
+
+    REVIEW and REJECT records are therefore quarantined from
+    canonical truth.
+
+    A PROMOTE record whose canonicalization subsequently fails
+    remains durably visible with promoted_at unset, making the
+    failed promotion observable and retryable.
+    """
+
     try:
         if not _ensure_article_content(
             article,
@@ -525,11 +551,11 @@ def _process_funding_article(
 
             return
 
-        # Persist the extractor's interpretation before it can
-        # influence canonical knowledge.
-        create_extraction_record(
+        record = create_extraction_record(
             article=article,
-            event_type=EVENT_TYPE_FUNDING_ROUND,
+            event_type=(
+                EVENT_TYPE_FUNDING_ROUND
+            ),
             extraction=extraction,
             extractor_version=(
                 FUNDING_EXTRACTOR_VERSION
@@ -537,14 +563,12 @@ def _process_funding_article(
             model=EXTRACTION_MODEL,
         )
 
-        # Commit the extraction independently from canonicalization.
-        #
-        # If canonical persistence subsequently fails, Vantage still
-        # retains a durable record of what the extractor believed.
-        db.session.commit()
+        validate_extraction_record(
+            record
+        )
 
-        # Existing compatibility state remains in place during the
-        # Phase 7 migration.
+        # Preserve legacy processing fields until all consumers
+        # have migrated to ExtractionRecord.
         article.llm_processed_at = (
             datetime.now()
         )
@@ -553,10 +577,28 @@ def _process_funding_article(
             extraction.is_funding_round
         )
 
-        # Phase 7.1 deliberately preserves existing canonicalization.
-        #
-        # Phase 7.2 will place validation between the ExtractionRecord
-        # and this promotion step.
+        # Commit extraction + validation independently from
+        # canonical promotion.
+        db.session.commit()
+
+        stats[
+            "funding_processed"
+        ] += 1
+
+        if (
+            record.validation_state
+            != VALIDATION_STATE_PROMOTE
+        ):
+            logger.info(
+                "Funding extraction quarantined for "
+                "article %s with state %s and flags %s",
+                article.id,
+                record.validation_state,
+                record.validation_flags,
+            )
+
+            return
+
         funding_round = (
             save_funding_extraction(
                 article,
@@ -564,11 +606,12 @@ def _process_funding_article(
             )
         )
 
-        db.session.commit()
+        if funding_round is not None:
+            record.promoted_at = (
+                datetime.now()
+            )
 
-        stats[
-            "funding_processed"
-        ] += 1
+        db.session.commit()
 
         if funding_round is not None:
             stats[
@@ -598,6 +641,14 @@ def _process_fund_news_article(
     article,
     stats,
 ):
+    """
+    Extract, validate, and conditionally promote one fund-news
+    evidence document.
+
+    REVIEW and REJECT records are durably quarantined before
+    canonical fund or fund-close persistence can occur.
+    """
+
     try:
         if not _ensure_article_content(
             article,
@@ -618,11 +669,11 @@ def _process_fund_news_article(
 
             return
 
-        # Persist the extractor's interpretation before it can
-        # influence canonical knowledge.
-        create_extraction_record(
+        record = create_extraction_record(
             article=article,
-            event_type=EVENT_TYPE_FUND_CLOSE,
+            event_type=(
+                EVENT_TYPE_FUND_CLOSE
+            ),
             extraction=extraction,
             extractor_version=(
                 FUND_CLOSE_EXTRACTOR_VERSION
@@ -630,15 +681,38 @@ def _process_fund_news_article(
             model=EXTRACTION_MODEL,
         )
 
-        db.session.commit()
+        validate_extraction_record(
+            record
+        )
 
-        # Existing compatibility state remains in place during the
-        # Phase 7 migration.
+        # Preserve legacy processing state until consumers have
+        # migrated to ExtractionRecord.
         article.llm_processed_at = (
             datetime.now()
         )
 
-        # Phase 7.1 preserves the current canonicalization behavior.
+        # Commit extraction + validation independently from
+        # canonical promotion.
+        db.session.commit()
+
+        stats[
+            "fund_news_processed"
+        ] += 1
+
+        if (
+            record.validation_state
+            != VALIDATION_STATE_PROMOTE
+        ):
+            logger.info(
+                "Fund-close extraction quarantined for "
+                "article %s with state %s and flags %s",
+                article.id,
+                record.validation_state,
+                record.validation_flags,
+            )
+
+            return
+
         fund_close = (
             save_fund_close_extraction(
                 article,
@@ -646,11 +720,12 @@ def _process_fund_news_article(
             )
         )
 
-        db.session.commit()
+        if fund_close is not None:
+            record.promoted_at = (
+                datetime.now()
+            )
 
-        stats[
-            "fund_news_processed"
-        ] += 1
+        db.session.commit()
 
         if fund_close is not None:
             stats[

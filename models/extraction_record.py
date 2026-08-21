@@ -29,6 +29,9 @@ EVENT_TYPE_FUNDING_ROUND = "funding_round"
 EVENT_TYPE_FUND_CLOSE = "fund_close"
 
 VALIDATION_STATE_PENDING = "pending"
+VALIDATION_STATE_PROMOTE = "promote"
+VALIDATION_STATE_REVIEW = "review"
+VALIDATION_STATE_REJECT = "reject"
 
 
 class ExtractionRecord(db.Model):
@@ -87,7 +90,6 @@ class ExtractionRecord(db.Model):
         nullable=False,
     )
 
-    # Phase 7.2 will own transitions away from "pending".
     validation_state = db.Column(
         db.String(30),
         nullable=False,
