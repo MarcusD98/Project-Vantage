@@ -30,6 +30,10 @@ from services.multi_round_integrity_service import (
     repair_multi_round_article,
 )
 
+from services.observation_scale_service import (
+    get_observation_scale_report,
+)
+
 
 def _format_optional_date(value):
     if value is None:
@@ -61,6 +65,36 @@ def _format_optional_amount(
 
 def _format_percentage(value):
     return f"{value:.1f}%"
+
+
+def _format_ratio_percentage(
+    value,
+):
+    if value is None:
+        return "-"
+
+    return f"{value:.1%}"
+
+
+def _format_coverage_days(
+    value,
+):
+    if value is None:
+        return "-"
+
+    return str(
+        value
+    )
+
+
+def _format_capability(
+    value,
+):
+    return (
+        "yes"
+        if value
+        else "no"
+    )
 
 
 @click.command(
@@ -343,10 +377,6 @@ def replay_command(
     """
     Reprocess one stored evidence document using the current
     extractor version.
-
-    Replay ignores legacy Article.llm_processed_at state and
-    appends a new ExtractionRecord rather than overwriting
-    previous extraction history.
     """
 
     click.echo("")
@@ -505,7 +535,7 @@ def pipeline_report_command(
 ):
     """
     Report extraction, validation, promotion, replay, and source
-    quality measurements for the Vantage knowledge pipeline.
+    quality measurements for the knowledge pipeline.
     """
 
     report = get_extraction_measurements(
@@ -850,6 +880,314 @@ def pipeline_report_command(
         "The current schema cannot distinguish a failed "
         "canonical write from a PROMOTE record that produced "
         "no canonical object."
+    )
+
+    click.echo("")
+
+
+@click.command(
+    "observation-report"
+)
+@click.option(
+    "--source-type",
+    default=None,
+    type=click.Choice(
+        [
+            "publication",
+            "investor",
+            "ecosystem",
+            "company",
+            "structured",
+        ],
+        case_sensitive=True,
+    ),
+    help=(
+        "Restrict the observation baseline "
+        "to one source type."
+    ),
+)
+@click.option(
+    "--include-disabled",
+    is_flag=True,
+    default=False,
+    help=(
+        "Include disabled registry sources "
+        "in the observation baseline."
+    ),
+)
+def observation_report_command(
+    source_type,
+    include_disabled,
+):
+    """
+    Report the current scale and historical readiness of the
+    Vantage observation network.
+    """
+
+    report = get_observation_scale_report(
+        enabled_only=(
+            not include_disabled
+        ),
+        source_type=source_type,
+    )
+
+    summary = report[
+        "summary"
+    ]
+
+    click.echo("")
+    click.echo(
+        "Vantage Observation Baseline"
+    )
+    click.echo(
+        "----------------------------"
+    )
+    click.echo("")
+
+    if source_type is not None:
+        click.echo(
+            f"Source type:             "
+            f"{source_type}"
+        )
+
+    click.echo(
+        f"Enabled only:            "
+        f"{'no' if include_disabled else 'yes'}"
+    )
+
+    click.echo("")
+
+    click.echo(
+        "Network"
+    )
+    click.echo(
+        "-------"
+    )
+
+    click.echo(
+        f"Sources:                 "
+        f"{summary['sources']}"
+    )
+
+    click.echo(
+        f"Incremental-capable:     "
+        f"{summary['incremental_capable']}"
+    )
+
+    click.echo(
+        f"Historical-capable:      "
+        f"{summary['historical_capable']}"
+    )
+
+    click.echo(
+        f"Historical capability:   "
+        f"{_format_percentage(summary['historical_capability_rate'])}"
+    )
+
+    click.echo("")
+
+    click.echo(
+        "Observed Corpus"
+    )
+    click.echo(
+        "---------------"
+    )
+
+    click.echo(
+        f"Sources with evidence:   "
+        f"{summary['sources_with_evidence']}"
+    )
+
+    click.echo(
+        f"Sources with >=12m span: "
+        f"{summary['sources_with_12m_coverage']}"
+    )
+
+    click.echo(
+        f"Sources with >=24m span: "
+        f"{summary['sources_with_24m_coverage']}"
+    )
+
+    click.echo(
+        f"Stored evidence:         "
+        f"{summary['stored_evidence']}"
+    )
+
+    click.echo("")
+
+    click.echo(
+        "Knowledge Production"
+    )
+    click.echo(
+        "--------------------"
+    )
+
+    click.echo(
+        f"Extraction attempts:     "
+        f"{summary['extraction_attempts']}"
+    )
+
+    click.echo(
+        f"Promoted extractions:    "
+        f"{summary['promoted_extractions']}"
+    )
+
+    click.echo(
+        f"Unique funding events:   "
+        f"{summary['unique_funding_events']}"
+    )
+
+    click.echo("")
+
+    click.echo(
+        "Source Cohort"
+    )
+    click.echo(
+        "-------------"
+    )
+
+    if report[
+        "by_source_type"
+    ]:
+        for row in report[
+            "by_source_type"
+        ]:
+            click.echo(
+                f"{row['source_type']:<24}"
+                f"{row['count']:>6}"
+            )
+
+    else:
+        click.echo(
+            "No sources."
+        )
+
+    click.echo("")
+
+    click.echo(
+        "Source Detail"
+    )
+    click.echo(
+        "-------------"
+    )
+
+    if not report[
+        "sources"
+    ]:
+        click.echo(
+            "No sources match the selected filters."
+        )
+        click.echo("")
+        return
+
+    for row in report[
+        "sources"
+    ]:
+        click.echo(
+            f"{row['name']} "
+            f"[{row['source_type']}] "
+            f"({row['region']})"
+        )
+
+        click.echo(
+            f"  Discovery:             "
+            f"incremental="
+            f"{_format_capability(row['incremental_capable'])}"
+            f" ({row['incremental_method'] or '-'})"
+            f" | historical="
+            f"{_format_capability(row['historical_capable'])}"
+            f" ({row['historical_method'] or '-'})"
+        )
+
+        click.echo(
+            f"  Stored evidence:       "
+            f"{row['stored_evidence']}"
+        )
+
+        click.echo(
+            f"  Dated / undated:       "
+            f"{row['dated_evidence']} / "
+            f"{row['undated_evidence']}"
+        )
+
+        click.echo(
+            f"  Oldest evidence:       "
+            f"{_format_optional_date(row['oldest_evidence_at'])}"
+        )
+
+        click.echo(
+            f"  Newest evidence:       "
+            f"{_format_optional_date(row['newest_evidence_at'])}"
+        )
+
+        click.echo(
+            f"  Observed span days:    "
+            f"{_format_coverage_days(row['coverage_days'])}"
+        )
+
+        click.echo(
+            f"  Coverage class:        "
+            f"{row['coverage_status']}"
+        )
+
+        click.echo(
+            f"  Extraction attempts:   "
+            f"{row['extraction_attempts']}"
+        )
+
+        click.echo(
+            f"  P / R / X / Pending:   "
+            f"{row['promote']} / "
+            f"{row['review']} / "
+            f"{row['reject']} / "
+            f"{row['pending']}"
+        )
+
+        click.echo(
+            f"  Promoted:              "
+            f"{row['promoted']}"
+        )
+
+        click.echo(
+            f"  Promotion rate:        "
+            f"{_format_percentage(row['promotion_rate'])}"
+        )
+
+        click.echo(
+            f"  Quarantine rate:       "
+            f"{_format_percentage(row['quarantine_rate'])}"
+        )
+
+        click.echo(
+            f"  Funding events:        "
+            f"{row['supported_funding_events']}"
+        )
+
+        click.echo(
+            f"  Unique events:         "
+            f"{row['unique_funding_events']}"
+        )
+
+        click.echo(
+            f"  Multi-source events:   "
+            f"{row['multi_source_funding_events']}"
+        )
+
+        click.echo(
+            f"  Funding overlap:       "
+            f"{_format_ratio_percentage(row['funding_overlap_rate'])}"
+        )
+
+        click.echo("")
+
+    click.echo(
+        "Observed span describes the dated Vantage corpus "
+        "between its oldest and newest evidence documents."
+    )
+
+    click.echo(
+        "It does not imply continuous coverage or complete "
+        "knowledge of real-world activity."
     )
 
     click.echo("")
@@ -1213,8 +1551,8 @@ def register_corpus_commands(
 ):
     """
     Register corpus, source-platform, integrity, replay,
-    measurement, and investor-intelligence commands under the
-    Vantage Flask CLI group.
+    measurement, observation-scale, and investor-intelligence
+    commands under the Vantage Flask CLI group.
     """
 
     vantage_group.add_command(
@@ -1231,6 +1569,10 @@ def register_corpus_commands(
 
     vantage_group.add_command(
         pipeline_report_command
+    )
+
+    vantage_group.add_command(
+        observation_report_command
     )
 
     vantage_group.add_command(
