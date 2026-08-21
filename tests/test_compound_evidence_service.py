@@ -1,6 +1,8 @@
 from models.article import Article
 
 from services.compound_evidence_service import (
+    get_compound_funding_reasons,
+    get_multi_round_review_reasons,
     is_compound_funding_evidence,
 )
 
@@ -8,6 +10,7 @@ from services.compound_evidence_service import (
 def _article(
     title,
     category="Funding Round",
+    content=None,
 ):
     return Article(
         title=title,
@@ -23,10 +26,11 @@ def _article(
             )
         ),
         category=category,
+        content=content,
     )
 
 
-def test_detects_biggest_funding_rounds():
+def test_detects_biggest_funding_rounds_as_blocking():
     article = _article(
         "The Week’s 10 Biggest Funding Rounds: "
         "Data, Neolab, AI Infrastructure"
@@ -39,8 +43,15 @@ def test_detects_biggest_funding_rounds():
         is True
     )
 
+    assert (
+        get_compound_funding_reasons(
+            article
+        )
+        == ["collection"]
+    )
 
-def test_detects_funding_roundup():
+
+def test_detects_funding_roundup_as_blocking():
     article = _article(
         "Weekly Funding Roundup: "
         "The biggest deals this week"
@@ -54,7 +65,7 @@ def test_detects_funding_roundup():
     )
 
 
-def test_detects_plural_startup_retrospective():
+def test_detects_plural_startup_retrospective_as_blocking():
     article = _article(
         "These Kenyan startups raised "
         "$500 million before shutting down"
@@ -68,10 +79,62 @@ def test_detects_plural_startup_retrospective():
     )
 
 
-def test_does_not_block_normal_single_round():
+def test_explicit_three_rounds_is_review_only_not_blocking():
     article = _article(
-        "Acme raises $40M Series B "
-        "led by Index Ventures"
+        "Partnering with Eon",
+        content=(
+            "Eon announced three funding rounds as it built "
+            "its cloud backup platform."
+        ),
+    )
+
+    assert (
+        is_compound_funding_evidence(
+            article
+        )
+        is False
+    )
+
+    assert (
+        "explicit_multiple_rounds"
+        in get_multi_round_review_reasons(
+            article
+        )
+    )
+
+
+def test_seed_and_series_a_is_review_only_not_blocking():
+    article = _article(
+        "Our investment in Nova",
+        content=(
+            "Nova announced a seed round led by Accel and a "
+            "Series A led by Chemistry."
+        ),
+    )
+
+    assert (
+        is_compound_funding_evidence(
+            article
+        )
+        is False
+    )
+
+    assert (
+        "multiple_financing_stages"
+        in get_multi_round_review_reasons(
+            article
+        )
+    )
+
+
+def test_current_series_c_with_prior_series_b_is_not_blocked():
+    article = _article(
+        "Acme raises $100M Series C",
+        content=(
+            "Acme raised a new $100 million Series C led by "
+            "Index. The company previously raised a Series B "
+            "last year."
+        ),
     )
 
     assert (
@@ -82,21 +145,23 @@ def test_does_not_block_normal_single_round():
     )
 
 
-def test_does_not_block_single_round_with_week_word():
+def test_normal_single_round_has_no_review_signal():
     article = _article(
-        "Acme raises $20M one week "
-        "after launching"
+        "Acme raises $40M Series B led by Index Ventures",
+        content=(
+            "Acme raised a $40 million Series B led by Index."
+        ),
     )
 
     assert (
-        is_compound_funding_evidence(
+        get_multi_round_review_reasons(
             article
         )
-        is False
+        == []
     )
 
 
-def test_non_funding_category_is_not_blocked():
+def test_non_funding_category_is_not_blocked_or_reviewed():
     article = _article(
         "The week’s 10 biggest funding rounds",
         category="Other",
@@ -107,4 +172,11 @@ def test_non_funding_category_is_not_blocked():
             article
         )
         is False
+    )
+
+    assert (
+        get_multi_round_review_reasons(
+            article
+        )
+        == []
     )

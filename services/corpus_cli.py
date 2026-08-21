@@ -1,5 +1,7 @@
 import click
 
+from models.article import db
+
 from services.corpus_operations_service import (
     run_backfill_operation,
     run_stored_intelligence,
@@ -14,6 +16,39 @@ from services.investor_intelligence_cli import (
     investor_command,
     investors_command,
 )
+
+from services.multi_round_integrity_service import (
+    audit_multi_round_integrity,
+    repair_multi_round_article,
+)
+
+
+def _format_optional_date(value):
+    if value is None:
+        return "-"
+
+    return str(
+        value.date()
+    )
+
+
+def _format_optional_amount(
+    amount,
+    currency,
+):
+    if amount is None:
+        return "-"
+
+    prefix = (
+        f"{currency} "
+        if currency
+        else ""
+    )
+
+    return (
+        prefix
+        + f"{amount:,.0f}"
+    )
 
 
 @click.command(
@@ -264,12 +299,366 @@ def process_command(
     )
 
 
+@click.command(
+    "multi-rounds"
+)
+@click.option(
+    "--source",
+    default=None,
+    type=str,
+    help=(
+        "Optionally restrict the integrity audit to one "
+        "evidence source."
+    ),
+)
+def multi_rounds_command(
+    source,
+):
+    """
+    Audit multi-round risk without treating review signals as
+    automatic deletion evidence.
+    """
+
+    result = audit_multi_round_integrity(
+        source_name=source
+    )
+
+    click.echo("")
+    click.echo(
+        "Vantage Multi-Round Integrity Audit"
+    )
+    click.echo(
+        "-----------------------------------"
+    )
+    click.echo("")
+
+    click.echo(
+        f"Source filter:            "
+        f"{source or 'all'}"
+    )
+
+    click.echo(
+        f"Review-signal articles:   "
+        f"{result['suspect_articles']}"
+    )
+
+    click.echo(
+        f"Attached canonical rounds:"
+        f" {result['attached_rounds']}"
+    )
+
+    click.echo(
+        f"Automatic repair candidates:"
+        f" {result['automatic_repair_candidates']}"
+    )
+
+    click.echo(
+        f"Review-only candidates:  "
+        f"{result['review_only_candidates']}"
+    )
+
+    click.echo(
+        f"Shared-event manual review:"
+        f" {result['manual_review_candidates']}"
+    )
+
+    click.echo("")
+    click.echo(
+        "Review signals are diagnostic only. A sole evidence "
+        "source does not prove that a canonical round is invalid."
+    )
+    click.echo("")
+
+    if not result[
+        "rows"
+    ]:
+        click.echo(
+            "No multi-round review signals found."
+        )
+        click.echo("")
+        return
+
+    for row in result[
+        "rows"
+    ]:
+        click.echo(
+            f"Article #{row['article_id']} | "
+            f"{row['source']} | "
+            f"{_format_optional_date(row['published_at'])}"
+        )
+
+        click.echo(
+            f"  {row['title']}"
+        )
+
+        if row[
+            "blocking_reasons"
+        ]:
+            click.echo(
+                "  Blocking reasons: "
+                + ", ".join(
+                    row[
+                        "blocking_reasons"
+                    ]
+                )
+            )
+
+        diagnostic_only = [
+            reason
+            for reason in row[
+                "review_reasons"
+            ]
+            if reason not in row[
+                "blocking_reasons"
+            ]
+        ]
+
+        if diagnostic_only:
+            click.echo(
+                "  Review signals: "
+                + ", ".join(
+                    diagnostic_only
+                )
+            )
+
+        if row[
+            "round_id"
+        ] is None:
+            click.echo(
+                "  Canonical round: none"
+            )
+
+        else:
+            click.echo(
+                f"  Round #{row['round_id']} | "
+                f"{row['company']} | "
+                f"{row['round_type']} | "
+                f"{_format_optional_amount(row['amount'], row['currency'])} | "
+                f"{_format_optional_date(row['announced_at'])}"
+            )
+
+            click.echo(
+                f"  Other evidence: "
+                f"{row['other_evidence_count']}"
+                + (
+                    " ("
+                    + ", ".join(
+                        row[
+                            "other_evidence_sources"
+                        ]
+                    )
+                    + ")"
+                    if row[
+                        "other_evidence_sources"
+                    ]
+                    else ""
+                )
+            )
+
+        click.echo(
+            "  Recommended action: "
+            f"{row['recommended_action'].upper()}"
+        )
+
+        click.echo(
+            f"  URL: {row['url']}"
+        )
+
+        click.echo("")
+
+
+@click.command(
+    "multi-round-repair"
+)
+@click.option(
+    "--article-id",
+    required=True,
+    type=int,
+    help=(
+        "Article ID from the multi-round integrity audit."
+    ),
+)
+@click.option(
+    "--confirmed-invalid",
+    is_flag=True,
+    default=False,
+    help=(
+        "Explicitly confirm that a REVIEW_ONLY article has been "
+        "human-verified as an invalid synthetic event. This does "
+        "not override the multi-source safety refusal."
+    ),
+)
+@click.option(
+    "--apply",
+    "apply_changes",
+    is_flag=True,
+    default=False,
+    help=(
+        "Apply the repair. Without this flag the command is "
+        "a read-only dry run."
+    ),
+)
+def multi_round_repair_command(
+    article_id,
+    confirmed_invalid,
+    apply_changes,
+):
+    """
+    Repair one reviewed invalid event conservatively.
+    """
+
+    try:
+        result = repair_multi_round_article(
+            article_id=article_id,
+            apply=apply_changes,
+            confirmed_invalid=(
+                confirmed_invalid
+            ),
+        )
+
+        if apply_changes:
+            db.session.commit()
+
+    except ValueError as exc:
+        db.session.rollback()
+
+        raise click.ClickException(
+            str(exc)
+        ) from exc
+
+    except Exception:
+        db.session.rollback()
+        raise
+
+    article = result[
+        "article"
+    ]
+
+    click.echo("")
+    click.echo(
+        "Vantage Multi-Round Repair"
+    )
+    click.echo(
+        "--------------------------"
+    )
+    click.echo("")
+
+    click.echo(
+        f"Mode:                    "
+        f"{'APPLY' if apply_changes else 'DRY RUN'}"
+    )
+
+    click.echo(
+        f"Article:                 "
+        f"#{article.id} {article.title}"
+    )
+
+    click.echo(
+        "Blocking reasons:        "
+        + (
+            ", ".join(
+                result[
+                    "blocking_reasons"
+                ]
+            )
+            or "none"
+        )
+    )
+
+    click.echo(
+        "Review signals:          "
+        + (
+            ", ".join(
+                result[
+                    "review_reasons"
+                ]
+            )
+            or "none"
+        )
+    )
+
+    click.echo(
+        f"Human-confirmed invalid: "
+        f"{'yes' if result['confirmed_invalid'] else 'no'}"
+    )
+
+    click.echo(
+        f"Attached rounds:         "
+        f"{len(result['rounds'])}"
+    )
+
+    click.echo(
+        f"Repair permitted:        "
+        f"{'yes' if result['can_apply'] else 'no'}"
+    )
+
+    if result[
+        "reason"
+    ]:
+        click.echo(
+            f"Reason:                  "
+            f"{result['reason']}"
+        )
+
+    for row in result[
+        "rows"
+    ]:
+        click.echo("")
+        click.echo(
+            f"  Round #{row['round_id']} | "
+            f"{row['company']} | "
+            f"{row['round_type']} | "
+            f"other evidence "
+            f"{row['other_evidence_count']}"
+        )
+
+    click.echo("")
+
+    if apply_changes:
+        click.echo(
+            f"Rounds deleted:          "
+            f"{result['rounds_deleted']}"
+        )
+
+        click.echo(
+            "Article returned to an unprocessed evidence state."
+        )
+
+    else:
+        click.echo(
+            "No database changes were made."
+        )
+
+        if (
+            result[
+                "can_apply"
+            ]
+        ):
+            click.echo(
+                "Re-run with --apply after reviewing the evidence."
+            )
+
+        elif (
+            not result[
+                "blocking_reasons"
+            ]
+            and not confirmed_invalid
+        ):
+            click.echo(
+                "For a REVIEW_ONLY case, verify the article first; "
+                "only then re-run with --confirmed-invalid."
+            )
+
+    click.echo("")
+
+
 def register_corpus_commands(
     vantage_group,
 ):
     """
-    Register corpus, source-platform and investor-intelligence
-    commands under the Vantage Flask CLI group.
+    Register corpus, source-platform, integrity and
+    investor-intelligence commands under the Vantage Flask CLI
+    group.
     """
 
     vantage_group.add_command(
@@ -294,4 +683,12 @@ def register_corpus_commands(
 
     vantage_group.add_command(
         investor_command
+    )
+
+    vantage_group.add_command(
+        multi_rounds_command
+    )
+
+    vantage_group.add_command(
+        multi_round_repair_command
     )

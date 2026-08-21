@@ -3,6 +3,10 @@ from typing import Optional
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
+from services.compound_evidence_service import (
+    is_compound_funding_evidence,
+)
+
 
 client = OpenAI()
 
@@ -51,14 +55,31 @@ class FundCloseExtraction(BaseModel):
 
 
 def extract_funding_with_llm(article):
+    """
+    Extract one focal company financing event from one evidence
+    document.
+
+    Obvious multi-company collections are rejected before an LLM
+    call. Single-company articles may mention historical rounds;
+    the model must isolate the focal/new event and never blend
+    facts across different financings.
+    """
+
+    if is_compound_funding_evidence(
+        article
+    ):
+        return FundingExtraction(
+            is_funding_round=False
+        )
+
     response = client.responses.parse(
         model="gpt-5.6-luna",
         input=[
             {
                 "role": "developer",
                 "content": (
-                    "Extract structured information about a COMPANY "
-                    "FINANCING EVENT from the supplied article. "
+                    "Extract structured information about ONE FOCAL "
+                    "COMPANY FINANCING EVENT from the supplied article. "
 
                     "A company financing event means that a startup, "
                     "scale-up, or operating company has raised capital "
@@ -68,37 +89,61 @@ def extract_funding_with_llm(article):
                     "event merely because a venture-capital firm has "
                     "raised money for one of its own investment funds. "
 
-                    "Set is_funding_round to true only when the article "
-                    "reports a specific financing event involving an "
-                    "operating company raising capital. "
+                    "IMPORTANT MULTI-ROUND RULE: venture articles often "
+                    "mention older financing rounds as historical context. "
+                    "If the article clearly centers on ONE newly announced, "
+                    "current, or focal financing event, extract ONLY that "
+                    "event and ignore facts belonging to older or separate "
+                    "rounds. Never combine the amount from one round, the "
+                    "stage from another round, or investor / lead roles from "
+                    "different rounds. "
 
-                    "For event_evidence, provide one short factual "
-                    "sentence explaining the financing event using only "
-                    "information supported by the article. "
+                    "Examples: if an article announces a new Series C but "
+                    "mentions that the company previously raised a Series B, "
+                    "extract the Series C only. If it announces a new round "
+                    "and says an investor led the old seed round, do not mark "
+                    "that investor as lead unless the article says it leads "
+                    "the new focal round. "
+
+                    "If the document genuinely describes multiple financing "
+                    "events as co-primary facts and no single focal financing "
+                    "event can be isolated with confidence, set "
+                    "is_funding_round to false. "
+
+                    "Set is_funding_round to true only when one specific "
+                    "focal financing event can be represented consistently. "
+
+                    "For event_evidence, provide one short factual sentence "
+                    "about that focal event only. "
 
                     "Extract the canonical company name rather than "
                     "descriptive wording from the headline. "
 
-                    "Investor lists must contain only identifiable "
-                    "investors or investment organizations. "
+                    "Investor lists must contain only identifiable investors "
+                    "or investment organizations participating in the focal "
+                    "event. Do not carry investor names forward from a prior "
+                    "historical round. "
+
+                    "Lead investors must be lead investors in the focal event "
+                    "only. A firm that led an earlier seed round is not a lead "
+                    "investor in a later Series A unless the article explicitly "
+                    "says so. "
+
                     "Do not treat generic descriptions such as company "
                     "founders, advisers, strategic angels, employees, "
-                    "government support, or scientific advisers as "
-                    "investor entities unless a specific named investor "
-                    "or organization is provided. "
+                    "government support, or scientific advisers as investor "
+                    "entities unless a specific named investor or organization "
+                    "is provided. "
 
-                    "Use only facts supported by the article. "
-                    "Do not guess missing information. "
-                    "Use null or an empty list when information is "
-                    "unavailable. "
+                    "Use only facts supported by the article. Do not guess "
+                    "missing information. Use null or an empty list when "
+                    "information is unavailable. "
 
-                    "For amount, return the full numeric value. "
-                    "For example, 6.3 million must be returned as "
-                    "6300000. "
+                    "For amount, return the full numeric value. For example, "
+                    "6.3 million must be returned as 6300000. "
 
-                    "For currency, return the standard three-letter "
-                    "currency code where identifiable, such as USD, "
-                    "EUR, or GBP."
+                    "For currency, return the standard three-letter currency "
+                    "code where identifiable, such as USD, EUR, or GBP."
                 ),
             },
             {
