@@ -117,6 +117,15 @@ def test_historical_fleet_contains_configured_sources():
         "Sequoia Capital",
         "Bessemer Venture Partners",
         "Greylock",
+        "Lightspeed Venture Partners",
+        "Menlo Ventures",
+        "Felicis",
+        "Creandum",
+        "Dawn Capital",
+        "Redpoint Ventures",
+        "GV",
+        "Northzone",
+        "DCVC",
     ]
 
 
@@ -140,6 +149,15 @@ def test_historical_investor_fleet():
         "Sequoia Capital",
         "Bessemer Venture Partners",
         "Greylock",
+        "Lightspeed Venture Partners",
+        "Menlo Ventures",
+        "Felicis",
+        "Creandum",
+        "Dawn Capital",
+        "Redpoint Ventures",
+        "GV",
+        "Northzone",
+        "DCVC",
     }
 
 
@@ -150,6 +168,15 @@ def test_historical_investor_strategies_remove_recency_limits():
         "Sequoia Capital",
         "Bessemer Venture Partners",
         "Greylock",
+        "Lightspeed Venture Partners",
+        "Menlo Ventures",
+        "Felicis",
+        "Creandum",
+        "Dawn Capital",
+        "Redpoint Ventures",
+        "GV",
+        "Northzone",
+        "DCVC",
     ]:
         config = (
             get_discovery_config(
@@ -270,10 +297,19 @@ def test_incremental_investor_fleet():
         "NEA",
         "Balderton Capital",
         "Insight Partners",
+        "Lightspeed Venture Partners",
+        "Menlo Ventures",
+        "Felicis",
+        "Creandum",
+        "Dawn Capital",
+        "Redpoint Ventures",
+        "GV",
+        "Northzone",
+        "DCVC",
     }
 
 
-def test_scale_cohort_has_ten_enabled_investors():
+def test_scale_cohort_has_nineteen_enabled_investors():
     names = get_source_names(
         source_type="investor",
         enabled_only=True,
@@ -281,7 +317,7 @@ def test_scale_cohort_has_ten_enabled_investors():
 
     assert len(
         names
-    ) == 10
+    ) == 19
 
 
 def test_new_scale_cohort_uses_existing_html_adapter():

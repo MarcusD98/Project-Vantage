@@ -599,6 +599,342 @@ SOURCE_REGISTRY = [
             },
         },
     },
+
+    # -----------------------------------------------------
+    # Investor cohort V2
+    #
+    # Selected through read-only compatibility probing.
+    # These sources use only existing generic Vantage
+    # acquisition mechanisms.
+    # -----------------------------------------------------
+
+    {
+        "key": "lightspeed-venture-partners",
+        "name": "Lightspeed Venture Partners",
+        "type": "investor",
+        "region": "Global",
+        "enabled": True,
+        "discovery": {
+            "incremental": {
+                "method": "sitemap",
+                "url": "https://lsvp.com/sitemap.xml",
+
+                "include_url_patterns": [
+                    "/stories/",
+                ],
+
+                "max_discovery_items": 100,
+                "max_published_age_days": 180,
+            },
+
+            "historical": {
+                "method": "sitemap",
+                "url": "https://lsvp.com/sitemap.xml",
+
+                "include_url_patterns": [
+                    "/stories/",
+                ],
+
+                "max_discovery_items": 250,
+            },
+        },
+    },
+
+    {
+        "key": "menlo-ventures",
+        "name": "Menlo Ventures",
+        "type": "investor",
+        "region": "United States",
+        "enabled": True,
+        "discovery": {
+            "incremental": {
+                "method": "sitemap",
+                "url": "https://menlovc.com/sitemap_index.xml",
+
+                "include_url_patterns": [
+                    "/perspective/",
+                ],
+
+                "max_discovery_items": 100,
+                "max_published_age_days": 180,
+            },
+
+            "historical": {
+                "method": "sitemap",
+                "url": "https://menlovc.com/sitemap_index.xml",
+
+                "include_url_patterns": [
+                    "/perspective/",
+                ],
+
+                "max_discovery_items": 250,
+            },
+        },
+    },
+
+    {
+        "key": "felicis",
+        "name": "Felicis",
+        "type": "investor",
+        "region": "United States",
+        "enabled": True,
+        "discovery": {
+            "incremental": {
+                "method": "sitemap",
+                "url": "https://www.felicis.com/sitemap.xml",
+
+                "include_url_patterns": [
+                    "/blog/",
+                ],
+
+                "exclude_url_patterns": [
+                    "/blog/archive",
+                ],
+
+                "max_discovery_items": 100,
+                "max_published_age_days": 180,
+            },
+
+            "historical": {
+                "method": "sitemap",
+                "url": "https://www.felicis.com/sitemap.xml",
+
+                "include_url_patterns": [
+                    "/blog/",
+                ],
+
+                "exclude_url_patterns": [
+                    "/blog/archive",
+                ],
+
+                "max_discovery_items": 250,
+            },
+        },
+    },
+
+    {
+        "key": "creandum",
+        "name": "Creandum",
+        "type": "investor",
+        "region": "Europe",
+        "enabled": True,
+        "discovery": {
+            "incremental": {
+                "method": "sitemap",
+                "url": "https://creandum.com/sitemap.xml",
+
+                "include_url_patterns": [
+                    "/stories/",
+                ],
+
+                "max_discovery_items": 100,
+                "max_published_age_days": 180,
+            },
+
+            "historical": {
+                "method": "sitemap",
+                "url": "https://creandum.com/sitemap.xml",
+
+                "include_url_patterns": [
+                    "/stories/",
+                ],
+
+                "max_discovery_items": 250,
+            },
+        },
+    },
+
+    {
+        "key": "dawn-capital",
+        "name": "Dawn Capital",
+        "type": "investor",
+        "region": "Europe",
+        "enabled": True,
+        "discovery": {
+            "incremental": {
+                "method": "sitemap",
+                "url": "https://www.dawncapital.com/sitemap.xml",
+
+                "include_url_patterns": [
+                    "/content-hub/",
+                ],
+
+                "max_discovery_items": 100,
+                "max_published_age_days": 180,
+            },
+
+            "historical": {
+                "method": "sitemap",
+                "url": "https://www.dawncapital.com/sitemap.xml",
+
+                "include_url_patterns": [
+                    "/content-hub/",
+                ],
+
+                "max_discovery_items": 250,
+            },
+        },
+    },
+
+    {
+        "key": "redpoint-ventures",
+        "name": "Redpoint Ventures",
+        "type": "investor",
+        "region": "United States",
+        "enabled": True,
+        "discovery": {
+            "incremental": {
+                "method": "sitemap",
+                "url": "https://www.redpoint.com/sitemap.xml",
+
+                "include_url_patterns": [
+                    "/content-hub/written/",
+                ],
+
+                "max_discovery_items": 100,
+                "max_published_age_days": 180,
+            },
+
+            "historical": {
+                "method": "sitemap",
+                "url": "https://www.redpoint.com/sitemap.xml",
+
+                "include_url_patterns": [
+                    "/content-hub/written/",
+                ],
+
+                "max_discovery_items": 250,
+            },
+        },
+    },
+
+    {
+        "key": "gv",
+        "name": "GV",
+        "type": "investor",
+        "region": "Global",
+        "enabled": True,
+        "discovery": {
+            "incremental": {
+                "method": "sitemap",
+                "url": "https://www.gv.com/sitemap.xml",
+
+                "include_url_patterns": [
+                    "/news/",
+                ],
+
+                "max_discovery_items": 100,
+                "max_published_age_days": 180,
+            },
+
+            "historical": {
+                "method": "sitemap",
+                "url": "https://www.gv.com/sitemap.xml",
+
+                "include_url_patterns": [
+                    "/news/",
+                ],
+
+                "max_discovery_items": 250,
+            },
+        },
+    },
+
+    {
+        "key": "northzone",
+        "name": "Northzone",
+        "type": "investor",
+        "region": "Europe",
+        "enabled": True,
+        "discovery": {
+            "incremental": {
+                "method": "html",
+                "url": (
+                    "https://northzone.com/"
+                    "category/investment"
+                ),
+
+                "link_selector": "a[href]",
+
+                "include_url_patterns": [
+                    "/insights/",
+                ],
+
+                "max_discovery_pages": 1,
+                "max_discovery_items": 100,
+                "max_published_age_days": 180,
+            },
+
+            "historical": {
+                "method": "html",
+                "url": (
+                    "https://northzone.com/"
+                    "category/investment"
+                ),
+
+                "link_selector": "a[href]",
+
+                "include_url_patterns": [
+                    "/insights/",
+                ],
+
+                "max_discovery_pages": 1,
+                "max_discovery_items": 250,
+            },
+        },
+    },
+
+    {
+        "key": "dcvc",
+        "name": "DCVC",
+        "type": "investor",
+        "region": "United States",
+        "enabled": True,
+        "discovery": {
+            "incremental": {
+                "method": "html",
+                "url": (
+                    "https://www.dcvc.com/"
+                    "news-insights/"
+                ),
+
+                "link_selector": "a[href]",
+
+                "include_url_patterns": [
+                    "/news-insights/",
+                ],
+
+                "exclude_url_patterns": [
+                    "/news-insights/archive",
+                ],
+
+                "max_discovery_pages": 1,
+                "max_discovery_items": 100,
+                "max_published_age_days": 180,
+            },
+
+            "historical": {
+                "method": "html",
+                "url": (
+                    "https://www.dcvc.com/"
+                    "news-insights/"
+                ),
+
+                "link_selector": "a[href]",
+
+                "include_url_patterns": [
+                    "/news-insights/",
+                ],
+
+                "exclude_url_patterns": [
+                    "/news-insights/archive",
+                ],
+
+                "max_discovery_pages": 1,
+                "max_discovery_items": 250,
+            },
+        },
+    },
 ]
 
 

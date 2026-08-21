@@ -82,6 +82,15 @@ def test_select_incremental_investor_fleet():
         "NEA",
         "Balderton Capital",
         "Insight Partners",
+        "Lightspeed Venture Partners",
+        "Menlo Ventures",
+        "Felicis",
+        "Creandum",
+        "Dawn Capital",
+        "Redpoint Ventures",
+        "GV",
+        "Northzone",
+        "DCVC",
     }
 
 
@@ -104,8 +113,16 @@ def test_select_historical_fleet():
         "Sequoia Capital",
         "Bessemer Venture Partners",
         "Greylock",
+        "Lightspeed Venture Partners",
+        "Menlo Ventures",
+        "Felicis",
+        "Creandum",
+        "Dawn Capital",
+        "Redpoint Ventures",
+        "GV",
+        "Northzone",
+        "DCVC",
     ]
-
 
 def test_select_source_by_name():
     fleet = (
