@@ -9,6 +9,16 @@ MIN_SECTOR_PREVIOUS_EVENTS = 1
 MIN_SECTOR_COVERAGE = 0.60
 
 
+# Catch-all taxonomy values remain valid measurements because
+# they describe the observed corpus, but they are not meaningful
+# enough to promote as market-intelligence signals.
+NON_SIGNAL_DIMENSION_VALUES = {
+    "other",
+    "unknown",
+    "unclassified",
+}
+
+
 def _positive_integer(
     value,
     name,
@@ -40,6 +50,20 @@ def _direction(delta):
         return "down"
 
     return "flat"
+
+
+def _is_signal_dimension_value(
+    value,
+):
+    if value is None:
+        return False
+
+    return (
+        str(value)
+        .strip()
+        .casefold()
+        not in NON_SIGNAL_DIMENSION_VALUES
+    )
 
 
 def _comparison_confidence(
@@ -211,6 +235,16 @@ def _qualify_sector_measurement(
         else reason
     )
 
+    result[
+        "signal_eligible"
+    ] = (
+        _is_signal_dimension_value(
+            row[
+                "value"
+            ]
+        )
+    )
+
     return result
 
 
@@ -254,6 +288,10 @@ def get_sector_momentum(
 
     The underlying measurement comes from canonical events.
     No LLM determines whether a sector is rising or falling.
+
+    Catch-all taxonomy values such as Other remain visible in
+    measurements but are deliberately excluded from promoted
+    market signals.
     """
 
     limit = (
@@ -304,6 +342,9 @@ def get_sector_momentum(
                 "direction"
             ]
             != "flat"
+            and item[
+                "signal_eligible"
+            ]
         )
     ]
 

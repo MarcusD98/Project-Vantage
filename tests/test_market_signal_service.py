@@ -86,10 +86,10 @@ def _comparison(
         },
 
         "current_round_count":
-            8,
+            16,
 
         "previous_round_count":
-            5,
+            15,
 
         "comparison": [
             {
@@ -148,6 +148,74 @@ def _comparison(
                     7,
                     8,
                     9,
+                ],
+            },
+
+            {
+                "dimension":
+                    "sector",
+
+                "value":
+                    "Other",
+
+                "current_event_count":
+                    8,
+
+                "previous_event_count":
+                    10,
+
+                "delta":
+                    -2,
+
+                "change_pct":
+                    -20.0,
+
+                "current_company_count":
+                    8,
+
+                "previous_company_count":
+                    10,
+
+                "current_investor_count":
+                    3,
+
+                "previous_investor_count":
+                    3,
+
+                "current_lead_event_count":
+                    2,
+
+                "previous_lead_event_count":
+                    3,
+
+                "contributing_investors": [
+                    "Investor 0",
+                    "Investor 1",
+                    "Investor 2",
+                ],
+
+                "current_event_ids": [
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18,
+                ],
+
+                "previous_event_ids": [
+                    19,
+                    20,
+                    21,
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28,
                 ],
             },
 
@@ -279,6 +347,82 @@ def test_sector_momentum_returns_supported_signal(
             "confidence"
         ]
         == "corpus_supported"
+    )
+
+    assert (
+        signal[
+            "signal_eligible"
+        ]
+        is True
+    )
+
+
+def test_catch_all_sector_remains_measurement_but_not_signal(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        (
+            "services.market_signal_service."
+            "compare_market_activity"
+        ),
+        lambda **kwargs: (
+            _comparison()
+        ),
+    )
+
+    result = (
+        get_sector_momentum()
+    )
+
+    other = next(
+        item
+        for item
+        in result[
+            "measurements"
+        ]
+        if item[
+            "value"
+        ]
+        == "Other"
+    )
+
+    assert (
+        other[
+            "status"
+        ]
+        == "supported"
+    )
+
+    assert (
+        other[
+            "confidence"
+        ]
+        == "corpus_supported"
+    )
+
+    assert (
+        other[
+            "direction"
+        ]
+        == "down"
+    )
+
+    assert (
+        other[
+            "signal_eligible"
+        ]
+        is False
+    )
+
+    assert all(
+        item[
+            "value"
+        ]
+        != "Other"
+        for item
+        in result[
+            "signals"
+        ]
     )
 
 

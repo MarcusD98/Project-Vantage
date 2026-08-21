@@ -2,6 +2,10 @@ import click
 
 from models.article import db
 
+from services.market_intelligence_cli import (
+    market_signals_command,
+)
+
 from services.corpus_operations_service import (
     run_backfill_operation,
     run_stored_intelligence,
@@ -1751,4 +1755,8 @@ def register_corpus_commands(
 
     vantage_group.add_command(
         multi_round_repair_command
+    )
+
+    vantage_group.add_command(
+    market_signals_command
     )
