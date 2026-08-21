@@ -8,7 +8,6 @@ from datetime import (
 
 from source_registry import (
     SOURCE_REGISTRY,
-    get_discovery_config,
 )
 
 from models.article import (
@@ -23,8 +22,8 @@ from models.extraction_record import (
     VALIDATION_STATE_REJECT,
 )
 
-from services.source_measurement_service import (
-    measure_source,
+from services.canonical_contribution_service import (
+    measure_canonical_funding_contribution,
 )
 
 
@@ -169,12 +168,21 @@ def _date_coverage(
     if not dates:
         return {
             "dated_evidence": 0,
-            "undated_evidence": len(
-                articles
-            ),
-            "oldest_evidence_at": None,
-            "newest_evidence_at": None,
-            "coverage_days": None,
+
+            "undated_evidence":
+                len(
+                    articles
+                ),
+
+            "oldest_evidence_at":
+                None,
+
+            "newest_evidence_at":
+                None,
+
+            "coverage_days":
+                None,
+
             "coverage_status":
                 "no_dated_evidence",
         }
@@ -247,24 +255,32 @@ def _extraction_summary(
         records
     )
 
-    promote_count = state_counts.get(
-        VALIDATION_STATE_PROMOTE,
-        0,
+    promote_count = (
+        state_counts.get(
+            VALIDATION_STATE_PROMOTE,
+            0,
+        )
     )
 
-    review_count = state_counts.get(
-        VALIDATION_STATE_REVIEW,
-        0,
+    review_count = (
+        state_counts.get(
+            VALIDATION_STATE_REVIEW,
+            0,
+        )
     )
 
-    reject_count = state_counts.get(
-        VALIDATION_STATE_REJECT,
-        0,
+    reject_count = (
+        state_counts.get(
+            VALIDATION_STATE_REJECT,
+            0,
+        )
     )
 
-    pending_count = state_counts.get(
-        VALIDATION_STATE_PENDING,
-        0,
+    pending_count = (
+        state_counts.get(
+            VALIDATION_STATE_PENDING,
+            0,
+        )
     )
 
     quarantine_count = (
@@ -305,68 +321,6 @@ def _extraction_summary(
     }
 
 
-def _measurement_config(
-    source,
-):
-    """
-    Build the flattened configuration shape expected by the
-    existing source measurement service.
-
-    Prefer incremental configuration because its recency policy
-    defines the current operating corpus.
-
-    Fall back to historical configuration for a source that has
-    historical discovery only.
-    """
-
-    config = get_discovery_config(
-        source[
-            "key"
-        ],
-        mode="incremental",
-    )
-
-    if config is not None:
-        return config
-
-    config = get_discovery_config(
-        source[
-            "key"
-        ],
-        mode="historical",
-    )
-
-    if config is not None:
-        return config
-
-    return {
-        "key":
-            source[
-                "key"
-            ],
-
-        "name":
-            source[
-                "name"
-            ],
-
-        "type":
-            source[
-                "type"
-            ],
-
-        "region":
-            source[
-                "region"
-            ],
-
-        "enabled":
-            source[
-                "enabled"
-            ],
-    }
-
-
 def measure_observation_source(
     source,
     now=None,
@@ -379,16 +333,25 @@ def measure_observation_source(
     - source registry capability
     - persisted evidence coverage
     - historical span
-    - extraction quality
-    - canonical event contribution
+    - ExtractionRecord quality
+    - canonical funding knowledge supported by the full
+      observed source corpus
 
-    Existing source-measurement logic is reused for canonical
-    funding-event contribution rather than duplicated here.
+    Canonical contribution deliberately ignores current
+    publication-recency policy.
+
+    Phase 8 asks what Vantage has learned from the observed
+    corpus, not merely what belongs to the current operating
+    window.
+
+    The now argument is retained for API compatibility.
     """
 
-    source_name = source[
-        "name"
-    ]
+    source_name = (
+        source[
+            "name"
+        ]
+    )
 
     discovery = source.get(
         "discovery",
@@ -405,8 +368,10 @@ def measure_observation_source(
         in discovery
     )
 
-    articles = _source_articles(
-        source_name
+    articles = (
+        _source_articles(
+            source_name
+        )
     )
 
     extraction_records = (
@@ -415,19 +380,22 @@ def measure_observation_source(
         )
     )
 
-    coverage = _date_coverage(
-        articles
+    coverage = (
+        _date_coverage(
+            articles
+        )
     )
 
-    extraction = _extraction_summary(
-        extraction_records
+    extraction = (
+        _extraction_summary(
+            extraction_records
+        )
     )
 
-    contribution = measure_source(
-        _measurement_config(
-            source
-        ),
-        now=now,
+    contribution = (
+        measure_canonical_funding_contribution(
+            source_name
+        )
     )
 
     return {
@@ -524,10 +492,17 @@ def get_observation_scale_report(
     """
     Measure the current Vantage observation network.
 
-    This report establishes the Phase 8 baseline before larger
-    source cohorts and historical backfills are added.
+    This report describes:
+
+    - source-network capability
+    - observed corpus scale
+    - historical span
+    - extraction quality
+    - canonical knowledge contribution across the full
+      observed corpus
 
     Optional filters:
+
     - enabled_only
     - source_type
     """

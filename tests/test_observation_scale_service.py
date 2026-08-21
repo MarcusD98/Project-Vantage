@@ -11,6 +11,14 @@ from models.article import (
     db,
 )
 
+from models.company import (
+    Company,
+)
+
+from models.funding_round import (
+    FundingRound,
+)
+
 from models.extraction_record import (
     EVENT_TYPE_FUNDING_ROUND,
     VALIDATION_STATE_PROMOTE,
@@ -75,14 +83,16 @@ def _record(
     validation_state,
     promoted=False,
 ):
-    record = create_extraction_record(
-        article=article,
-        event_type=(
-            EVENT_TYPE_FUNDING_ROUND
-        ),
-        extraction=_Extraction(),
-        extractor_version="funding-v1",
-        model="test-model",
+    record = (
+        create_extraction_record(
+            article=article,
+            event_type=(
+                EVENT_TYPE_FUNDING_ROUND
+            ),
+            extraction=_Extraction(),
+            extractor_version="funding-v1",
+            model="test-model",
+        )
     )
 
     record.validation_state = (
@@ -90,12 +100,14 @@ def _record(
     )
 
     if promoted:
-        record.promoted_at = datetime(
-            2026,
-            8,
-            21,
-            12,
-            0,
+        record.promoted_at = (
+            datetime(
+                2026,
+                8,
+                21,
+                12,
+                0,
+            )
         )
 
     db.session.flush()
@@ -171,8 +183,10 @@ def test_date_coverage_measures_observed_span(
             ),
         ]
 
-        coverage = _date_coverage(
-            articles
+        coverage = (
+            _date_coverage(
+                articles
+            )
         )
 
         assert (
@@ -215,8 +229,10 @@ def test_date_coverage_handles_no_dates(
             )
         ]
 
-        coverage = _date_coverage(
-            articles
+        coverage = (
+            _date_coverage(
+                articles
+            )
         )
 
         assert (
@@ -260,8 +276,10 @@ def test_extraction_summary_measures_quality(
             ),
         ]
 
-        summary = _extraction_summary(
-            records
+        summary = (
+            _extraction_summary(
+                records
+            )
         )
 
         assert (
@@ -418,3 +436,97 @@ def test_observation_report_excludes_disabled_sources_by_default(
                 "sources"
             ]
         )
+
+
+def test_observation_report_counts_historical_canonical_events(
+    app,
+):
+    """
+    Phase 8 canonical contribution must not disappear merely
+    because the supporting evidence is older than the source's
+    incremental recency window.
+    """
+
+    with app.app_context():
+        article = _article(
+            title="Historical Greylock Event",
+            source="Greylock",
+            published_at=datetime(
+                2020,
+                1,
+                1,
+            ),
+        )
+
+        company = Company(
+            name="Historical Greylock Company"
+        )
+
+        db.session.add(
+            company
+        )
+
+        db.session.flush()
+
+        funding_round = FundingRound(
+            company=company,
+            article=article,
+            event_evidence=(
+                "Historical funding event."
+            ),
+            amount=10_000_000,
+            currency="USD",
+            round_type="Series A",
+            announced_at=(
+                article.published_at
+            ),
+        )
+
+        funding_round.articles.append(
+            article
+        )
+
+        db.session.add(
+            funding_round
+        )
+
+        db.session.flush()
+
+        report = (
+            get_observation_scale_report(
+                source_type="investor",
+                now=datetime(
+                    2026,
+                    8,
+                    21,
+                    tzinfo=timezone.utc,
+                ),
+            )
+        )
+
+        greylock = next(
+            row
+            for row in report[
+                "sources"
+            ]
+            if row[
+                "name"
+            ]
+            == "Greylock"
+        )
+
+        assert (
+            greylock[
+                "supported_funding_events"
+            ]
+            == 1
+        )
+
+        assert (
+            greylock[
+                "unique_funding_events"
+            ]
+            == 1
+        )
+
+        db.session.rollback()
