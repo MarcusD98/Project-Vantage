@@ -112,3 +112,91 @@ def test_multi_stage_review_signal_still_reaches_extractor(
         extraction.is_funding_round
         is False
     )
+
+
+def test_investor_source_context_is_passed_to_extractor(
+    monkeypatch,
+):
+    article = Article(
+        title="Leading Acme's Series A",
+        source="Accel",
+        source_type="investor",
+        discovery_method="sitemap",
+        url="https://example.com/source-aware",
+        category="Funding Round",
+        content=(
+            "We are proud to lead Acme's Series A."
+        ),
+    )
+
+    captured = {}
+
+    class Response:
+        output_parsed = (
+            llm_extractor.FundingExtraction(
+                is_funding_round=True,
+                company_name="Acme",
+                event_evidence=(
+                    "Acme raised a Series A."
+                ),
+            )
+        )
+
+    def fake_parse(*args, **kwargs):
+        captured.update(
+            kwargs
+        )
+        return Response()
+
+    monkeypatch.setattr(
+        llm_extractor.client.responses,
+        "parse",
+        fake_parse,
+    )
+
+    extraction = (
+        llm_extractor.extract_funding_with_llm(
+            article
+        )
+    )
+
+    assert (
+        extraction.is_funding_round
+        is True
+    )
+
+    messages = captured[
+        "input"
+    ]
+
+    developer_text = (
+        messages[0][
+            "content"
+        ]
+    )
+
+    user_text = (
+        messages[1][
+            "content"
+        ]
+    )
+
+    assert (
+        "SOURCE-PERSPECTIVE RULE"
+        in developer_text
+    )
+
+    assert (
+        "article authors"
+        in developer_text
+    )
+
+    assert (
+        "SOURCE NAME:\nAccel"
+        in user_text
+    )
+
+    assert (
+        "SOURCE TYPE:\ninvestor"
+        in user_text
+    )

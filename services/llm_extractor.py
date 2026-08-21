@@ -63,6 +63,11 @@ def extract_funding_with_llm(article):
     call. Single-company articles may mention historical rounds;
     the model must isolate the focal/new event and never blend
     facts across different financings.
+
+    First-party investor evidence is source-aware so references
+    such as "we", "our", and "us" can be attributed to the
+    publishing investment firm when the article clearly describes
+    that firm's participation in the focal event.
     """
 
     if is_compound_funding_evidence(
@@ -71,6 +76,24 @@ def extract_funding_with_llm(article):
         return FundingExtraction(
             is_funding_round=False
         )
+
+    source_name = (
+        getattr(
+            article,
+            "source",
+            None,
+        )
+        or "Unknown"
+    )
+
+    source_type = (
+        getattr(
+            article,
+            "source_type",
+            None,
+        )
+        or "unknown"
+    )
 
     response = client.responses.parse(
         model="gpt-5.6-luna",
@@ -113,6 +136,33 @@ def extract_funding_with_llm(article):
                     "Set is_funding_round to true only when one specific "
                     "focal financing event can be represented consistently. "
 
+                    "IMPORTANT SOURCE-PERSPECTIVE RULE: the supplied SOURCE "
+                    "NAME identifies the publisher of this evidence. When "
+                    "SOURCE TYPE is investor, first-person firm language such "
+                    "as 'we', 'our', 'us', 'we backed', 'our investment', "
+                    "'we partnered', 'we led', or 'we co-led' may refer to "
+                    "SOURCE NAME. If the article clearly establishes that "
+                    "the publishing investment firm participates in the "
+                    "FOCAL event, include SOURCE NAME in investors. If it "
+                    "clearly establishes that the publishing firm leads or "
+                    "co-leads the FOCAL event, include SOURCE NAME in both "
+                    "investors and lead_investors. "
+
+                    "If the publishing firm led an EARLIER round but merely "
+                    "joins, supports, doubles down, participates in, or "
+                    "partners again in the focal later round, include the "
+                    "source firm as an investor in the focal round only when "
+                    "that participation is supported, and do NOT mark it as "
+                    "a lead investor unless focal-round leadership is stated. "
+
+                    "Do not treat article authors, byline names, employees, "
+                    "partners of the publishing investment firm, or other "
+                    "people mentioned because they work for the publisher as "
+                    "investor entities unless the article explicitly says "
+                    "that they invested personally in the focal round. Do not "
+                    "replace an organizational investment by SOURCE NAME with "
+                    "the name of an author or employee. "
+
                     "For event_evidence, provide one short factual sentence "
                     "about that focal event only. "
 
@@ -149,6 +199,8 @@ def extract_funding_with_llm(article):
             {
                 "role": "user",
                 "content": (
+                    f"SOURCE NAME:\n{source_name}\n\n"
+                    f"SOURCE TYPE:\n{source_type}\n\n"
                     f"TITLE:\n{article.title}\n\n"
                     f"ARTICLE:\n{article.content}"
                 ),
