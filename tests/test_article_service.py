@@ -556,3 +556,88 @@ def test_existing_content_can_still_gain_missing_date(
             8,
         )
     )
+
+def test_parse_page_datetime_weekday_human_date():
+    result = parse_page_datetime(
+        "Wednesday, April 22, 2026"
+    )
+
+    assert result == datetime(
+        2026,
+        4,
+        22,
+    )
+
+
+def test_extract_published_at_from_semantic_date_class():
+    html = """
+    <html>
+        <body>
+            <article>
+                <span class="date">
+                    25 March 2026
+                </span>
+            </article>
+        </body>
+    </html>
+    """
+
+    result = extract_article_published_at(
+        html
+    )
+
+    assert result == datetime(
+        2026,
+        3,
+        25,
+    )
+
+
+def test_extract_published_at_from_compound_author_date_class():
+    html = """
+    <html>
+        <body>
+            <article>
+                <div
+                    class="
+                        written-post-module--
+                        writtenPostAuthorDate--
+                        3gcc3
+                    "
+                >
+                    Wednesday, April 22, 2026
+                </div>
+            </article>
+        </body>
+    </html>
+    """
+
+    result = extract_article_published_at(
+        html
+    )
+
+    assert result == datetime(
+        2026,
+        4,
+        22,
+    )
+
+
+def test_semantic_date_fallback_does_not_scan_arbitrary_text():
+    html = """
+    <html>
+        <body>
+            <article>
+                <p>
+                    Wednesday, April 22, 2026
+                </p>
+            </article>
+        </body>
+    </html>
+    """
+
+    result = extract_article_published_at(
+        html
+    )
+
+    assert result is None

@@ -179,6 +179,10 @@ def parse_page_datetime(value):
         "%b %d, %Y",
         "%d %B %Y",
         "%d %b %Y",
+        "%A, %B %d, %Y",
+        "%a, %B %d, %Y",
+        "%A, %b %d, %Y",
+        "%a, %b %d, %Y",
         "%Y/%m/%d",
         "%m/%d/%Y",
     ]
@@ -271,6 +275,148 @@ def _extract_date_from_tag(
 
         parsed = parse_page_datetime(
             value
+        )
+
+        if parsed is not None:
+            return parsed
+
+    return None
+
+
+def _extract_semantic_visible_date(
+    soup,
+):
+    """
+    Extract a publication date from short visible-text elements
+    whose DOM attributes explicitly indicate date semantics.
+
+    This is a conservative fallback for sites that expose a
+    publication date visually but do not use standard metadata,
+    JSON-LD, schema.org attributes, or <time> elements.
+
+    Arbitrary page text is deliberately not scanned.
+    """
+
+    semantic_tokens = {
+        "date",
+        "published",
+        "publication",
+        "publishdate",
+        "publish-date",
+        "publisheddate",
+        "published-date",
+        "postdate",
+        "post-date",
+        "articledate",
+        "article-date",
+        "authordate",
+        "author-date",
+    }
+
+    for tag in soup.find_all(True):
+        attribute_values = []
+
+        tag_id = tag.get(
+            "id"
+        )
+
+        if tag_id:
+            attribute_values.append(
+                str(tag_id)
+            )
+
+        classes = tag.get(
+            "class",
+            [],
+        )
+
+        if isinstance(
+            classes,
+            str,
+        ):
+            classes = [
+                classes
+            ]
+
+        attribute_values.extend(
+            str(value)
+            for value in classes
+        )
+
+        for key, value in (
+            tag.attrs.items()
+        ):
+            normalized_key = (
+                str(key)
+                .strip()
+                .lower()
+            )
+
+            if (
+                "date" in normalized_key
+                or "publish" in normalized_key
+            ):
+                attribute_values.append(
+                    normalized_key
+                )
+
+                if isinstance(
+                    value,
+                    list,
+                ):
+                    attribute_values.extend(
+                        str(item)
+                        for item in value
+                    )
+
+                elif value:
+                    attribute_values.append(
+                        str(value)
+                    )
+
+        normalized_attributes = " ".join(
+            attribute_values
+        ).lower()
+
+        normalized_compact = re.sub(
+            r"[^a-z0-9]+",
+            "",
+            normalized_attributes,
+        )
+
+        has_date_semantics = any(
+            (
+                token in normalized_attributes
+                or re.sub(
+                    r"[^a-z0-9]+",
+                    "",
+                    token,
+                ) in normalized_compact
+            )
+            for token in semantic_tokens
+        )
+
+        if not has_date_semantics:
+            continue
+
+        text = clean_text(
+            tag.get_text(
+                " ",
+                strip=True,
+            )
+        )
+
+        if not text:
+            continue
+
+        # Reject large containers whose class happens to contain
+        # a date-related word. We only trust compact semantic
+        # elements that plausibly represent a date label/value.
+        if len(text) > 100:
+            continue
+
+        parsed = parse_page_datetime(
+            text
         )
 
         if parsed is not None:
@@ -548,6 +694,17 @@ def extract_article_published_at(html):
 
             if parsed is not None:
                 return parsed
+
+    # -----------------------------------------------------
+    # Explicitly date-labelled visible elements
+    # -----------------------------------------------------
+
+    parsed = _extract_semantic_visible_date(
+        soup
+    )
+
+    if parsed is not None:
+        return parsed
 
     return None
 
