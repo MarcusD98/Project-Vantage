@@ -209,12 +209,7 @@ SOURCE_REGISTRY = [
                 "method": "sitemap",
                 "url": "https://www.accel.com/sitemap.xml",
 
-                # Sitemap modification age is only a
-                # discovery hint for the live/current feed.
                 "max_age_days": 180,
-
-                # Actual publication date controls current
-                # intelligence eligibility.
                 "max_published_age_days": 180,
 
                 "include_url_patterns": [
@@ -229,9 +224,6 @@ SOURCE_REGISTRY = [
             },
 
             "historical": {
-                # Historical mode deliberately removes both
-                # current-recency limits while retaining the
-                # same generic sitemap and URL boundaries.
                 "method": "sitemap",
                 "url": "https://www.accel.com/sitemap.xml",
 
@@ -439,6 +431,20 @@ SOURCE_REGISTRY = [
                 "max_discovery_items": 100,
                 "max_published_age_days": 180,
             },
+
+            "historical": {
+                "method": "html",
+                "url": "https://www.bvp.com/atlas",
+
+                "link_selector": "a[href]",
+
+                "include_url_patterns": [
+                    "bvp.com/atlas/",
+                ],
+
+                "max_discovery_pages": 1,
+                "max_discovery_items": 250,
+            },
         },
     },
 
@@ -473,6 +479,37 @@ SOURCE_REGISTRY = [
                 "max_discovery_pages": 1,
                 "max_discovery_items": 100,
                 "max_published_age_days": 180,
+            },
+
+            "historical": {
+                "method": "html",
+                "url": (
+                    "https://greylock.com/"
+                    "blog/portfolio-news/"
+                ),
+
+                "pagination_url_pattern": (
+                    "https://greylock.com/"
+                    "blog/portfolio-news/"
+                    "page/{page}/"
+                ),
+
+                "link_selector": "a[href]",
+
+                "include_url_patterns": [
+                    "greylock.com/blog/",
+                ],
+
+                "exclude_url_patterns": [
+                    "/blog/portfolio-news/",
+                    "/blog/greymatter/",
+                    "/blog/firm-news/",
+                    "/blog/change-agents/",
+                    "/page/",
+                ],
+
+                "max_discovery_pages": 20,
+                "max_discovery_items": 250,
             },
         },
     },

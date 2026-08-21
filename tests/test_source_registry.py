@@ -115,6 +115,8 @@ def test_historical_fleet_contains_configured_sources():
         "Accel",
         "Index Ventures",
         "Sequoia Capital",
+        "Bessemer Venture Partners",
+        "Greylock",
     ]
 
 
@@ -136,6 +138,8 @@ def test_historical_investor_fleet():
         "Accel",
         "Index Ventures",
         "Sequoia Capital",
+        "Bessemer Venture Partners",
+        "Greylock",
     }
 
 
@@ -144,6 +148,8 @@ def test_historical_investor_strategies_remove_recency_limits():
         "Accel",
         "Index Ventures",
         "Sequoia Capital",
+        "Bessemer Venture Partners",
+        "Greylock",
     ]:
         config = (
             get_discovery_config(
@@ -153,11 +159,6 @@ def test_historical_investor_strategies_remove_recency_limits():
         )
 
         assert config is not None
-
-        assert (
-            config["method"]
-            == "sitemap"
-        )
 
         assert (
             config[
@@ -175,6 +176,73 @@ def test_historical_investor_strategies_remove_recency_limits():
             "max_published_age_days"
             not in config
         )
+
+
+def test_historical_html_cohort_reuses_generic_adapter():
+    bessemer = (
+        get_discovery_config(
+            "Bessemer Venture Partners",
+            mode="historical",
+        )
+    )
+
+    greylock = (
+        get_discovery_config(
+            "Greylock",
+            mode="historical",
+        )
+    )
+
+    assert (
+        bessemer["method"]
+        == "html"
+    )
+
+    assert (
+        bessemer[
+            "max_discovery_pages"
+        ]
+        == 1
+    )
+
+    assert (
+        "pagination_url_pattern"
+        not in bessemer
+    )
+
+    assert (
+        greylock["method"]
+        == "html"
+    )
+
+    assert (
+        greylock[
+            "pagination_url_pattern"
+        ]
+        == (
+            "https://greylock.com/"
+            "blog/portfolio-news/"
+            "page/{page}/"
+        )
+    )
+
+    assert (
+        greylock[
+            "max_discovery_pages"
+        ]
+        == 20
+    )
+
+
+def test_general_catalyst_is_not_historical_capable():
+    config = (
+        get_discovery_config(
+            "General Catalyst",
+            mode="historical",
+        )
+    )
+
+    assert config is None
 
 
 def test_incremental_investor_fleet():

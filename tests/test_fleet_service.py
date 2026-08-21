@@ -102,6 +102,8 @@ def test_select_historical_fleet():
         "Accel",
         "Index Ventures",
         "Sequoia Capital",
+        "Bessemer Venture Partners",
+        "Greylock",
     ]
 
 
@@ -199,12 +201,16 @@ def test_fleet_continues_after_source_failure(
         return {
             "source":
                 source["name"],
+
             "articles_discovered":
                 5,
+
             "articles_relevant":
                 3,
+
             "articles_saved":
                 2,
+
             "dates_populated":
                 0,
         }
@@ -259,6 +265,153 @@ def test_fleet_continues_after_source_failure(
             "status"
         ]
         == "success"
+    )
+
+
+def test_zero_yield_discovery_is_warning(
+    monkeypatch,
+):
+    _patch_run_persistence(
+        monkeypatch
+    )
+
+    fleet = [
+        {
+            "key": "empty",
+            "name": "Empty Source",
+            "type": "investor",
+        },
+    ]
+
+    monkeypatch.setattr(
+        fleet_service,
+        "select_source_fleet",
+        lambda **kwargs: fleet,
+    )
+
+    monkeypatch.setattr(
+        fleet_service,
+        "run_source_sync",
+        lambda **kwargs: {
+            "source":
+                "Empty Source",
+
+            "articles_discovered":
+                0,
+
+            "articles_relevant":
+                0,
+
+            "articles_saved":
+                0,
+
+            "dates_populated":
+                0,
+        },
+    )
+
+    result = (
+        run_source_fleet(
+            process=False
+        )
+    )
+
+    assert (
+        result["results"][0][
+            "status"
+        ]
+        == "warning"
+    )
+
+    assert (
+        result["totals"][
+            "sources_warning"
+        ]
+        == 1
+    )
+
+    assert (
+        result["totals"][
+            "sources_succeeded"
+        ]
+        == 0
+    )
+
+    assert (
+        result["totals"][
+            "sources_failed"
+        ]
+        == 0
+    )
+
+
+def test_zero_new_saves_can_still_succeed(
+    monkeypatch,
+):
+    _patch_run_persistence(
+        monkeypatch
+    )
+
+    fleet = [
+        {
+            "key": "known",
+            "name": "Known Source",
+            "type": "investor",
+        },
+    ]
+
+    monkeypatch.setattr(
+        fleet_service,
+        "select_source_fleet",
+        lambda **kwargs: fleet,
+    )
+
+    monkeypatch.setattr(
+        fleet_service,
+        "run_source_sync",
+        lambda **kwargs: {
+            "source":
+                "Known Source",
+
+            "articles_discovered":
+                25,
+
+            "articles_relevant":
+                25,
+
+            "articles_saved":
+                0,
+
+            "dates_populated":
+                0,
+        },
+    )
+
+    result = (
+        run_source_fleet(
+            process=False
+        )
+    )
+
+    assert (
+        result["results"][0][
+            "status"
+        ]
+        == "success"
+    )
+
+    assert (
+        result["totals"][
+            "sources_succeeded"
+        ]
+        == 1
+    )
+
+    assert (
+        result["totals"][
+            "sources_warning"
+        ]
+        == 0
     )
 
 
@@ -469,6 +622,112 @@ def test_fleet_aggregates_processing(
             "funding_rounds"
         ]
         == 4
+    )
+
+
+def test_processing_preserves_zero_yield_warning(
+    monkeypatch,
+):
+    _patch_run_persistence(
+        monkeypatch
+    )
+
+    fleet = [
+        {
+            "key": "empty",
+            "name": "Empty Source",
+            "type": "investor",
+        },
+    ]
+
+    monkeypatch.setattr(
+        fleet_service,
+        "select_source_fleet",
+        lambda **kwargs: fleet,
+    )
+
+    monkeypatch.setattr(
+        fleet_service,
+        "run_source_sync",
+        lambda **kwargs: {
+            "source":
+                "Empty Source",
+
+            "articles_discovered":
+                0,
+
+            "articles_relevant":
+                0,
+
+            "articles_saved":
+                0,
+
+            "dates_populated":
+                0,
+        },
+    )
+
+    monkeypatch.setattr(
+        fleet_service,
+        "run_stored_intelligence",
+        lambda **kwargs: {
+            "articles_selected":
+                0,
+
+            "stale_articles_skipped":
+                0,
+
+            "compound_articles_skipped":
+                0,
+
+            "content_retrieved":
+                0,
+
+            "content_failed":
+                0,
+
+            "funding_processed":
+                0,
+
+            "funding_rounds":
+                0,
+
+            "fund_news_processed":
+                0,
+
+            "fund_closes":
+                0,
+
+            "processing_failed":
+                0,
+        },
+    )
+
+    result = (
+        run_source_fleet(
+            process=True
+        )
+    )
+
+    assert (
+        result["results"][0][
+            "status"
+        ]
+        == "warning"
+    )
+
+    assert (
+        result["totals"][
+            "sources_warning"
+        ]
+        == 1
+    )
+
+    assert (
+        result["totals"][
+            "sources_succeeded"
+        ]
+        == 0
     )
 
 

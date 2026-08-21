@@ -211,6 +211,40 @@ def _increment_status_total(
         ] += 1
 
 
+def _discovery_status(
+    discovery_result,
+):
+    """
+    Classify a completed discovery operation.
+
+    A discovery adapter can complete without raising while
+    still returning zero evidence candidates.
+
+    That is operationally different from successful evidence
+    acquisition and should remain visible to operators.
+
+    Zero discovered evidence therefore produces WARNING rather
+    than SUCCESS.
+
+    Zero newly saved evidence does not produce a warning:
+    deduplication may legitimately mean that all discovered
+    evidence was already known.
+    """
+
+    discovered = (
+        discovery_result.get(
+            "articles_discovered",
+            0,
+        )
+        or 0
+    )
+
+    if discovered == 0:
+        return "warning"
+
+    return "success"
+
+
 def run_source_fleet(
     mode="incremental",
     source_type=None,
@@ -233,19 +267,23 @@ def run_source_fleet(
     Status semantics:
 
         success
-            Discovery succeeded and optional intelligence
-            processing completed without recorded failures.
+            Discovery produced evidence and optional
+            intelligence processing completed without
+            recorded failures.
 
         warning
-            The source completed, but one or more evidence
-            documents failed intelligence processing.
+            The source completed but either:
+
+            - discovery produced zero evidence, or
+            - one or more evidence documents failed
+              intelligence processing.
 
         partial
-            Discovery succeeded but the optional processing
-            operation raised an exception.
+            Discovery completed but optional intelligence
+            processing raised an exception.
 
         failed
-            Discovery or persistence failed.
+            Discovery or persistence raised an exception.
 
     By default the fleet only discovers and persists evidence.
 
@@ -343,6 +381,14 @@ def run_source_fleet(
                 discovery_result,
             )
 
+            source_result[
+                "status"
+            ] = (
+                _discovery_status(
+                    discovery_result
+                )
+            )
+
         except Exception as exc:
             source_result[
                 "status"
@@ -422,10 +468,8 @@ def run_source_fleet(
                         "status"
                     ] = "warning"
 
-                else:
-                    source_result[
-                        "status"
-                    ] = "success"
+                # Otherwise preserve any warning already
+                # produced by zero-yield discovery.
 
             except Exception as exc:
                 source_result[
@@ -456,11 +500,6 @@ def run_source_fleet(
                 )
 
                 continue
-
-        else:
-            source_result[
-                "status"
-            ] = "success"
 
         # -------------------------------------------------
         # Persist completed operation
