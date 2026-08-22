@@ -106,6 +106,7 @@ def _article(
     slug,
     published_at,
     processed=True,
+    category="Funding Round",
 ):
     article = Article(
         title=(
@@ -121,7 +122,7 @@ def _article(
         content=(
             "The company announced a financing round."
         ),
-        category="Funding Round",
+        category=category,
     )
 
     if processed:
@@ -373,6 +374,13 @@ def test_temporal_coverage_complete_when_both_windows_processed(
 
     assert (
         coverage[
+            "remaining_undated_funding"
+        ]
+        == 0
+    )
+
+    assert (
+        coverage[
             "current_window"
         ][
             "processed_candidates"
@@ -441,6 +449,121 @@ def test_temporal_coverage_incomplete_when_candidate_backlog_exists(
             "backlog"
         ]
         == 1
+    )
+
+
+def test_temporal_coverage_ignores_undated_non_funding_evidence(
+    app,
+):
+    _historical_run(
+        remaining_undated=1,
+    )
+
+    _add_two_window_articles()
+
+    _article(
+        "Accel",
+        "undated-commentary",
+        None,
+        processed=False,
+        category="Other",
+    )
+
+    coverage = (
+        get_temporal_corpus_coverage(
+            investor_name="Accel",
+            current_start=CURRENT_START,
+            current_end=AS_OF,
+            previous_start=PREVIOUS_START,
+            previous_end=CURRENT_START,
+        )
+    )
+
+    assert (
+        coverage[
+            "status"
+        ]
+        == "complete"
+    )
+
+    assert (
+        coverage[
+            "reason"
+        ]
+        is None
+    )
+
+    assert (
+        coverage[
+            "remaining_undated"
+        ]
+        == 1
+    )
+
+    assert (
+        coverage[
+            "remaining_undated_funding"
+        ]
+        == 0
+    )
+
+
+def test_temporal_coverage_blocks_undated_funding_evidence(
+    app,
+):
+    _historical_run(
+        remaining_undated=1,
+    )
+
+    _add_two_window_articles()
+
+    _article(
+        "Accel",
+        "undated-funding-candidate",
+        None,
+        processed=False,
+        category="Funding Round",
+    )
+
+    coverage = (
+        get_temporal_corpus_coverage(
+            investor_name="Accel",
+            current_start=CURRENT_START,
+            current_end=AS_OF,
+            previous_start=PREVIOUS_START,
+            previous_end=CURRENT_START,
+        )
+    )
+
+    assert (
+        coverage[
+            "status"
+        ]
+        == "incomplete"
+    )
+
+    assert (
+        coverage[
+            "remaining_undated"
+        ]
+        == 1
+    )
+
+    assert (
+        coverage[
+            "remaining_undated_funding"
+        ]
+        == 1
+    )
+
+    assert (
+        coverage[
+            "reason"
+        ]
+        == (
+            "Historical source discovery still has "
+            "undated Funding Round evidence."
+        )
     )
 
 

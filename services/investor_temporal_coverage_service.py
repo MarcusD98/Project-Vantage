@@ -69,6 +69,33 @@ def _latest_historical_run(source_name):
     )
 
 
+def _remaining_undated_funding_evidence(
+    source_name,
+):
+    """
+    Count undated first-party evidence that could affect
+    funding-activity comparison windows.
+
+    Undated evidence outside the Funding Round category does
+    not affect funding-activity comparability.
+    """
+
+    return (
+        Article.query
+        .filter(
+            Article.source
+            == source_name,
+
+            Article.category
+            == "Funding Round",
+
+            Article.published_at
+            .is_(None),
+        )
+        .count()
+    )
+
+
 def _window_candidate_coverage(
     source_name,
     start,
@@ -213,6 +240,9 @@ def _unavailable_result(
         "remaining_undated":
             None,
 
+        "remaining_undated_funding":
+            None,
+
         "current_window":
             None,
 
@@ -243,7 +273,7 @@ def get_temporal_corpus_coverage(
     - the investor has a matching enabled first-party source;
     - that source has incremental and historical discovery;
     - a historical discovery run completed;
-    - that run left no undated evidence;
+    - no undated Funding Round evidence remains;
     - each comparison window contains at least one discovered,
       non-compound Funding Round candidate; and
     - every such candidate in both windows has been processed.
@@ -251,6 +281,10 @@ def get_temporal_corpus_coverage(
     This deliberately measures completeness of the discovered
     Vantage corpus, not completeness of the investor's real-world
     investment activity.
+
+    Undated evidence outside the Funding Round category is
+    retained as an overall source-quality measurement but does
+    not block funding-activity comparability.
     """
 
     source = get_source(
@@ -356,8 +390,14 @@ def get_temporal_corpus_coverage(
         )
     )
 
+    remaining_undated_funding = (
+        _remaining_undated_funding_evidence(
+            source_name
+        )
+    )
+
     run_dates_complete = (
-        historical_run.remaining_undated
+        remaining_undated_funding
         == 0
     )
 
@@ -399,7 +439,7 @@ def get_temporal_corpus_coverage(
         elif not run_dates_complete:
             reason = (
                 "Historical source discovery still has "
-                "undated evidence."
+                "undated Funding Round evidence."
             )
 
         elif (
@@ -446,6 +486,9 @@ def get_temporal_corpus_coverage(
 
         "remaining_undated":
             historical_run.remaining_undated,
+
+        "remaining_undated_funding":
+            remaining_undated_funding,
 
         "current_window":
             current,
