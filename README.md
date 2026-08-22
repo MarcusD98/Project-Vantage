@@ -1046,7 +1046,7 @@ What Not to Build Yet
 
 Deliberately avoid:
 
-source expansion merely to increase source count
+source expansion merely just to increase source count
 
 scraper-per-site architecture
 
