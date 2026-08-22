@@ -2,200 +2,109 @@ Project Vantage
 
 Project Vantage is an evidence-backed venture intelligence system.
 
-It continuously observes public venture-market activity, converts those observations into structured historical knowledge, and uses that history to understand how investors, companies, sectors, stages and markets are changing over time.
-
-Vantage began as a simple Python / Flask VC news aggregator.
-
-It is evolving toward a more ambitious product:
-
-A continuously operating intelligence system that observes the venture ecosystem, builds a trustworthy historical activity graph, and surfaces meaningful behavioural change.
+It observes public venture-market activity, converts fragmented evidence into structured historical knowledge, and uses that history to understand how investors, companies, sectors, stages and markets are changing over time.
 
 The core progression is:
 
-Public venture ecosystem
+Information acquisition
         ↓
-Observation network
+Structured knowledge
         ↓
-Evidence
+Historical behaviour
         ↓
-Structured understanding
+Intelligence
         ↓
-Canonical entities & events
-        ↓
-Historical activity graph
-        ↓
-Behavioural change
-        ↓
-Market intelligence
+User value
 
-Or more simply:
+Vantage began as a Python / Flask VC news aggregator.
 
-Information acquisition → structure → intelligence
+News is no longer the product.
 
-News is not the product.
+Articles, investor announcements, company posts, fund announcements and other public information are evidence from which Vantage builds a structured model of venture activity.
 
-Articles, investor announcements, company posts, fund announcements, ecosystem publications and other public information are evidence from which Vantage builds a structured model of venture activity.
+The long-term ambition is to build a trustworthy intelligence layer over the venture ecosystem.
 
 Product Thesis
 
 Private-market intelligence is already a large and competitive category.
 
-Platforms such as PitchBook, Dealroom, CB Insights, Harmonic and others provide sophisticated company, investor and market data.
-
-Vantage should not try to win primarily by becoming another static startup database.
+Vantage should not try to win primarily by becoming another static database of startups, investors and funding rounds.
 
 The more differentiated thesis is:
 
 Treat the venture ecosystem as a continuously observed behavioural system.
 
-Rather than asking only:
+Instead of only asking:
 
 Which companies exist?
+
 Who invested in them?
+
+How much did they raise?
 
 Vantage should increasingly answer:
 
-Where is investor behaviour changing?
+Which investors are becoming more or less active?
 
-Which investors are accelerating or retreating?
+Which sectors are gaining or losing investor participation?
 
-Which sectors are attracting new conviction?
+Which stages are changing?
 
-Which stages are becoming more active?
+Where is lead-investor behaviour shifting?
 
-Where is lead-investor behaviour changing?
+How is an investor's strategy changing over time?
 
 Which investors are converging around the same themes?
 
 Which syndicates are forming or changing?
 
-What real-world events prove those changes?
+What real-world events support those conclusions?
 
-The goal is not:
+The objective is not:
 
-“AI says defence is hot.”
+"AI says cybersecurity is hot."
 
-The goal is:
+It is:
 
-Here is the measurable change, who drove it, the events behind it, and the evidence supporting those events.
-
-That evidence chain is fundamental:
-
-Signal
-  ↓
-Measurement
-  ↓
-Behaviour
-  ↓
-Canonical event
-  ↓
-Evidence
+Here is the measured change, who drove it, the canonical events behind it, and the evidence supporting those events.
 
 The governing product principle is:
 
 Inspectable intelligence, not unexplained conclusions.
 
-Strategic Wedge: Investor Behaviour
-
-The first major intelligence wedge is investor behaviour.
-
-Vantage should help answer:
-
-What are investors investing in?
-
-What are they leading?
-
-Which sectors are they entering or leaving?
-
-Which stages are they targeting?
-
-Where are they investing?
-
-Who are they investing alongside?
-
-How active are they?
-
-How is that behaviour changing over time?
-
-Different source types provide different perspectives:
-
-Editorial source
-    ↓
-What became news?
-
-Investor first-party source
-    ↓
-What did this investor choose to do?
-
-Company source
-    ↓
-What did the company announce?
-
-Ecosystem / accelerator source
-    ↓
-What activity is emerging around a specific network?
-
-Together:
-
-Editorial evidence
-        +
-Investor evidence
-        +
-Company / ecosystem evidence
-        ↓
-Canonical activity
-        ↓
-Historical behaviour
-        ↓
-Venture intelligence
-
-Investor first-party history is currently the most developed part of the Vantage corpus.
-
-It is the first wedge, not the final scope of the product.
-
 The Core Asset
 
-The primary asset Vantage is building is not a collection of articles.
-
-It is not simply a database of companies and investors.
+The primary asset Vantage is building is not the application code or a collection of articles.
 
 It is:
 
 A trustworthy historical activity graph of the observed venture ecosystem.
 
-The graph connects:
+Conceptually:
 
 Evidence
    ↓
 Real-world events
    ↓
-Companies
+Companies / Investors / Funds
    ↓
-Investors
-   ↓
-Funds
-   ↓
-Participation
-   ↓
-Lead relationships
+Participation / Lead relationships
    ↓
 Time
+   ↓
+Historical behaviour
 
-As history accumulates, Vantage can establish behavioural baselines and measure change against them.
-
-That historical observation is strategically important.
-
-A system that has reliably observed, resolved and preserved venture activity over time becomes substantially harder to recreate than the individual Python services operating it.
+As that history accumulates, Vantage can establish behavioural baselines and detect change.
 
 Potential defensibility compounds through:
 
-Source network
+Observation network
         +
 Historical evidence corpus
         +
-Canonical entity graph
+Canonical entities
         +
-Canonical event graph
+Canonical events
         +
 Extraction history
         +
@@ -205,153 +114,17 @@ Behavioural history
         +
 Signal methodology
         +
-Customer workflow
+User workflow
 
-The codebase itself is unlikely to be the primary moat.
+The codebase matters because it produces and protects this asset.
 
-The data-producing machine and the historical knowledge it accumulates are more important.
+The accumulated evidence, identities, event history and behavioural context are ultimately more difficult to recreate than the individual services that operate them.
 
-Product Architecture
+Current Strategic Wedge: Investor Behaviour
 
-Vantage has four connected layers.
+Investor behaviour is the first major intelligence wedge.
 
-1. Observation
-
-Understand:
-
-What is happening?
-
-Responsibilities include:
-
-discovering public venture information
-
-operating many sources through reusable mechanisms
-
-normalizing evidence
-
-preserving source provenance
-
-retrieving content and metadata
-
-filtering noise
-
-recovering historical evidence
-
-monitoring source reliability and contribution
-
-Current reusable discovery mechanisms include:
-
-RSS
-Sitemap
-HTML listing
-
-The objective is not simply to ingest more URLs.
-
-It is to build a useful:
-
-Observable venture universe
-
-The source platform is configuration-first.
-
-Adding source #50 should normally require configuration rather than a new scraper.
-
-New acquisition mechanisms should be added when they unlock classes of strategically useful sources, not individual websites.
-
-Potential future mechanisms may include:
-
-Structured JSON / public APIs
-Embedded page JSON
-Pagination APIs
-JavaScript-rendered / headless browsing
-Newsletter / email ingestion
-Regulatory or other structured public datasets
-
-These should be introduced in response to demonstrated source-cohort needs.
-
-2. Structured Knowledge
-
-Understand:
-
-Who did what?
-
-Evidence is transformed into structured:
-
-Companies
-
-Investors
-
-Funds
-
-Funding rounds
-
-Fund closes
-
-Investor participation
-
-Lead-investor relationships
-
-Supporting evidence
-
-Canonical identities
-
-Historical activity
-
-The target relationship is:
-
-many observations
-        ↓
-one real-world event
-
-For example:
-
-TechCrunch article
-        +
-Investor announcement
-        +
-Company press release
-        ↓
-1 canonical financing event
-        ↓
-Company
-Investors
-Amount
-Stage
-Date
-Evidence
-
-This is fundamentally different from:
-
-3 articles
-   ↓
-3 duplicated funding-round records
-
-Canonical truth is therefore deliberately separated from probabilistic extraction.
-
-The current knowledge pipeline is:
-
-RAW EVIDENCE
-     ↓
-VERSIONED EXTRACTION
-     ↓
-AUTOMATED VALIDATION
-     ↓
-PROMOTE / REVIEW / REJECT
-     ↓
-CANONICALIZATION
-     ↓
-KNOWLEDGE GRAPH
-
-ExtractionRecord preserves what a specific extractor version believed about a specific piece of evidence.
-
-This allows Vantage to improve extraction and validation without losing historical machine interpretation.
-
-3. Behavioural Intelligence
-
-Understand:
-
-How is behaviour changing?
-
-The current graph already supports investor-level intelligence including:
+Vantage can already model and analyse:
 
 observed investment activity
 
@@ -365,114 +138,255 @@ geographic exposure where coverage supports it
 
 co-investors
 
-financing-round participation
-
 recent investments
 
 current vs previous periods
 
-confidence-qualified trends
+confidence-qualified behavioural change
 
-Example:
+First-party investor evidence is particularly useful because it gives Vantage an observable record of what an investor publicly chose to associate itself with.
 
-ACCEL
+It must not be interpreted as a complete record of everything that investor actually did.
 
-Current 365D       Previous 365D
+Funding rounds are currently the most mature event type and therefore the primary analytical primitive.
 
-22 investments     11 investments
-17 leads             8 leads
+They are not intended to become the entire Vantage domain model.
 
-        ↓
+The system already also models funds and fund closes. Broader venture events should be added as the product and domain understanding justify them rather than through premature ontology expansion.
 
-Observed activity increased
+How Vantage Works
 
-        ↓
+The current architecture has four connected layers.
 
-CORPUS-SUPPORTED
+1. Observation
 
-Static profiles are useful.
+Question: What happened?
 
-Behavioural change is more valuable.
+Vantage discovers public evidence through a canonical source registry and reusable acquisition mechanisms.
 
-4. Market Intelligence
+Current discovery methods:
 
-This is now the major product frontier.
+RSS
 
-Market intelligence aggregates behaviour across many participants and asks:
+XML sitemaps
 
-What materially changed across the observed venture ecosystem?
+HTML listings
 
-Initial signal categories should remain simple, deterministic and inspectable.
+Current source configuration supports:
 
-Priority areas include:
+publications
 
-Investor Activity Acceleration
+investors
 
-Current activity
-vs
-Previous comparable period
+ecosystem sources
 
-Which investors are materially increasing or decreasing activity?
+company sources
 
-Sector Momentum
+structured sources
 
-Which sectors are attracting increasing observed participation?
+The presently configured corpus is concentrated on publications and first-party investor sources.
 
-Stage and Lead-Activity Shifts
+The source platform is deliberately configuration-first:
 
-Are investors becoming more or less active at specific stages?
+Source Registry
+      ↓
+RSS / Sitemap / HTML
+      ↓
+Normalized Evidence
 
-Is lead behaviour changing?
+Adding a new source should normally require configuration rather than a new scraper.
 
-Investor Strategy Change
+The platform also supports:
 
-Is an investor's observed sector, stage or geographic behaviour materially different from its own historical baseline?
+incremental discovery
 
-Later Signal Categories
+historical discovery
 
-Potential extensions include:
+source-specific URL policies
 
-funding acceleration
+publication-date recovery
 
-changing syndicates
+relevance filtering
 
-geographic momentum
+content retrieval
 
-increasing investor participation
+source compatibility probing
 
-capital-formation cycles
+fleet execution
 
-emerging themes
+failure isolation
 
-cross-investor convergence
+persistent source-run telemetry
 
-The initial Market Signal Engine should be measurement-first rather than LLM-opinion-first.
+source contribution measurement
+
+The current registry contains 19 enabled investor sources, including multiple historical-capable investors.
+
+The purpose of future source expansion is not to maximise source count.
+
+It is to improve the observable universe.
+
+2. Structured Knowledge
+
+Question: Who did what?
+
+Persisted evidence is transformed into structured knowledge about:
+
+companies
+
+investors
+
+funds
+
+funding rounds
+
+fund closes
+
+investor participation
+
+lead-investor relationships
+
+supporting evidence
+
+canonical identities
+
+The target relationship is:
+
+Many observations
+       ↓
+One real-world event
 
 For example:
 
-AI Infrastructure activity
-+42% vs previous 180 days
-
-Driven by:
-11 observed investors
-18 canonical financing events
-9 companies
-
-Evidence →
-
-Every signal should remain drillable through:
-
-Signal
- ↓
-Measurement
- ↓
+Investor announcement
+        +
+Company announcement
+        +
+Editorial article
+        ↓
+One canonical financing event
+        ↓
+Company
 Investors
- ↓
-Companies
- ↓
-Events
- ↓
+Lead investors
+Amount
+Stage
+Date
 Evidence
+
+This is fundamentally different from storing three articles as three separate funding events.
+
+Safe knowledge pipeline
+
+Probabilistic extraction is deliberately separated from canonical truth:
+
+RAW EVIDENCE
+     ↓
+STRUCTURED EXTRACTION
+     ↓
+EXTRACTION RECORD
+     ↓
+DETERMINISTIC VALIDATION
+     ↓
+PROMOTE / REVIEW / REJECT
+     ↓
+CANONICALIZATION
+     ↓
+KNOWLEDGE GRAPH
+
+ExtractionRecord preserves an append-oriented history of what a specific extractor version believed about a specific piece of evidence.
+
+Replay creates a new extraction record rather than overwriting historical machine interpretation.
+
+Only validated PROMOTE results are permitted to reach canonical persistence.
+
+Failed promotions remain observable and retryable.
+
+Some legacy Article processing fields remain as compatibility state while the newer extraction architecture becomes authoritative across the full pipeline. That migration should continue only where it materially improves correctness or maintainability.
+
+3. Behavioural Intelligence
+
+Question: How is behaviour changing?
+
+Canonical historical events support investor-level behavioural analysis.
+
+For a given investor, Vantage can compare equal periods and analyse:
+
+Current period
+      vs
+Previous period
+
+across:
+
+investment activity
+
+lead activity
+
+companies
+
+sectors
+
+stages
+
+geography
+
+co-investors
+
+This layer deliberately distinguishes measurement from confidence.
+
+A computable trend is not automatically a trustworthy trend.
+
+4. Market Intelligence
+
+Question: What changed across the observed market?
+
+This is the current product frontier.
+
+Market intelligence aggregates canonical behaviour across a comparable observed cohort rather than blindly comparing whatever Vantage happened to discover in each period.
+
+The first implemented market signal is:
+
+Sector Momentum V1 — Implemented
+
+Sector Momentum compares canonical funding events across equal windows for investors whose relevant first-party corpora are sufficiently complete.
+
+It measures:
+
+current vs previous canonical event count
+
+company count
+
+investor participation
+
+lead-event participation
+
+absolute change
+
+percentage change
+
+contributing investors
+
+underlying canonical event IDs
+
+dimensional coverage
+
+cohort coverage
+
+Signal interpretation is deterministic.
+
+An LLM does not decide whether a sector is rising or falling.
+
+Catch-all values such as Other, Unknown and Unclassified may remain valid measurements but are not promoted as market signals.
+
+The next intended signal families are:
+
+Investor Activity Acceleration
+
+Stage / Lead-Activity Shifts
+
+Investor Strategy Change
+
+Signal methodology should become more selective as it matures. A statistically or numerically non-flat measurement should not automatically be treated as commercially meaningful change.
 
 Observation Coverage and Confidence
 
@@ -484,368 +398,471 @@ Observed activity
 
 with:
 
-Total market activity
+Total real-world market activity
 
-This becomes especially important as market-level signals are introduced.
+Changes in the observation network can otherwise be mistaken for changes in the market.
 
-For example:
-
-Previous 180D
-10 observed defence rounds
-
-Current 180D
-20 observed defence rounds
-
-does not automatically mean defence activity doubled.
-
-The observation network itself may also have changed.
-
-Market intelligence must therefore increasingly account for:
+For this reason, behavioural comparisons increasingly account for:
 
 source coverage
 
-investor coverage
+historical continuity
 
-date coverage
+publication-date coverage
 
 processing completeness
 
+canonical identity
+
 comparable cohort composition
 
-historical continuity
+analytical-dimension coverage
 
-Where possible, behavioural comparisons should use a consistent observed cohort across both periods.
-
-Where this is not possible, confidence should be explicitly qualified.
-
-Current investor intelligence already distinguishes concepts such as:
+Current confidence concepts include:
 
 CORPUS-SUPPORTED
 
-Enough observations exist and the relevant discovered comparison corpus has been sufficiently processed.
+The observed Vantage corpus is sufficiently complete for the specific comparison being made.
 
 OBSERVATIONAL
 
-A pattern can be calculated, but equivalent observation coverage is incomplete or unavailable.
+A pattern can be calculated, but equivalent corpus coverage is unavailable or incomplete.
 
 INSUFFICIENT
 
-The evidence does not support a meaningful conclusion.
-
-Importantly:
+The evidence does not support a meaningful comparison.
 
 Corpus-supported does not mean complete knowledge of real-world activity.
 
-It describes the strength of the observed Vantage corpus.
+It describes the quality of the relevant observed Vantage corpus.
 
-Source Platform
+Coverage gates should also be scoped to the analytical question.
 
-Vantage operates sources through a canonical source registry.
-
-A source conceptually defines:
-
-identity
-├── key
-├── name
-├── type
-└── region
-
-discovery
-├── incremental
-└── historical
-
-policies
-├── URL rules
-├── recency
-└── enabled
-
-Supported source types currently include:
-
-publication
-investor
-ecosystem
-company
-structured
-
-Supported discovery methods currently include:
-
-rss
-sitemap
-html
-
-The operating principle is:
-
-Configuration before bespoke code.
-
-Vantage should avoid becoming:
-
-accel_scraper.py
-sequoia_scraper.py
-index_scraper.py
-techcrunch_scraper.py
-...
-
-The desired scaling model is:
-
-Large candidate cohort
-        ↓
-Run through generic platform
-        ↓
-Measure compatibility
-        ↓
-Keep productive sources
-        ↓
-Identify recurring failure classes
-        ↓
-Improve reusable mechanisms
-
-A result such as:
-
-50 candidate sources
-
-34 productive
-9 partially productive
-7 unsupported
-
-can still represent a successful source platform.
-
-Universal compatibility is not the objective.
-
-A useful network is.
+For example, an undated unrelated commentary article should not invalidate a funding-activity comparison, while undated funding evidence capable of changing the comparison should.
 
 Corpus Observability
 
-As observation scale increases, Vantage also needs to understand the shape and quality of its own corpus.
+Vantage already measures important characteristics of its own observation network and corpus.
 
-A lightweight Corpus Observability layer should increasingly answer:
+Current backend observability includes:
 
-What can Vantage actually see?
+configured and productive sources
 
-Useful measurements include:
+incremental and historical capability
 
-evidence growth over time
+stored evidence
 
-evidence by source type
+dated vs undated evidence
 
-number of productive sources
+historical date span
 
-investor coverage
+extraction attempts
 
-date coverage
+promotion / review / rejection
 
-historical coverage
-
-processed vs unprocessed evidence
+processing backlog
 
 canonical event contribution
 
-unique contribution
+unique event contribution
 
-evidence overlap
+multi-source overlap
 
-source reliability
+This should become a visual product surface.
 
-Useful visualizations may include:
+Useful first visualisations include:
 
-Corpus growth over time
+corpus growth over time
 
-Evidence by:
-Investor / Editorial / Company / Ecosystem
+evidence by source family
 
-and source coverage matrices such as:
+investor-by-time coverage heatmaps
 
-                 2024    2025    2026
+discovered → processed → promoted → canonical funnels
 
-Accel              █       █       █
-Sequoia            █       █       █
-Index               █       █       █
-Greylock            █       █       █
-a16z                 ·       ·       █
+source contribution and overlap
 
-This layer is valuable both operationally and analytically.
+historical / processing completeness
 
-It helps Vantage distinguish actual market change from changes in its own observation network.
+A visually impressive node graph is not the objective.
 
-The goal is useful observability, not visually impressive but low-information network diagrams.
+The first question Corpus Observability should answer is:
+
+What can Vantage actually see, and how much should we trust comparisons based on it?
 
 Current State
 
-Vantage now has a functioning observation, knowledge and early intelligence platform.
+Vantage is no longer an experimental news scraper.
 
-The current system is approximately:
+The repository now contains a functioning observation, structured-knowledge and early market-intelligence platform.
 
-                    PUBLIC ECOSYSTEM
-                          │
-                          ▼
-                    SOURCE REGISTRY
-                          │
-             ┌────────────┼────────────┐
-             ▼            ▼            ▼
-            RSS        Sitemap        HTML
-             │            │            │
-             └────────────┼────────────┘
-                          ▼
-                 NORMALIZED EVIDENCE
-                          │
-                          ▼
-                 CONTENT + METADATA
-                          │
-                          ▼
-                   CATEGORIZATION
-                          │
-                          ▼
-                VERSIONED EXTRACTION
-                          │
-                          ▼
-                     VALIDATION
-                          │
-                          ▼
-              PROMOTE / REVIEW / REJECT
-                          │
-                          ▼
-                 CANONICALIZATION
-                          │
-                          ▼
-                   KNOWLEDGE GRAPH
-                          │
-             ┌────────────┼────────────┐
-             ▼            ▼            ▼
-         Companies     Investors      Funds
-             │            │            │
-             └──── Events & Relationships
-                          │
-                          ▼
-                 HISTORICAL ACTIVITY
-                          │
-                          ▼
+                  PUBLIC ECOSYSTEM
+                         │
+                         ▼
+                  SOURCE REGISTRY
+                         │
+              ┌──────────┼──────────┐
+              ▼          ▼          ▼
+             RSS      Sitemap      HTML
+              │          │          │
+              └──────────┼──────────┘
+                         ▼
+                NORMALIZED EVIDENCE
+                         │
+                         ▼
+                CONTENT + METADATA
+                         │
+                         ▼
+                  CATEGORIZATION
+                         │
+                         ▼
+               VERSIONED EXTRACTION
+                         │
+                         ▼
+                    VALIDATION
+                         │
+                         ▼
+             PROMOTE / REVIEW / REJECT
+                         │
+                         ▼
+                CANONICAL KNOWLEDGE
+                         │
+              ┌──────────┼──────────┐
+              ▼          ▼          ▼
+          Companies   Investors    Funds
+              │          │          │
+              └──── Events & Relationships
+                         │
+                         ▼
+                HISTORICAL ACTIVITY
+                         │
+                         ▼
               BEHAVIOURAL INTELLIGENCE
-                          │
-                          ▼
-                MARKET SIGNALS
+                         │
+                         ▼
+                  MARKET SIGNALS
 
-The technical question:
+Established foundation
 
-Can Vantage continuously observe public venture activity and turn it into structured historical knowledge?
+reusable evidence acquisition
 
-has been substantially de-risked.
+canonical source registry
 
-The next questions are harder and more important:
+incremental and historical source operation
 
-Can Vantage operate across a materially broader observable universe?
+source probing and fleet execution
 
-and:
+persistent SourceRun telemetry
 
-Can that historical graph produce intelligence valuable enough that professional users change how they work?
+content and publication-date enrichment
 
-Current Priorities
+structured LLM extraction
 
-The project is now changing mode.
+Pydantic extraction contracts
 
-The primary objective is no longer endless refinement of individual extraction or source edge cases.
+durable versioned ExtractionRecord
 
-The next stage is:
+deterministic validation
 
-BROADER OBSERVATION
-        +
-MARKET SIGNALS
-        +
-PRODUCT VALIDATION
+safe promotion
 
-in parallel.
+replay / reprocessing
 
-Priority 1 — Scale the Observable Universe
+company and investor entity resolution
 
-Expand the source network through cohorts rather than individual source perfection.
+aliases and resolution review
 
-Near-term target direction:
+canonical funding-event resolution
 
-20–30 investor sources
-10–15 editorial sources
-5–10 company / accelerator / ecosystem sources
+multi-source evidence
 
-Then expand further based on what the system reveals.
+lead-investor relationships
 
-Measure:
+funds and fund closes
 
-compatibility
+canonical stage and sector normalization
 
-source reliability
+historical reconciliation and integrity tooling
 
-evidence yield
+source contribution measurement
 
-candidate yield
+corpus observability metrics
 
-event yield
+investor behavioural intelligence
 
-unique contribution
+temporal corpus confidence
 
-overlap
+comparable-cohort market comparison
 
-extraction quality
+Sector Momentum V1
 
-historical coverage
+Flask / Jinja operational UI
 
-Let scale expose systemic problems.
+Flask CLI operational tooling
 
-Do not build around isolated failures.
+The current local test suite contains 379 passing tests.
 
-Priority 2 — Market Signal Engine V1
+That is useful evidence of engineering discipline, but test count alone is not proof of correctness.
 
-Begin converting the graph into cross-market behavioural intelligence.
+Current Constraints
 
-Start with a small number of transparent signals:
+The project has reached a point where engineering trustworthiness matters as much as feature velocity.
 
-1. Investor activity acceleration
+The main risks are increasingly silent correctness and reproducibility failures, not simply obvious application crashes.
 
-2. Sector momentum
+Examples include:
 
-3. Stage / lead-activity shifts
+incorrect entity resolution
 
-4. Investor strategy change
+duplicate or incorrectly merged canonical events
 
-Signals should initially be deterministic and graph-based.
+extraction drift
 
-LLMs may later help interpret or communicate structured measurements, but they should not invent the underlying signal.
+misleading publication dates
 
-Priority 3 — Productise the Intelligence
+incomplete corpus interpreted as behavioural change
 
-Once meaningful signals exist, significantly improve the product experience.
+weak tests that remain green while behaviour is wrong
 
-The next major UI / UX redesign should be built around:
+local reference data that cannot be recreated
 
-What changed?
-Who drove it?
-Why?
-What evidence supports it?
-What should I investigate?
+loss or corruption of the accumulated local corpus
 
-Potential product surfaces include:
+Current engineering constraints include:
+
+SQLite is the active datastore
+
+database configuration is still local/application-specific
+
+the accumulated local database is not protected by Git
+
+the repository does not yet contain a reproducible dependency manifest
+
+CI is not yet running the test suite automatically on every change
+
+some important reference data can still depend on local database state
+
+the test suite has not yet undergone a systematic test-trust / mutation audit
+
+These are not reasons to redesign the architecture.
+
+They are reasons to strengthen the guardrails around it.
+
+Roadmap
+
+The roadmap is now driven by demonstrated product and engineering constraints rather than historical phase numbering.
+
+Completed Foundation
+
+Observation & Knowledge Foundation — Complete
+
+Established evidence ingestion, content retrieval, structured entities, funding rounds, funds, fund closes, entity resolution, event resolution, provenance and historical operations.
+
+Source Platform V1 — Complete
+
+Established the canonical source registry, reusable RSS / sitemap / HTML discovery, incremental and historical modes, source validation, fleet execution, persistent source runs, failure isolation and measurement.
+
+Investor Intelligence V1 — Complete / MVP Established
+
+Established investor profiles, activity, lead behaviour, sector/stage/geographic exposure, co-investors, temporal comparison and confidence-qualified intelligence.
+
+Scalable Knowledge Pipeline — Complete / Foundation Established
+
+Established versioned extraction, deterministic validation, safe promotion, replay, measurement and canonical event integrity.
+
+Further changes here should be driven by recurring systemic failures rather than isolated records.
+
+Observation Scale V1 — Current Objective Achieved
+
+The investor observation network has been materially broadened using existing generic acquisition mechanisms.
+
+Compatibility probing, historical acquisition, source measurement and corpus observability have demonstrated that the source platform can scale beyond the original small cohort.
+
+Further investor-source expansion is no longer the default priority.
+
+New sources should be added when they materially improve the observable universe or expose a reusable acquisition gap.
+
+Market Intelligence — Active
+
+A generic equal-window comparable-cohort market comparison engine exists.
+
+Sector Momentum V1 is implemented and has been empirically exercised against the expanded investor corpus.
+
+The remaining initial signal families are not yet complete.
+
+Immediate Priorities
+
+1. Engineering Trustworthiness V1
+
+Before substantially increasing system complexity, strengthen the safeguards around what already exists.
+
+Priority work:
+
+reproducible dependency / environment specification
+
+database backup and restore
+
+environment-driven configuration
+
+automated CI running the full test suite
+
+systematic test-trust audit
+
+coverage analysis of critical truth-producing paths
+
+targeted mutation / invariant testing where valuable
+
+small deterministic "golden corpus" regression suite
+
+reproducible bootstrap/reference data for important canonical aliases
+
+The objective is not infrastructure sophistication.
+
+It is:
+
+Make it difficult for Vantage to become silently wrong or impossible to reproduce.
+
+SQLite should remain until concurrency, deployment, reliability or workload gives a concrete reason to move to PostgreSQL.
+
+2. Continue Market Signal Engine V1
+
+After the trustworthiness checkpoint, continue converting historical activity into useful behavioural intelligence.
+
+Current sequence:
+
+Sector Momentum                 ✅
+Investor Activity Acceleration  NEXT
+Stage / Lead Shifts             NEXT
+Investor Strategy Change        NEXT
+
+Signals should remain:
+
+deterministic
+
+measurement-first
+
+coverage-aware
+
+confidence-qualified
+
+inspectable
+
+traceable to canonical events and evidence
+
+The signal layer should become better at distinguishing material change from merely non-zero change.
+
+3. Venture-Capital Domain Grounding
+
+Funding rounds are a strong first wedge, but Vantage is intended to model a broader venture ecosystem.
+
+Before expanding the event ontology aggressively, create a concise domain primer covering the mechanics most relevant to the product, including areas such as:
+
+venture firms and fund structures
+
+GPs and LPs
+
+fundraising and fund lifecycles
+
+portfolio construction and reserves
+
+startup equity and dilution
+
+primary and secondary transactions
+
+SAFEs and convertible instruments
+
+follow-ons and pro rata rights
+
+ownership and lead behaviour
+
+exits and liquidity
+
+fund performance metrics
+
+investor workflows
+
+reporting
+
+regulation
+
+firm structures and decision processes
+
+The primer should explicitly be a compressed grounding document, not a complete representation of venture-capital industry knowledge or regulation.
+
+Its purpose is to prevent the software ontology from growing faster than our understanding of the domain it is intended to represent.
+
+4. Selective Expansion of the Observation Network
+
+The next acquisition improvement should preferably unlock a new class of strategically useful evidence, rather than simply adding another investor website.
+
+Potential future acquisition classes include:
+
+structured public APIs
+
+regulatory datasets
+
+structured data feeds
+
+embedded JSON
+
+pagination APIs
+
+other authoritative public datasets
+
+Future architecture should continue to normalize these into the same evidence system:
+
+Web evidence
+Structured API
+Regulatory dataset
+External feed
+       ↓
+Normalized evidence + provenance
+       ↓
+Validation / extraction
+       ↓
+Canonical knowledge
+
+APIs should enrich the evidence architecture, not bypass it.
+
+5. Productise the Intelligence
+
+The current Flask / Jinja UI is operational but not yet the final intelligence product.
+
+The next significant UX redesign should be built around:
+
+WHAT CHANGED?
+      ↓
+WHO DROVE IT?
+      ↓
+WHAT EVENTS CAUSED IT?
+      ↓
+WHY SHOULD I TRUST IT?
+      ↓
+SHOW ME THE EVIDENCE
+
+High-value product surfaces include:
 
 intelligence overview
 
 signal cards
 
-trend visualisations
+trend visualisation
 
 investor comparison
 
-sector views
+sector exploration
 
-evidence drill-down
+corpus observability
 
-source / corpus observability
+event and evidence drill-down
 
-improved structured search
+A React rewrite is not a prerequisite.
 
-saved investigations
+Flask / Jinja should remain until interaction complexity demonstrates a genuine need for a different frontend architecture.
 
-A frontend rewrite is not automatically required.
+6. Product Validation
 
-Flask / Jinja remains acceptable until interaction complexity demonstrates otherwise.
-
-Priority 4 — Product Validation
-
-Product discovery should run alongside engineering.
+Engineering and product validation should increasingly run in parallel.
 
 Potential users include:
 
@@ -859,49 +876,85 @@ LP / fund-of-funds intelligence teams
 
 strategy teams
 
-market intelligence teams
+market-intelligence teams
 
 ecosystem researchers
 
-Users should be given real intelligence tasks rather than asked whether they “like the product.”
+Validation should use real intelligence tasks, for example:
 
-Examples:
+How is a specific investor's behaviour changing?
 
-How is Sequoia's behaviour changing?
+Which investors are increasing activity?
 
-Which investors are increasing exposure to defence?
+Which sectors show increasing participation?
 
-Who is becoming more active at Series A?
+Who is becoming more active at a particular stage?
 
-Which investors are driving AI infrastructure activity?
+Which investors are changing strategy?
 
-Which syndicates are becoming more common?
+Which signals are worth monitoring?
 
-Which sectors show increasing lead-investor activity?
-
-Important questions include:
+Important questions are:
 
 What do users repeatedly investigate?
 
 What is difficult to answer elsewhere?
 
-Which signals make them investigate further?
+Which signals cause further investigation?
 
-What would they want monitored?
+What would users want monitored continuously?
 
-What would they pay to know sooner or more reliably?
+What would they value knowing sooner or with stronger evidence?
 
 Future workflow features should emerge from these answers.
 
+Future Capabilities
+
+Capabilities that may become valuable after the core intelligence product is validated include:
+
+broader venture-event types
+
+structured and regulatory enrichment
+
+cross-source evidence reconciliation
+
+changing syndicates
+
+investor convergence
+
+geographic momentum
+
+capital-formation signals
+
+fund-level intelligence
+
+richer search
+
+saved investigations
+
+watchlists
+
+alerts
+
+recurring intelligence briefs
+
+graph / relationship exploration
+
+deployed continuous operation
+
+These are directions, not commitments.
+
+They should be earned by product value or demonstrated engineering constraints.
+
 Development Principles
 
-1. Information acquisition → structure → intelligence
+1. Information acquisition → structure → intelligence → user value
 
 Every major capability should strengthen this progression.
 
 2. News is evidence
 
-Articles are raw material, not the product.
+Articles and announcements are raw material, not the final product.
 
 3. Canonical truth is earned
 
@@ -909,115 +962,133 @@ Probabilistic extraction should not automatically become canonical knowledge.
 
 4. Preserve provenance
 
-Important conclusions should remain traceable to underlying evidence.
+Important conclusions should remain traceable to evidence.
 
-5. Build the machine, not individual integrations
+5. Measurement before interpretation
 
-A fix is most valuable when it improves a reusable capability.
+The system should establish what changed before trying to explain what it means.
 
-6. Configuration before bespoke code
+6. LLMs understand; deterministic systems govern
 
-New sources should normally require configuration.
-
-7. Use LLMs for semantic understanding
-
-LLMs should interpret unstructured evidence.
+LLMs are useful for interpreting unstructured evidence.
 
 Deterministic systems should own:
 
-persistence
-
 workflow state
+
+persistence
 
 identity
 
-constraints
-
 validation
-
-matching
 
 canonicalization
 
+constraints
+
 aggregation
+
+confidence
 
 measurement
 
-8. Prefer ambiguity over false certainty
+7. Prefer ambiguity over false certainty
 
-Incorrect canonical knowledge contaminates downstream intelligence.
+Incorrect canonical knowledge contaminates every downstream intelligence layer.
 
-9. Manual review is an exception path
+8. Measure the observed universe
 
-Human review should teach us where the machine needs improvement.
+Never imply that Vantage's corpus is the entire market.
 
-It should not become the machine.
+9. Comparable evidence before behavioural claims
 
-10. Measure the observed universe
+Changes in observation coverage must not masquerade as changes in investor or market behaviour.
 
-Do not confuse observation with complete real-world knowledge.
+10. Configuration before bespoke integrations
 
-11. Let scale expose systemic problems
+Improve reusable acquisition mechanisms rather than accumulating one-off scrapers.
 
-Do not continually hunt isolated imperfections.
+11. Fix failure classes, not isolated records
 
-Fix problems when:
+Let scale reveal recurring weaknesses.
 
-they recur
-+
-they threaten integrity
-+
-the fix strengthens the platform
+Repair them when they threaten integrity or improve a reusable capability.
 
-12. Accept imperfect source coverage
+12. Manual review is an exception path
 
-A valuable observation network matters more than universal compatibility.
+Human review should reveal where the system needs improvement.
 
-13. Protect development speed
+It should not become the operating model.
 
-Do not introduce infrastructure without a demonstrated constraint.
+13. Frameworks must earn their complexity
 
-14. Validate the product alongside the technology
+Adopt frameworks when they remove substantial generic complexity or solve a demonstrated constraint.
 
-Engineering determines what can be built.
+Do not add them because sophisticated systems are expected to use them.
 
-Users determine what is valuable.
+14. Tests must prove behaviour, not merely pass
+
+A large green test suite is useful only if meaningful regressions cause tests to fail.
+
+Critical paths should increasingly be tested through invariants, negative cases and end-to-end regression evidence.
+
+15. Protect the accumulated corpus
+
+The historical evidence and knowledge graph are core project assets.
+
+Data durability matters independently of code durability.
+
+16. Product validation belongs beside engineering
+
+Technical sophistication without useful intelligence is not success.
 
 What Not to Build Yet
 
-Avoid premature work on:
+Deliberately avoid:
 
-perfect source compatibility
+source expansion merely to increase source count
 
 scraper-per-site architecture
 
 universal crawling
 
-excessive validator refinement for isolated cases
+headless-browser infrastructure without a demonstrated source need
 
-opaque AI-generated market scores
+historical processing merely to clear every backlog
 
-unnecessary ontology complexity
+validators or parsers for isolated one-off anomalies
 
-frontend framework rewrites for their own sake
+a giant generic event ontology before domain grounding
+
+opaque AI-generated trend scores
+
+LLM-generated market conclusions without deterministic measurements
+
+frontend framework rewrites purely for polish
+
+PostgreSQL migration for appearance rather than need
+
+premature Docker / deployment complexity
+
+Celery / Redis without a real job-processing constraint
+
+Kafka or elaborate event buses
 
 microservices
 
 Kubernetes
 
-Kafka or elaborate event buses
-
 vector databases without a demonstrated retrieval requirement
 
-agent frameworks without a demonstrated workflow requirement
+agent frameworks without a demonstrated agentic workflow
 
-infrastructure introduced because “real startups use it”
+orchestration frameworks before local fleet operation becomes a real operational constraint
+
+infrastructure because "real startups use it"
 
 Technical sophistication is not the product.
 
 Technical Direction
-
-Vantage deliberately remains technically lightweight.
 
 Current core technologies include:
 
@@ -1033,7 +1104,7 @@ SQLite
 
 Flask-Migrate / Alembic
 
-OpenAI API
+OpenAI structured extraction
 
 Pydantic
 
@@ -1047,13 +1118,13 @@ pytest
 
 HTML / CSS
 
-Much of the knowledge-building system is also operable through Flask CLI commands.
+Much of the observation and knowledge system can also be operated through the flask --app app vantage ... CLI.
 
-The current development loop is intentionally simple:
+The current development loop remains intentionally simple:
 
 edit
  ↓
-pytest
+test
  ↓
 run
  ↓
@@ -1065,234 +1136,31 @@ That speed is valuable.
 
 Infrastructure should solve demonstrated constraints rather than anticipated ones.
 
-Potential future progression:
+Possible future transitions include:
 
 SQLite
    ↓
 PostgreSQL
 
-when concurrency, workload or deployment requirements justify it.
+when durability, concurrency, deployment or workload requires it.
 
-Likewise:
-
-Local execution
+Manual / local operation
    ↓
-Scheduled / background execution
+Scheduled or orchestrated operation
 
-when continuous operation requires it.
+when continuous execution becomes a genuine requirement.
 
-And:
-
-Local environment
+Current server-rendered UI
    ↓
-Containerised deployment
+Richer frontend architecture
 
-when reproducibility and deployment materially benefit.
-
-Two lightweight engineering improvements have near-term value:
-
-dependency management / reproducible installation
-
-CI automatically running the test suite
-
-These strengthen the development process without changing the product architecture.
-
-Roadmap
-
-Phases 1–4 — Observation & Knowledge Foundation
-
-Status: Complete
-
-Established:
-
-evidence ingestion
-
-normalized evidence
-
-content retrieval
-
-categorization
-
-structured extraction
-
-companies / investors / funds
-
-funding rounds
-
-fund closes
-
-entity resolution
-
-event resolution
-
-provenance
-
-historical operations
-
-integrity tooling
-
-Phase 5 — Source Platform V1
-
-Status: Complete
-
-Established:
-
-canonical source registry
-
-RSS / sitemap / HTML discovery
-
-incremental / historical modes
-
-source configuration validation
-
-fleet operations
-
-failure isolation
-
-source-run telemetry
-
-source measurement
-
-Phase 6 — Investor Intelligence V1
-
-Status: Complete / MVP established
-
-Established:
-
-durable investor identity
-
-investment activity
-
-lead activity
-
-stage exposure
-
-sector exposure
-
-geography where supported
-
-co-investors
-
-temporal comparison
-
-confidence-qualified intelligence
-
-evidence-backed investor profiles
-
-Phase 7 — Scalable Knowledge Pipeline
-
-Status: Complete
-
-Established:
-
-durable ExtractionRecord
-
-versioned extraction
-
-deterministic validation
-
-PROMOTE / REVIEW / REJECT states
-
-safe canonical promotion
-
-replay and reprocessing
-
-pipeline measurement
-
-canonical funding-event idempotency
-
-historical contribution measurement
-
-The extraction / canonical-truth boundary is now sufficiently strong to support broader scale.
-
-Further refinement should be driven by recurring systemic failures rather than isolated records.
-
-Phase 8 — Observation & Historical Scale
-
-Status: Current
-
-Objective:
-
-Prove that Vantage can operate across a materially broader and more heterogeneous venture observation network.
-
-Current work includes:
-
-expanding investor cohorts
-
-expanding historical coverage
-
-measuring source compatibility
-
-measuring evidence and event contribution
-
-testing configuration-first acquisition
-
-identifying reusable acquisition gaps
-
-building corpus observability
-
-Phase 8 does not need to be fully complete before intelligence work continues.
-
-Phase 9 — Market & Signal Intelligence
-
-Status: Starting in parallel
-
-Objective:
-
-Turn the historical activity graph into differentiated behavioural intelligence.
-
-Initial V1 signals:
-
-Investor activity acceleration
-Sector momentum
-Stage / lead shifts
-Investor strategy change
-
-Requirements:
-
-transparent methodology
-
-comparable time windows
-
-observation-coverage awareness
-
-confidence qualification
-
-drill-down to canonical events
-
-drill-down to underlying evidence
-
-Phase 10 — Productisation, Search & Workflow
-
-Status: Future / shaped by product validation
-
-Potential capabilities include:
-
-major UI / UX redesign
-
-structured search
-
-investor comparison
-
-sector exploration
-
-saved searches
-
-watchlists
-
-alerts
-
-monitoring
-
-recurring intelligence briefs
-
-These workflows should be shaped by actual user behaviour rather than assumed upfront.
+only when product interaction complexity earns it.
 
 Brief History
 
-1. VC News Aggregator
+1. News Aggregator
 
-Vantage began approximately as:
+Vantage began as a straightforward Flask application:
 
 RSS
  ↓
@@ -1304,9 +1172,9 @@ The article was effectively the product.
 
 2. Structured Venture Data
 
-LLM extraction shifted the product toward:
+LLM extraction shifted the system toward:
 
-Articles
+Evidence
    ↓
 Companies
 Investors
@@ -1314,39 +1182,31 @@ Funding rounds
 Funds
 Fund closes
 
-News became raw material rather than the final output.
+News became input rather than output.
 
 3. Canonical Knowledge
 
-As data accumulated, identity and duplication became central problems.
+As data accumulated, duplication and identity became more important than extracting another article.
 
 The architecture evolved from:
 
-1 article
-→
-1 database record
+1 article → 1 record
 
 toward:
 
-many observations
-→
-1 real-world event
+many observations → one real-world event
 
-Entity resolution, aliases, event resolution and multi-source evidence became foundational.
+Entity resolution, aliases, event reconciliation and multi-source evidence became foundational.
 
 4. Source Platform
 
-Observation expanded beyond editorial RSS into reusable:
+Observation expanded beyond a small set of editorial RSS feeds.
 
-RSS
-Sitemaps
-HTML listings
+Reusable RSS, sitemap and HTML discovery, a canonical registry, historical operation, fleet execution and source measurement moved Vantage away from bespoke scraping.
 
-A canonical registry, historical modes, fleet operations and source measurement moved Vantage away from bespoke scraping.
+5. Investor Behaviour
 
-5. Investor Intelligence
-
-First-party investor history changed the core question from:
+First-party investor history shifted the core question from:
 
 What happened?
 
@@ -1358,13 +1218,13 @@ and then:
 
 How is that behaviour changing?
 
-Investor profiles, temporal comparisons and confidence-qualified intelligence followed.
+Investor profiles, temporal comparisons and corpus-qualified confidence followed.
 
 6. Safe Knowledge at Scale
 
-As the corpus grew, extraction could no longer write directly into canonical truth without stronger safeguards.
+As the corpus grew, allowing probabilistic extraction to write directly into canonical truth became too risky.
 
-Vantage introduced:
+Vantage introduced the durable boundary:
 
 Evidence
  ↓
@@ -1376,46 +1236,44 @@ Safe Promotion
  ↓
 Canonical Knowledge
 
-This made larger-scale observation materially safer.
+7. Market Intelligence
 
-7. Current Stage — From Knowledge Machine to Intelligence Product
+The next conceptual transition was from individual investor intelligence to cross-investor behavioural measurement.
 
-The core architecture now works well enough that the primary question has changed again.
+Comparable cohorts and Sector Momentum V1 established the first market-level signal architecture.
 
-It is no longer:
+The project is now moving from:
 
-Can Vantage understand another venture article?
+Can Vantage build structured venture knowledge?
 
-It is increasingly:
+toward:
 
-Can Vantage observe a broad enough universe, build trustworthy historical behaviour, and surface something genuinely valuable that professional users could not easily see before?
+Can Vantage safely turn accumulated historical knowledge into intelligence that professional users care about?
 
-That is the current stage of the project.
+What Success Looks Like
 
-Current Strategic Focus
+Vantage succeeds if it becomes a system that can reliably:
 
-The next stage of Vantage is:
-
-BROADER SOURCE NETWORK
+Observe venture activity
         ↓
-MORE OBSERVED HISTORY
+Preserve the evidence
         ↓
-TRUSTWORTHY ACTIVITY GRAPH
+Resolve real entities and events
         ↓
-MARKET SIGNAL ENGINE
+Build trustworthy history
         ↓
-EXPLAINABLE INTELLIGENCE
+Measure behavioural change
         ↓
-PRODUCT VALIDATION
+Surface meaningful signals
         ↓
-SEARCH / MONITORING / WORKFLOW
+Explain exactly why they exist
+        ↓
+Help users decide what to investigate or monitor
 
-The engineering question is:
+A successful Vantage is not the system with the most sources, the most infrastructure or the most AI.
 
-Can Vantage continuously observe the venture ecosystem at meaningful scale and safely convert activity into trustworthy historical knowledge?
+It is the system where a user can ask:
 
-The product question is:
+What is changing in the venture ecosystem, who is driving it, and why should I believe it?
 
-Can that history reveal meaningful behavioural change that professional users care enough about to change how they work?
-
-Those are now the two questions that should drive the roadmap.
+and receive an answer that is useful, inspectable and grounded in evidence.
