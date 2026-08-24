@@ -1,3 +1,5 @@
+import re
+
 from datetime import (
     datetime,
     timezone,
@@ -28,6 +30,9 @@ FLAG_NOT_FUNDING_ROUND = "not_funding_round"
 FLAG_NOT_FUND_CLOSE = "not_fund_close"
 
 FLAG_COMPOUND_EVIDENCE = "compound_evidence"
+FLAG_AGGREGATE_HISTORICAL_FINANCING = (
+    "aggregate_historical_financing"
+)
 
 FLAG_MISSING_EVENT_EVIDENCE = "missing_event_evidence"
 FLAG_MISSING_COMPANY_NAME = "missing_company_name"
@@ -48,6 +53,24 @@ VALID_FUND_CLOSE_TYPES = {
     "final_close",
     "unknown",
 }
+
+
+AGGREGATE_HISTORICAL_FINANCING_PATTERNS = [
+    re.compile(
+        r"\b(?:has|have|had)?\s*raised\b"
+        r".{0,180}"
+        r"\bover\s+(?:the\s+)?(?:past|last)\s+"
+        r"(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)"
+        r"\s+(?:months?|years?)\b",
+        re.IGNORECASE | re.DOTALL,
+    ),
+    re.compile(
+        r"\b(?:has|have|had)?\s*raised\b"
+        r".{0,180}"
+        r"\bsince\s+(?:19|20)\d{2}\b",
+        re.IGNORECASE | re.DOTALL,
+    ),
+]
 
 
 def _utc_now():
@@ -81,6 +104,40 @@ def _has_text(value):
         and bool(
             value.strip()
         )
+    )
+
+
+def _is_aggregate_historical_financing(
+    payload,
+):
+    """
+    Detect high-confidence cases where an extracted amount
+    describes cumulative financing across a historical period
+    rather than one discrete focal funding event.
+
+    This is deliberately narrow.
+
+    Phrases such as "bringing total funding to $X" are not
+    sufficient because legitimate focal-round announcements
+    commonly include cumulative funding context.
+    """
+
+    evidence = payload.get(
+        "event_evidence"
+    )
+
+    if not _has_text(
+        evidence
+    ):
+        return False
+
+    return any(
+        pattern.search(
+            evidence
+        )
+        is not None
+        for pattern
+        in AGGREGATE_HISTORICAL_FINANCING_PATTERNS
     )
 
 
@@ -171,6 +228,13 @@ def _validate_funding_record(
     ):
         reject_flags.append(
             FLAG_COMPOUND_EVIDENCE
+        )
+
+    if _is_aggregate_historical_financing(
+        payload
+    ):
+        review_flags.append(
+            FLAG_AGGREGATE_HISTORICAL_FINANCING
         )
 
     if not _has_text(

@@ -142,6 +142,18 @@ def extract_funding_with_llm(article):
                     "event merely because a venture-capital firm has "
                     "raised money for one of its own investment funds. "
 
+                    "IMPORTANT AGGREGATE-FUNDING RULE: cumulative historical "
+                    "funding is not one financing event. Statements such as "
+                    "'the company has raised $X over the past two years', "
+                    "'has raised $X since 2024', or other totals aggregating "
+                    "multiple financings across time must NOT be represented "
+                    "as one focal funding round. If no single new financing "
+                    "event can be isolated from such a cumulative total, set "
+                    "is_funding_round to false. A legitimate new round may "
+                    "still mention total funding to date; in that case extract "
+                    "only the amount, stage, investors, and evidence belonging "
+                    "to the newly announced focal round. "
+
                     "IMPORTANT MULTI-ROUND RULE: venture articles often "
                     "mention older financing rounds as historical context. "
                     "If the article clearly centers on ONE newly announced, "

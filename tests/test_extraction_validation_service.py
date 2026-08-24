@@ -31,6 +31,7 @@ from services.extraction_validation_service import (
     FLAG_NOT_FUNDING_ROUND,
     FLAG_NOT_FUND_CLOSE,
     FLAG_COMPOUND_EVIDENCE,
+    FLAG_AGGREGATE_HISTORICAL_FINANCING,
     FLAG_MISSING_COMPANY_NAME,
     FLAG_MISSING_FUND_NAME,
     FLAG_INVALID_AMOUNT,
@@ -599,6 +600,136 @@ def test_missing_fund_name_requires_review(
         assert (
             FLAG_MISSING_FUND_NAME
             in record.validation_flags
+        )
+
+        _assert_no_canonical_data()
+
+def test_aggregate_multi_period_financing_requires_review(
+    app,
+):
+    with app.app_context():
+        article = _persist_article(
+            _make_article(
+                title=(
+                    "Domyn raises over $1bn"
+                ),
+            )
+        )
+
+        record = _create_funding_record(
+            article,
+            _funding_extraction(
+                event_evidence=(
+                    "Domyn has raised $1.1 billion "
+                    "in debt and equity funding over "
+                    "the past two years."
+                ),
+                company_name="Domyn",
+                amount=1_100_000_000,
+                currency="USD",
+            ),
+        )
+
+        validate_extraction_record(
+            record
+        )
+
+        assert (
+            record.validation_state
+            == VALIDATION_STATE_REVIEW
+        )
+
+        assert (
+            FLAG_AGGREGATE_HISTORICAL_FINANCING
+            in record.validation_flags
+        )
+
+        _assert_no_canonical_data()
+
+
+def test_discrete_round_with_total_funding_context_is_promoted(
+    app,
+):
+    with app.app_context():
+        article = _persist_article(
+            _make_article(
+                title=(
+                    "Venice raises $25M Series A"
+                ),
+            )
+        )
+
+        record = _create_funding_record(
+            article,
+            _funding_extraction(
+                event_evidence=(
+                    "Venice raised $25 million in "
+                    "Series A funding led by IVP, "
+                    "following an $8 million seed round "
+                    "and bringing total funding to "
+                    "$33 million."
+                ),
+                company_name="Venice",
+                amount=25_000_000,
+                currency="USD",
+            ),
+        )
+
+        validate_extraction_record(
+            record
+        )
+
+        assert (
+            record.validation_state
+            == VALIDATION_STATE_PROMOTE
+        )
+
+        assert (
+            FLAG_AGGREGATE_HISTORICAL_FINANCING
+            not in record.validation_flags
+        )
+
+        _assert_no_canonical_data()
+
+
+def test_discrete_round_with_bringing_total_funding_is_promoted(
+    app,
+):
+    with app.app_context():
+        article = _persist_article(
+            _make_article(
+                title=(
+                    "Ankar raises $20M Series A"
+                ),
+            )
+        )
+
+        record = _create_funding_record(
+            article,
+            _funding_extraction(
+                event_evidence=(
+                    "Ankar raised a $20 million "
+                    "Series A, bringing its total "
+                    "funding to $24 million."
+                ),
+                company_name="Ankar",
+                amount=20_000_000,
+                currency="USD",
+            ),
+        )
+
+        validate_extraction_record(
+            record
+        )
+
+        assert (
+            record.validation_state
+            == VALIDATION_STATE_PROMOTE
+        )
+
+        assert (
+            FLAG_AGGREGATE_HISTORICAL_FINANCING
+            not in record.validation_flags
         )
 
         _assert_no_canonical_data()
