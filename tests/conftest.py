@@ -10,6 +10,10 @@ def app():
     """
     Provide an isolated Flask application and in-memory
     database for database-backed tests.
+
+    Database sessions and pooled connections are explicitly
+    closed during teardown so tests do not leak SQLite
+    resources between runs.
     """
 
     test_app = Flask(__name__)
@@ -34,3 +38,4 @@ def app():
         db.session.rollback()
         db.session.remove()
         db.drop_all()
+        db.engine.dispose()
