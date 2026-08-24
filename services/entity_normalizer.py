@@ -27,8 +27,9 @@ def clean_entity_name(name):
             break
 
     cleaned = re.sub(r"\s+", " ", cleaned)
+    cleaned = cleaned.strip()
 
-    return cleaned
+    return cleaned or None
 
 
 def normalize_entity_name(name, entity_type=None):

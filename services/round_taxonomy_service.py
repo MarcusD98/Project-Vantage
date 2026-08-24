@@ -150,7 +150,9 @@ def normalize_round_type_text(round_type):
         normalized,
     )
 
-    return normalized
+    normalized = normalized.strip()
+
+    return normalized or None
 
 
 def canonicalize_round_type(round_type):
