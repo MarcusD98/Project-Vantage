@@ -72,6 +72,10 @@ from services.investor_ui_service import (
     normalize_investor_window,
 )
 
+from services.product_intelligence_service import (
+    get_product_intelligence_summary,
+)
+
 
 logging.basicConfig(
     level=logging.INFO
@@ -383,9 +387,14 @@ def intelligence():
         get_intelligence_summary()
     )
 
+    product_intelligence = (
+        get_product_intelligence_summary()
+    )
+
     return render_template(
         "intelligence.html",
         summary=summary,
+        product=product_intelligence,
     )
 
 

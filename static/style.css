@@ -1697,3 +1697,326 @@ tbody tr:last-child td {
     }
 
 }
+
+/* ----------------------------------
+   PRODUCT INTELLIGENCE MVP
+---------------------------------- */
+
+.intelligence-as-of {
+    margin-top: 12px;
+
+    color: var(--text-muted);
+
+    font-size: 11px;
+}
+
+
+.intelligence-primary-section {
+    margin-top: 0;
+}
+
+
+.change-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 14px;
+}
+
+
+.change-card,
+.sector-signal-card {
+    padding: 22px;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    box-shadow: var(--shadow);
+}
+
+
+.change-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 12px;
+
+    margin-bottom: 14px;
+}
+
+
+.confidence-badge {
+    display: inline-flex;
+
+    padding: 4px 7px;
+
+    border-radius: 6px;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    letter-spacing: 0.06em;
+}
+
+
+.confidence-supported {
+    background: var(--green-soft);
+
+    color: var(--green);
+}
+
+
+.confidence-observational {
+    background: var(--warning-soft);
+
+    color: var(--warning);
+}
+
+
+.change-direction {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+
+.direction-up {
+    color: var(--green);
+}
+
+
+.direction-down {
+    color: var(--danger);
+}
+
+
+.change-title {
+    margin: 0 0 18px;
+
+    font-size: 22px;
+
+    letter-spacing: -0.025em;
+}
+
+
+.change-title a:hover {
+    color: var(--accent);
+}
+
+
+.change-metrics {
+    display: flex;
+    align-items: flex-end;
+
+    gap: 14px;
+
+    margin-bottom: 18px;
+}
+
+
+.change-metric {
+    display: flex;
+    flex-direction: column;
+
+    gap: 2px;
+}
+
+
+.change-metric strong {
+    font-size: 28px;
+    line-height: 1;
+
+    letter-spacing: -0.04em;
+}
+
+
+.change-metric-label,
+.signal-detail-label {
+    color: var(--text-muted);
+
+    font-size: 9px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.07em;
+}
+
+
+.change-arrow {
+    padding-bottom: 1px;
+
+    color: var(--text-muted);
+
+    font-size: 18px;
+}
+
+
+.change-delta {
+    margin-left: auto;
+
+    font-size: 23px;
+    font-weight: 650;
+
+    letter-spacing: -0.03em;
+}
+
+
+.change-detail {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 8px 18px;
+
+    color: var(--text-secondary);
+
+    font-size: 12px;
+}
+
+
+.change-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 16px;
+
+    margin-top: 18px;
+    padding-top: 14px;
+
+    border-top: 1px solid var(--border);
+
+    color: var(--text-muted);
+
+    font-size: 10px;
+}
+
+
+.sector-signal-list {
+    display: flex;
+    flex-direction: column;
+
+    gap: 14px;
+}
+
+
+.signal-detail-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin-top: 18px;
+}
+
+
+.signal-detail-grid > div,
+.signal-methodology > div {
+    display: flex;
+    flex-direction: column;
+
+    gap: 4px;
+
+    padding: 12px 14px;
+
+    background: var(--surface-soft);
+
+    border-radius: var(--radius-small);
+}
+
+
+.signal-evidence-row {
+    display: grid;
+    grid-template-columns: 190px 1fr;
+
+    gap: 20px;
+
+    margin-top: 16px;
+    padding-top: 16px;
+
+    border-top: 1px solid var(--border);
+
+    color: var(--text-secondary);
+
+    font-size: 12px;
+}
+
+
+.event-id-list {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 6px;
+}
+
+
+.event-id-list span {
+    padding: 3px 7px;
+
+    border-radius: 5px;
+
+    background: var(--accent-soft);
+
+    color: var(--accent);
+
+    font-size: 10px;
+    font-weight: 650;
+}
+
+
+.signal-methodology {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin-top: 14px;
+}
+
+
+.signal-methodology-note {
+    margin: 12px 2px 0;
+
+    color: var(--text-muted);
+
+    font-size: 11px;
+}
+
+
+.intelligence-context-stats {
+    margin-bottom: 0;
+}
+
+
+@media (max-width: 720px) {
+
+    .change-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .change-card-top,
+    .change-card-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+
+    .signal-detail-grid,
+    .signal-methodology {
+        grid-template-columns: 1fr;
+    }
+
+
+    .signal-evidence-row {
+        grid-template-columns: 1fr;
+
+        gap: 5px;
+    }
+
+}

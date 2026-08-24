@@ -10,353 +10,193 @@ Intelligence · Vantage
 <section class="hero compact">
 
     <div class="eyebrow">
-        MARKET INTELLIGENCE
+        BEHAVIOURAL INTELLIGENCE
     </div>
 
     <h1>
-        Venture intelligence
+        What changed?
     </h1>
 
     <p class="hero-description">
-        Structured signals from financing activity, investor participation, sector momentum, and fund formation across the Vantage knowledge base.
+        Evidence-backed changes in observed investor and market behaviour,
+        measured from canonical Vantage financing events.
     </p>
 
-</section>
-
-
-<section class="quality-stats">
-
-    <div class="quality-stat">
-
-        <div class="quality-value">
-            {{ summary.company_count }}
-        </div>
-
-        <div class="quality-label">
-            Companies
-        </div>
-
-    </div>
-
-
-    <div class="quality-stat">
-
-        <div class="quality-value">
-            {{ summary.investor_count }}
-        </div>
-
-        <div class="quality-label">
-            Investors
-        </div>
-
-    </div>
-
-
-    <div class="quality-stat">
-
-        <div class="quality-value">
-            {{ summary.funding_round_count }}
-        </div>
-
-        <div class="quality-label">
-            Financing events
-        </div>
-
-    </div>
-
-
-    <div class="quality-stat">
-
-        <div class="quality-value">
-            {{ summary.recent_fund_closes|length }}
-        </div>
-
-        <div class="quality-label">
-            Recorded fund closes
-        </div>
-
+    <div class="intelligence-as-of">
+        As of
+        {{ product.as_of.strftime("%d %b %Y") }}
     </div>
 
 </section>
 
 
-<section class="quality-section">
+<section class="quality-section intelligence-primary-section">
 
     <div class="section-header">
 
         <div>
 
             <div class="eyebrow">
-                INVESTOR ACTIVITY
+                INVESTOR BEHAVIOUR
             </div>
 
             <h2>
-                Most active investors
+                Activity shifts
             </h2>
 
         </div>
 
         <div class="section-meta">
-            Based on recorded financing participation
+            Current {{ product.investor_window_days }} days
+            vs previous {{ product.investor_window_days }} days
         </div>
 
     </div>
 
 
-    <div class="quality-panel">
+    {% if product.investor_changes %}
 
-        {% if summary.investor_activity %}
+        <div class="change-grid">
 
-            {% for item in summary.investor_activity %}
+            {% for item in product.investor_changes %}
 
-                <div class="intelligence-rank-row">
+                <article class="change-card">
 
-                    <div class="intelligence-rank">
-                        {{ loop.index }}
+                    <div class="change-card-top">
+
+                        <span
+                            class="
+                                confidence-badge
+                                {% if item.trend_confidence == 'corpus_supported' %}
+                                    confidence-supported
+                                {% else %}
+                                    confidence-observational
+                                {% endif %}
+                            "
+                        >
+                            {% if item.trend_confidence == "corpus_supported" %}
+                                CORPUS-SUPPORTED
+                            {% else %}
+                                OBSERVATIONAL
+                            {% endif %}
+                        </span>
+
+                        <span
+                            class="
+                                change-direction
+                                {% if item.investment_delta > 0 %}
+                                    direction-up
+                                {% else %}
+                                    direction-down
+                                {% endif %}
+                            "
+                        >
+                            {% if item.investment_delta > 0 %}
+                                ↑ Activity increased
+                            {% else %}
+                                ↓ Activity decreased
+                            {% endif %}
+                        </span>
+
                     </div>
 
 
-                    <div class="intelligence-rank-main">
+                    <h2 class="change-title">
 
                         <a
                             href="{{ url_for(
                                 'investor_profile',
                                 investor_id=item.investor.id
                             ) }}"
-                            class="entity-link"
                         >
-                            <strong>
-                                {{ item.investor.name }}
-                            </strong>
+                            {{ item.investor.name }}
                         </a>
 
-                    </div>
+                    </h2>
 
 
-                    <div class="intelligence-metric">
+                    <div class="change-metrics">
 
-                        <strong>
-                            {{ item.round_count }}
-                        </strong>
+                        <div class="change-metric">
 
-                        <span>
-                            rounds
-                        </span>
+                            <span class="change-metric-label">
+                                Previous
+                            </span>
 
-                    </div>
+                            <strong>
+                                {{ item.previous_investments }}
+                            </strong>
 
-
-                    <div class="intelligence-metric">
-
-                        <strong>
-                            {{ item.lead_count }}
-                        </strong>
-
-                        <span>
-                            lead
-                        </span>
-
-                    </div>
-
-                </div>
-
-            {% endfor %}
-
-        {% else %}
-
-            <div class="quality-empty">
-                No investor activity data available.
-            </div>
-
-        {% endif %}
-
-    </div>
-
-</section>
+                        </div>
 
 
-<section class="quality-section">
-
-    <div class="section-header">
-
-        <div>
-
-            <div class="eyebrow">
-                SECTOR ACTIVITY
-            </div>
-
-            <h2>
-                Financing by sector
-            </h2>
-
-        </div>
-
-        <div class="section-meta">
-            Recorded financing-event count
-        </div>
-
-    </div>
+                        <div class="change-arrow">
+                            →
+                        </div>
 
 
-    <div class="quality-panel">
+                        <div class="change-metric">
 
-        {% if summary.sector_activity %}
+                            <span class="change-metric-label">
+                                Current
+                            </span>
 
-            {% for item in summary.sector_activity %}
+                            <strong>
+                                {{ item.current_investments }}
+                            </strong>
 
-                <div class="completeness-row">
-
-                    <span>
-                        {{ item.sector }}
-                    </span>
-
-                    <strong>
-                        {{ item.round_count }}
-                    </strong>
-
-                </div>
-
-            {% endfor %}
-
-        {% else %}
-
-            <div class="quality-empty">
-                No sector data available.
-            </div>
-
-        {% endif %}
-
-    </div>
-
-</section>
+                        </div>
 
 
-<section class="quality-section">
-
-    <div class="section-header">
-
-        <div>
-
-            <div class="eyebrow">
-                CAPITAL FORMATION
-            </div>
-
-            <h2>
-                Recent fund closes
-            </h2>
-
-        </div>
-
-        <div class="section-meta">
-            VC fund activity
-        </div>
-
-    </div>
-
-
-    {% if summary.recent_fund_closes %}
-
-        <div class="funding-list">
-
-            {% for close in summary.recent_fund_closes %}
-
-                <article class="funding-card">
-
-                    <div class="funding-main">
-
-                        <div>
-
-                            <div class="category-badge">
-                                Fund close
-                            </div>
-
-                            <h2>
-
-                                <a
-                                    href="{{ url_for(
-                                        'investor_profile',
-                                        investor_id=close.fund.investor.id
-                                    ) }}"
-                                >
-                                    {{ close.fund.investor.name }}
-                                </a>
-
-                            </h2>
-
-                            <div class="company-meta">
-
-                                <span>
-                                    {{ close.fund.name }}
-                                </span>
-
-                                {% if close.fund.geography %}
-                                    <span>
-                                        {{ close.fund.geography }}
-                                    </span>
+                        <div
+                            class="
+                                change-delta
+                                {% if item.investment_delta > 0 %}
+                                    direction-up
+                                {% else %}
+                                    direction-down
                                 {% endif %}
-
-                            </div>
-
+                            "
+                        >
+                            {% if item.investment_delta > 0 %}+{% endif %}
+                            {{ item.investment_delta }}
                         </div>
-
-
-                        {% if close.amount %}
-
-                            <div class="funding-value">
-
-                                <div class="amount">
-
-                                    {% if close.currency == "USD" %}$
-                                    {% elif close.currency == "EUR" %}€
-                                    {% elif close.currency == "GBP" %}£
-                                    {% endif %}
-
-                                    {{ "{:,.0f}".format(close.amount) }}
-
-                                </div>
-
-                                <div class="amount-label">
-                                    FUND CLOSE
-                                </div>
-
-                            </div>
-
-                        {% endif %}
 
                     </div>
 
 
-                    {% if close.event_evidence %}
+                    <div class="change-detail">
 
-                        <div class="evidence-box">
-                            {{ close.event_evidence }}
-                        </div>
-
-                    {% endif %}
-
-
-                    <div class="funding-footer">
-
-                        <span class="date">
-
-                            {% if close.announced_at %}
-                                {{ close.announced_at.strftime("%d %b %Y") }}
-                            {% endif %}
-
+                        <span>
+                            {{ item.current_leads }}
+                            lead
+                            {% if item.current_leads != 1 %}events{% else %}event{% endif %}
+                            in current window
                         </span>
 
+                        <span>
+                            {{ item.all_time_investments }}
+                            all-time observed investments
+                        </span>
 
-                        {% if close.article %}
+                    </div>
 
-                            <a
-                                href="{{ close.article.url }}"
-                                target="_blank"
-                                class="text-link"
-                            >
-                                Source ↗
-                            </a>
 
-                        {% endif %}
+                    <div class="change-card-footer">
+
+                        <span>
+                            Observed financing participation
+                        </span>
+
+                        <a
+                            href="{{ url_for(
+                                'investor_profile',
+                                investor_id=item.investor.id
+                            ) }}"
+                            class="text-link"
+                        >
+                            Investigate investor →
+                        </a>
 
                     </div>
 
@@ -369,7 +209,7 @@ Intelligence · Vantage
     {% else %}
 
         <div class="empty-state">
-            No recorded fund-close activity.
+            No supported investor activity changes are currently available.
         </div>
 
     {% endif %}
@@ -384,17 +224,384 @@ Intelligence · Vantage
         <div>
 
             <div class="eyebrow">
-                COMPANY FINANCING
+                MARKET BEHAVIOUR
             </div>
 
             <h2>
-                Recent financing activity
+                Sector momentum
             </h2>
 
         </div>
 
         <div class="section-meta">
-            Latest structured events
+            {{ product.market_window_days }}-day comparison windows
+        </div>
+
+    </div>
+
+
+    {% if product.sector_momentum.signals %}
+
+        <div class="sector-signal-list">
+
+            {% for item in product.sector_momentum.signals %}
+
+                <article class="sector-signal-card">
+
+                    <div class="change-card-top">
+
+                        <span
+                            class="
+                                confidence-badge
+                                {% if item.confidence == 'corpus_supported' %}
+                                    confidence-supported
+                                {% else %}
+                                    confidence-observational
+                                {% endif %}
+                            "
+                        >
+                            {% if item.confidence == "corpus_supported" %}
+                                CORPUS-SUPPORTED
+                            {% else %}
+                                OBSERVATIONAL
+                            {% endif %}
+                        </span>
+
+                        <span
+                            class="
+                                change-direction
+                                {% if item.delta > 0 %}
+                                    direction-up
+                                {% else %}
+                                    direction-down
+                                {% endif %}
+                            "
+                        >
+                            {% if item.delta > 0 %}
+                                ↑ Momentum increased
+                            {% else %}
+                                ↓ Momentum decreased
+                            {% endif %}
+                        </span>
+
+                    </div>
+
+
+                    <h2 class="change-title">
+                        {{ item.value }}
+                    </h2>
+
+
+                    <div class="change-metrics">
+
+                        <div class="change-metric">
+
+                            <span class="change-metric-label">
+                                Previous events
+                            </span>
+
+                            <strong>
+                                {{ item.previous_event_count }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="change-arrow">
+                            →
+                        </div>
+
+
+                        <div class="change-metric">
+
+                            <span class="change-metric-label">
+                                Current events
+                            </span>
+
+                            <strong>
+                                {{ item.current_event_count }}
+                            </strong>
+
+                        </div>
+
+
+                        <div
+                            class="
+                                change-delta
+                                {% if item.delta > 0 %}
+                                    direction-up
+                                {% else %}
+                                    direction-down
+                                {% endif %}
+                            "
+                        >
+                            {% if item.delta > 0 %}+{% endif %}
+                            {{ item.delta }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="signal-detail-grid">
+
+                        <div>
+
+                            <span class="signal-detail-label">
+                                Current-window investors
+                            </span>
+
+                            <strong>
+                                {{ item.current_investor_count }}
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span class="signal-detail-label">
+                                Previous-window investors
+                            </span>
+
+                            <strong>
+                                {{ item.previous_investor_count }}
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span class="signal-detail-label">
+                                Change
+                            </span>
+
+                            <strong>
+                                {% if item.change_pct is not none %}
+                                    {{ "{:+.1f}%".format(item.change_pct) }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    {% if item.contributing_investors %}
+
+                        <div class="signal-evidence-row">
+
+                            <span class="signal-detail-label">
+                                Contributors across both windows
+                            </span>
+
+                            <div>
+                                {{ item.contributing_investors|join(", ") }}
+                            </div>
+
+                        </div>
+
+                    {% endif %}
+
+
+                    {% if item.current_event_ids %}
+
+                        <div class="signal-evidence-row">
+
+                            <span class="signal-detail-label">
+                                Current canonical events
+                            </span>
+
+                            <div class="event-id-list">
+
+                                {% for event_id in item.current_event_ids %}
+                                    <span>
+                                        #{{ event_id }}
+                                    </span>
+                                {% endfor %}
+
+                            </div>
+
+                        </div>
+
+                    {% endif %}
+
+                </article>
+
+            {% endfor %}
+
+        </div>
+
+
+        <div class="signal-methodology">
+
+            <div>
+
+                <span class="signal-detail-label">
+                    Comparable cohort
+                </span>
+
+                <strong>
+                    {{ product.sector_momentum.cohort.comparable_investor_count }}
+                    of
+                    {{ product.sector_momentum.cohort.resolved_investor_count }}
+                    resolved investors
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span class="signal-detail-label">
+                    Sector coverage
+                </span>
+
+                <strong>
+                    {{ "{:.1f}%".format(
+                        product.sector_momentum.coverage.combined.percent
+                    ) }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span class="signal-detail-label">
+                    Canonical events compared
+                </span>
+
+                <strong>
+                    {{ product.sector_momentum.previous_round_count }}
+                    →
+                    {{ product.sector_momentum.current_round_count }}
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <p class="signal-methodology-note">
+            Signals compare canonical funding events across equal periods.
+            Only investors with complete matched first-party corpus coverage
+            enter the comparable cohort. Observed activity is not a claim of
+            complete real-world market activity.
+        </p>
+
+    {% else %}
+
+        <div class="empty-state">
+            No sector changes currently meet Vantage's signal threshold.
+        </div>
+
+    {% endif %}
+
+</section>
+
+
+<section class="quality-section">
+
+    <div class="section-header">
+
+        <div>
+
+            <div class="eyebrow">
+                KNOWLEDGE BASE CONTEXT
+            </div>
+
+            <h2>
+                What Vantage currently knows
+            </h2>
+
+        </div>
+
+        <div class="section-meta">
+            Canonical structured knowledge
+        </div>
+
+    </div>
+
+
+    <section class="quality-stats intelligence-context-stats">
+
+        <div class="quality-stat">
+
+            <div class="quality-value">
+                {{ summary.company_count }}
+            </div>
+
+            <div class="quality-label">
+                Companies
+            </div>
+
+        </div>
+
+
+        <div class="quality-stat">
+
+            <div class="quality-value">
+                {{ summary.investor_count }}
+            </div>
+
+            <div class="quality-label">
+                Investors
+            </div>
+
+        </div>
+
+
+        <div class="quality-stat">
+
+            <div class="quality-value">
+                {{ summary.funding_round_count }}
+            </div>
+
+            <div class="quality-label">
+                Financing events
+            </div>
+
+        </div>
+
+
+        <div class="quality-stat">
+
+            <div class="quality-value">
+                {{ summary.recent_fund_closes|length }}
+            </div>
+
+            <div class="quality-label">
+                Recorded fund closes
+            </div>
+
+        </div>
+
+    </section>
+
+</section>
+
+
+<section class="quality-section">
+
+    <div class="section-header">
+
+        <div>
+
+            <div class="eyebrow">
+                RECENT EVIDENCE-BACKED EVENTS
+            </div>
+
+            <h2>
+                Latest canonical financings
+            </h2>
+
+        </div>
+
+        <div class="section-meta">
+            Structured events, not article count
         </div>
 
     </div>
@@ -470,7 +677,13 @@ Intelligence · Vantage
                     {% if round.event_evidence %}
 
                         <div class="evidence-box">
+
+                            <div class="evidence-label">
+                                EVENT EVIDENCE
+                            </div>
+
                             {{ round.event_evidence }}
+
                         </div>
 
                     {% endif %}
@@ -494,7 +707,7 @@ Intelligence · Vantage
                                 target="_blank"
                                 class="text-link"
                             >
-                                Source ↗
+                                Primary evidence ↗
                             </a>
 
                         {% endif %}
