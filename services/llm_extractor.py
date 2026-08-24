@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Optional
 
 from openai import OpenAI
@@ -14,7 +15,30 @@ FUNDING_EXTRACTOR_VERSION = "funding-v1"
 FUND_CLOSE_EXTRACTOR_VERSION = "fund-close-v1"
 
 
-client = OpenAI()
+@lru_cache(maxsize=1)
+def _get_openai_client():
+    """
+    Create the OpenAI client only when an extraction
+    actually requires it.
+
+    Importing Project Vantage must not require live
+    OpenAI credentials.
+    """
+    return OpenAI()
+
+
+def _parse_response(**kwargs):
+    """
+    Thin boundary around the OpenAI structured-response API.
+
+    Keeping this boundary explicit makes extraction tests
+    independent of live credentials and SDK internals.
+    """
+    return (
+        _get_openai_client()
+        .responses
+        .parse(**kwargs)
+    )
 
 
 class FundingExtraction(BaseModel):
@@ -101,7 +125,7 @@ def extract_funding_with_llm(article):
         or "unknown"
     )
 
-    response = client.responses.parse(
+    response = _parse_response(
         model=EXTRACTION_MODEL,
         input=[
             {
@@ -219,7 +243,7 @@ def extract_funding_with_llm(article):
 
 
 def extract_fund_close_with_llm(article):
-    response = client.responses.parse(
+    response = _parse_response(
         model=EXTRACTION_MODEL,
         input=[
             {

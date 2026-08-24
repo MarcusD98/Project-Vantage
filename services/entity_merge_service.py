@@ -4,6 +4,10 @@ from models.company import Company
 from models.entity_alias import EntityAlias
 from models.investor import Investor
 
+from models.entity_resolution_review import (
+    EntityResolutionReview,
+)
+
 
 def _upsert_entity_alias(
     alias_name,
@@ -143,6 +147,64 @@ def _repoint_company_aliases(
         )
 
         alias.canonical_name = (
+            canonical_company.name
+        )
+
+
+def _repoint_investor_reviews(
+    alias_investor,
+    canonical_investor,
+):
+    """
+    Preserve entity-resolution review candidates when an
+    investor is merged into its canonical entity.
+    """
+
+    reviews = (
+        EntityResolutionReview.query
+        .filter_by(
+            candidate_investor_id=(
+                alias_investor.id
+            ),
+        )
+        .all()
+    )
+
+    for review in reviews:
+        review.candidate_investor = (
+            canonical_investor
+        )
+
+        review.candidate_name = (
+            canonical_investor.name
+        )
+
+
+def _repoint_company_reviews(
+    alias_company,
+    canonical_company,
+):
+    """
+    Preserve entity-resolution review candidates when a
+    company is merged into its canonical entity.
+    """
+
+    reviews = (
+        EntityResolutionReview.query
+        .filter_by(
+            candidate_company_id=(
+                alias_company.id
+            ),
+        )
+        .all()
+    )
+
+    for review in reviews:
+        review.candidate_company = (
+            canonical_company
+        )
+
+        review.candidate_name = (
             canonical_company.name
         )
 
@@ -303,6 +365,13 @@ def merge_investors(
         # -------------------------------------------------
 
         _repoint_investor_aliases(
+            alias_investor=alias_investor,
+            canonical_investor=(
+                canonical_investor
+            ),
+        )
+
+        _repoint_investor_reviews(
             alias_investor=alias_investor,
             canonical_investor=(
                 canonical_investor
@@ -484,6 +553,13 @@ def merge_companies(
         # -------------------------------------------------
 
         _repoint_company_aliases(
+            alias_company=alias_company,
+            canonical_company=(
+                canonical_company
+            ),
+        )
+
+        _repoint_company_reviews(
             alias_company=alias_company,
             canonical_company=(
                 canonical_company

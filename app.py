@@ -11,7 +11,10 @@ from flask import (
 
 from flask_migrate import Migrate
 
-from config import SOURCES
+from config import (
+    SOURCES,
+    get_database_url,
+)
 
 from models.article import db, Article
 from models.company import Company
@@ -83,7 +86,7 @@ app = Flask(__name__)
 
 app.config[
     "SQLALCHEMY_DATABASE_URI"
-] = "sqlite:///vc_news.db"
+] = get_database_url()
 
 app.config[
     "SQLALCHEMY_TRACK_MODIFICATIONS"

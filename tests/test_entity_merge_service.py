@@ -13,6 +13,10 @@ from services.entity_resolution_service import (
     resolve_entity_name,
 )
 
+from models.entity_resolution_review import (
+    EntityResolutionReview,
+)
+
 
 def test_merge_investor_moves_round_relationships(
     app,
@@ -259,4 +263,139 @@ def test_merge_repoints_existing_aliases(
         .canonical_investor
         .name
         == "Index Ventures"
+    )
+
+def test_merge_investor_repoints_resolution_reviews(
+    app,
+):
+    alias = Investor(
+        name="Index"
+    )
+
+    canonical = Investor(
+        name="Index Ventures"
+    )
+
+    db.session.add_all(
+        [
+            alias,
+            canonical,
+        ]
+    )
+
+    db.session.flush()
+
+    review = EntityResolutionReview(
+        entity_type="investor",
+        raw_name="Index Ventures",
+        normalized_name="Index Ventures",
+        candidate_name="Index",
+        candidate_investor=alias,
+        similarity_score=1.0,
+        resolution_status=(
+            "strong_candidate"
+        ),
+    )
+
+    db.session.add(
+        review
+    )
+
+    db.session.commit()
+
+    assert (
+        merge_investors(
+            "Index",
+            "Index Ventures",
+        )
+        is True
+    )
+
+    db.session.refresh(
+        review
+    )
+
+    assert (
+        review.candidate_investor_id
+        == canonical.id
+    )
+
+    assert (
+        review.candidate_investor.name
+        == "Index Ventures"
+    )
+
+    assert (
+        review.candidate_name
+        == "Index Ventures"
+    )
+
+
+def test_merge_company_repoints_resolution_reviews(
+    app,
+):
+    alias = Company(
+        name="Acme AI"
+    )
+
+    canonical = Company(
+        name="Acme"
+    )
+
+    db.session.add_all(
+        [
+            alias,
+            canonical,
+        ]
+    )
+
+    db.session.flush()
+
+    review = EntityResolutionReview(
+        entity_type="company",
+        raw_name="Acme",
+        normalized_name="Acme",
+        candidate_name="Acme AI",
+        candidate_company=alias,
+        similarity_score=1.0,
+        resolution_status=(
+            "strong_candidate"
+        ),
+    )
+
+    db.session.add(
+        review
+    )
+
+    db.session.commit()
+
+    from services.entity_merge_service import (
+        merge_companies,
+    )
+
+    assert (
+        merge_companies(
+            "Acme AI",
+            "Acme",
+        )
+        is True
+    )
+
+    db.session.refresh(
+        review
+    )
+
+    assert (
+        review.candidate_company_id
+        == canonical.id
+    )
+
+    assert (
+        review.candidate_company.name
+        == "Acme"
+    )
+
+    assert (
+        review.candidate_name
+        == "Acme"
     )
