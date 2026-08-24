@@ -32,8 +32,8 @@ def test_collection_guard_short_circuits_llm_call(
         )
 
     monkeypatch.setattr(
-        llm_extractor.client.responses,
-        "parse",
+        llm_extractor,
+        "_parse_response",
         fail_parse,
     )
 
@@ -90,8 +90,8 @@ def test_multi_stage_review_signal_still_reaches_extractor(
         return Response()
 
     monkeypatch.setattr(
-        llm_extractor.client.responses,
-        "parse",
+        llm_extractor,
+        "_parse_response",
         fake_parse,
     )
 
@@ -149,8 +149,8 @@ def test_investor_source_context_is_passed_to_extractor(
         return Response()
 
     monkeypatch.setattr(
-        llm_extractor.client.responses,
-        "parse",
+        llm_extractor,
+        "_parse_response",
         fake_parse,
     )
 
