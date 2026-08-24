@@ -1,6 +1,40 @@
+import os
+
+from dotenv import load_dotenv
+
 from source_registry import (
     get_discovery_sources,
 )
+
+
+# ---------------------------------------------------------
+# Local environment
+# ---------------------------------------------------------
+
+load_dotenv()
+
+
+# ---------------------------------------------------------
+# Application configuration
+# ---------------------------------------------------------
+
+DEFAULT_DATABASE_URL = (
+    "sqlite:///vc_news.db"
+)
+
+
+def get_database_url():
+    """
+    Return the configured Vantage database URL.
+
+    Local development preserves the existing SQLite
+    database location unless DATABASE_URL is explicitly
+    provided.
+    """
+    return (
+        os.getenv("DATABASE_URL")
+        or DEFAULT_DATABASE_URL
+    )
 
 
 # ---------------------------------------------------------
@@ -13,9 +47,6 @@ from source_registry import (
 #
 # Preserve that contract while the underlying source model
 # moves to the unified source registry.
-#
-# Phase 5 will progressively migrate services to interact
-# directly with the registry / fleet runner.
 # ---------------------------------------------------------
 
 SOURCES = get_discovery_sources(
