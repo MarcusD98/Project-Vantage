@@ -226,7 +226,9 @@ def normalize_sector_text(sector):
         normalized,
     )
 
-    return normalized
+    normalized = normalized.strip()
+
+    return normalized or None
 
 
 def _contains_alias(

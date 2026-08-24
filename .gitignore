@@ -13,3 +13,9 @@ instance/
 
 # macOS
 .DS_Store
+
+# Test coverage
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
