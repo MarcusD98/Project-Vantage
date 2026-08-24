@@ -11,7 +11,7 @@ from services.compound_evidence_service import (
 
 EXTRACTION_MODEL = "gpt-5.6-luna"
 
-FUNDING_EXTRACTOR_VERSION = "funding-v1"
+FUNDING_EXTRACTOR_VERSION = "funding-v2"
 FUND_CLOSE_EXTRACTOR_VERSION = "fund-close-v1"
 
 

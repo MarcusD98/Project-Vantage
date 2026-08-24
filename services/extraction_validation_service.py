@@ -20,7 +20,7 @@ from services.compound_evidence_service import (
 )
 
 
-VALIDATOR_VERSION = "deterministic-v1"
+VALIDATOR_VERSION = "deterministic-v2"
 
 
 FLAG_UNSUPPORTED_EVENT_TYPE = "unsupported_event_type"
