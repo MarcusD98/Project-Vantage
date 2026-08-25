@@ -2020,3 +2020,256 @@ tbody tr:last-child td {
     }
 
 }
+
+
+/* ----------------------------------
+   CANONICAL EVENT INVESTIGATION
+---------------------------------- */
+
+.event-summary-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin-bottom: 56px;
+}
+
+
+.event-summary-label {
+    color: var(--text-muted);
+
+    font-size: 9px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.08em;
+}
+
+
+.event-summary-value {
+    margin-top: 8px;
+
+    color: var(--text);
+
+    font-size: 20px;
+    font-weight: 650;
+
+    letter-spacing: -0.025em;
+}
+
+
+.event-evidence-primary {
+    padding: 16px 18px;
+
+    background: var(--accent-soft);
+
+    border-radius: var(--radius-small);
+
+    color: var(--text-secondary);
+
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+
+.event-entity-row {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+
+    gap: 18px;
+
+    padding-top: 18px;
+    margin-top: 18px;
+
+    border-top: 1px solid var(--border);
+
+    font-size: 13px;
+}
+
+
+.event-field-label {
+    color: var(--text-muted);
+}
+
+
+.event-participants {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 8px;
+}
+
+
+.event-participant {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 6px;
+
+    padding: 6px 9px;
+
+    background: var(--surface-soft);
+
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    font-size: 12px;
+}
+
+
+.event-participant:hover {
+    border-color: var(--border-strong);
+
+    color: var(--accent);
+}
+
+
+.event-participant .lead-indicator {
+    margin-top: 0;
+}
+
+
+.event-muted {
+    color: var(--text-muted);
+}
+
+
+.event-evidence-list {
+    display: flex;
+    flex-direction: column;
+
+    gap: 12px;
+}
+
+
+.event-source-card {
+    padding: 20px 22px;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    box-shadow: var(--shadow);
+}
+
+
+.event-source-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    gap: 24px;
+}
+
+
+.event-source-badges {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 6px;
+
+    margin-bottom: 10px;
+}
+
+
+.event-source-card h3 {
+    margin: 0;
+
+    font-size: 17px;
+    line-height: 1.4;
+
+    letter-spacing: -0.018em;
+}
+
+
+.event-primary-badge {
+    display: inline-flex;
+
+    padding: 4px 8px;
+
+    border-radius: 6px;
+
+    background: var(--green-soft);
+
+    color: var(--green);
+
+    font-size: 9px;
+    font-weight: 700;
+
+    letter-spacing: 0.05em;
+}
+
+
+.event-source-summary {
+    margin: 12px 0 0;
+
+    color: var(--text-secondary);
+
+    font-size: 12px;
+}
+
+
+.event-source-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 20px;
+
+    margin-top: 16px;
+    padding-top: 13px;
+
+    border-top: 1px solid var(--border);
+
+    color: var(--text-muted);
+
+    font-size: 10px;
+}
+
+
+.event-id-list a {
+    padding: 3px 7px;
+
+    border-radius: 5px;
+
+    background: var(--accent-soft);
+
+    color: var(--accent);
+
+    font-size: 10px;
+    font-weight: 650;
+}
+
+
+.event-id-list a:hover {
+    text-decoration: underline;
+}
+
+
+@media (max-width: 720px) {
+
+    .event-summary-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+
+    .event-entity-row {
+        grid-template-columns: 1fr;
+
+        gap: 5px;
+    }
+
+
+    .event-source-top,
+    .event-source-footer {
+        flex-direction: column;
+
+        gap: 8px;
+    }
+
+}

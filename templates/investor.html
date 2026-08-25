@@ -840,7 +840,14 @@
                         </div>
 
                         <h3>
-                            {{ item.company }}
+                            <a
+                                href="{{ url_for(
+                                    'funding_event',
+                                    funding_round_id=item.funding_round_id
+                                ) }}"
+                            >
+                                {{ item.company }}
+                            </a>
                         </h3>
 
                         <div class="recent-intelligence-meta">
@@ -861,6 +868,18 @@
                                 Evidence: {{ item.evidence_sources|join(", ") }}
                             </div>
                         {% endif %}
+
+                        <div class="recent-intelligence-evidence">
+                            <a
+                                href="{{ url_for(
+                                    'funding_event',
+                                    funding_round_id=item.funding_round_id
+                                ) }}"
+                                class="text-link"
+                            >
+                                Event #{{ item.funding_round_id }} →
+                            </a>
+                        </div>
 
                     </article>
 

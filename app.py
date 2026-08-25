@@ -72,6 +72,10 @@ from services.investor_ui_service import (
     normalize_investor_window,
 )
 
+from services.funding_event_service import (
+    get_funding_event_detail,
+)
+
 from services.product_intelligence_service import (
     get_product_intelligence_summary,
 )
@@ -215,6 +219,34 @@ def funding():
     return render_template(
         "funding.html",
         funding_rounds=funding_rounds,
+    )
+
+
+# ---------------------------------------------------------
+# Canonical funding event
+# ---------------------------------------------------------
+
+@app.route(
+    "/funding/event/<int:funding_round_id>"
+)
+def funding_event(
+    funding_round_id,
+):
+    event = (
+        get_funding_event_detail(
+            funding_round_id
+        )
+    )
+
+    if event is None:
+        return (
+            "Funding event not found",
+            404,
+        )
+
+    return render_template(
+        "funding_event.html",
+        event=event,
     )
 
 

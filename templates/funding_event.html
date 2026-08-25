@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}
+{{ event.company.name }} · Financing Event · Vantage
+{% endblock %}
+
+
+{% block content %}
+
+{% set round = event.funding_round %}
+
+<section class="hero compact">
+
+    <div class="eyebrow">
+        CANONICAL FINANCING EVENT · #{{ round.id }}
+    </div>
+
+    <h1>
+        {{ event.company.name }}
+    </h1>
+
+    <p class="hero-description">
+        One canonical real-world financing event supported by
+        {{ event.evidence_count }}
+        evidence document{% if event.evidence_count != 1 %}s{% endif %}.
+    </p>
+
+</section>
+
+
+<section class="event-summary-grid">
+
+    <div class="quality-stat">
+
+        <div class="event-summary-label">
+            Stage
+        </div>
+
+        <div class="event-summary-value">
+            {{ round.canonical_round_type or round.round_type or "Unknown" }}
+        </div>
+
+    </div>
+
+
+    <div class="quality-stat">
+
+        <div class="event-summary-label">
+            Amount
+        </div>
+
+        <div class="event-summary-value">
+
+            {% if round.amount %}
+
+                {% if round.currency == "USD" %}$
+                {% elif round.currency == "EUR" %}€
+                {% elif round.currency == "GBP" %}£
+                {% else %}
+                    {{ round.currency or "" }}
+                {% endif %}
+
+                {{ "{:,.0f}".format(round.amount) }}
+
+            {% else %}
+                Unknown
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <div class="quality-stat">
+
+        <div class="event-summary-label">
+            Announced
+        </div>
+
+        <div class="event-summary-value">
+
+            {% if round.announced_at %}
+                {{ round.announced_at.strftime("%d %b %Y") }}
+            {% else %}
+                Unknown
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <div class="quality-stat">
+
+        <div class="event-summary-label">
+            Evidence
+        </div>
+
+        <div class="event-summary-value">
+            {{ event.evidence_count }}
+            source{% if event.evidence_count != 1 %}s{% endif %}
+        </div>
+
+    </div>
+
+</section>
+
+
+<section class="quality-section">
+
+    <div class="section-header">
+
+        <div>
+
+            <div class="eyebrow">
+                EVENT INTERPRETATION
+            </div>
+
+            <h2>
+                What happened?
+            </h2>
+
+        </div>
+
+        <div class="section-meta">
+            Canonical structured knowledge
+        </div>
+
+    </div>
+
+
+    <div class="quality-panel">
+
+        {% if round.event_evidence %}
+
+            <div class="event-evidence-primary">
+                {{ round.event_evidence }}
+            </div>
+
+        {% else %}
+
+            <div class="quality-empty">
+                No canonical event evidence recorded.
+            </div>
+
+        {% endif %}
+
+
+        <div class="event-entity-row">
+
+            <span class="event-field-label">
+                Company
+            </span>
+
+            <a
+                href="{{ url_for(
+                    'company_profile',
+                    company_id=event.company.id
+                ) }}"
+                class="entity-link"
+            >
+                {{ event.company.name }}
+            </a>
+
+        </div>
+
+
+        <div class="event-entity-row">
+
+            <span class="event-field-label">
+                Investors
+            </span>
+
+            <div class="event-participants">
+
+                {% if event.participants %}
+
+                    {% for item in event.participants %}
+
+                        <a
+                            href="{{ url_for(
+                                'investor_profile',
+                                investor_id=item.investor.id
+                            ) }}"
+                            class="event-participant"
+                        >
+                            {{ item.investor.name }}
+
+                            {% if item.is_lead %}
+                                <span class="lead-indicator">
+                                    LEAD
+                                </span>
+                            {% endif %}
+                        </a>
+
+                    {% endfor %}
+
+                {% else %}
+                    <span class="event-muted">
+                        No participating investors recorded.
+                    </span>
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<section class="quality-section">
+
+    <div class="section-header">
+
+        <div>
+
+            <div class="eyebrow">
+                PROVENANCE
+            </div>
+
+            <h2>
+                Supporting evidence
+            </h2>
+
+        </div>
+
+        <div class="section-meta">
+            {{ event.evidence_count }}
+            unique document{% if event.evidence_count != 1 %}s{% endif %}
+        </div>
+
+    </div>
+
+
+    {% if event.evidence %}
+
+        <div class="event-evidence-list">
+
+            {% for item in event.evidence %}
+
+                {% set article = item.article %}
+
+                <article class="event-source-card">
+
+                    <div class="event-source-top">
+
+                        <div>
+
+                            <div class="event-source-badges">
+
+                                <span class="source-badge">
+                                    {{ article.source }}
+                                </span>
+
+                                {% if article.source_type %}
+                                    <span class="category-badge">
+                                        {{ article.source_type|upper }}
+                                    </span>
+                                {% endif %}
+
+                                {% if item.is_primary %}
+                                    <span class="event-primary-badge">
+                                        PRIMARY
+                                    </span>
+                                {% endif %}
+
+                            </div>
+
+
+                            <h3>
+                                {{ article.title }}
+                            </h3>
+
+                        </div>
+
+
+                        {% if article.published_at %}
+
+                            <span class="date">
+                                {{ article.published_at.strftime("%d %b %Y") }}
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    {% if article.summary %}
+
+                        <p class="event-source-summary">
+                            {{ article.summary }}
+                        </p>
+
+                    {% endif %}
+
+
+                    <div class="event-source-footer">
+
+                        <span>
+                            Evidence document #{{ article.id }}
+                        </span>
+
+                        <a
+                            href="{{ article.url }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-link"
+                        >
+                            Open original evidence ↗
+                        </a>
+
+                    </div>
+
+                </article>
+
+            {% endfor %}
+
+        </div>
+
+    {% else %}
+
+        <div class="empty-state">
+            No supporting evidence documents are attached to this event.
+        </div>
+
+    {% endif %}
+
+</section>
+
+{% endblock %}

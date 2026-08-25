@@ -417,9 +417,42 @@ Intelligence · Vantage
                             <div class="event-id-list">
 
                                 {% for event_id in item.current_event_ids %}
-                                    <span>
+                                    <a
+                                        href="{{ url_for(
+                                            'funding_event',
+                                            funding_round_id=event_id
+                                        ) }}"
+                                    >
                                         #{{ event_id }}
-                                    </span>
+                                    </a>
+                                {% endfor %}
+
+                            </div>
+
+                        </div>
+
+                    {% endif %}
+
+
+                    {% if item.previous_event_ids %}
+
+                        <div class="signal-evidence-row">
+
+                            <span class="signal-detail-label">
+                                Previous canonical events
+                            </span>
+
+                            <div class="event-id-list">
+
+                                {% for event_id in item.previous_event_ids %}
+                                    <a
+                                        href="{{ url_for(
+                                            'funding_event',
+                                            funding_round_id=event_id
+                                        ) }}"
+                                    >
+                                        #{{ event_id }}
+                                    </a>
                                 {% endfor %}
 
                             </div>
