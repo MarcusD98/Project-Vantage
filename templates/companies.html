@@ -7,93 +7,119 @@ Companies · Vantage
 {% block content %}
 
 <section class="hero compact">
-    <div class="eyebrow">
-        COMPANY DIRECTORY
-    </div>
-
-    <h1>
-        Companies
-    </h1>
-
+    <div class="eyebrow">COMPANY DISCOVERY</div>
+    <h1>Companies</h1>
     <p class="hero-description">
-        Find companies represented in Vantage's canonical financing history.
+        Explore companies represented in Vantage's canonical financing history.
     </p>
 </section>
 
-<section class="directory-controls">
-    <form method="GET" class="directory-search-form">
-        <input
-            type="search"
-            name="q"
-            value="{{ search_query }}"
-            placeholder="Search companies..."
-            aria-label="Search companies"
-        >
+<section class="explorer-controls">
+    <form method="GET" class="explorer-form">
+        <div class="explorer-search">
+            <label for="company-search">Company</label>
+            <input
+                id="company-search"
+                type="search"
+                name="q"
+                value="{{ search_query }}"
+                placeholder="Search by name..."
+            >
+        </div>
 
-        <button type="submit">
-            Search
-        </button>
+        <div>
+            <label for="company-sector">Sector</label>
+            <select id="company-sector" name="sector">
+                <option value="">All sectors</option>
+                {% for sector in sector_options %}
+                    <option
+                        value="{{ sector }}"
+                        {% if sector_filter == sector %}selected{% endif %}
+                    >
+                        {{ sector }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="company-country">Country</label>
+            <select id="company-country" name="country">
+                <option value="">All countries</option>
+                {% for country in country_options %}
+                    <option
+                        value="{{ country }}"
+                        {% if country_filter == country %}selected{% endif %}
+                    >
+                        {{ country }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="company-sort">Sort</label>
+            <select id="company-sort" name="sort">
+                <option value="funding" {% if sort_by == "funding" %}selected{% endif %}>Most financing events</option>
+                <option value="name" {% if sort_by == "name" %}selected{% endif %}>Name A–Z</option>
+                <option value="name_desc" {% if sort_by == "name_desc" %}selected{% endif %}>Name Z–A</option>
+            </select>
+        </div>
+
+        <div class="explorer-actions">
+            <button type="submit">Apply</button>
+            <a href="{{ url_for('companies') }}">Reset</a>
+        </div>
     </form>
 </section>
 
 <section>
     <div class="section-header">
         <div>
-            <div class="eyebrow">
-                CANONICAL ENTITIES
-            </div>
-
-            <h2>
-                Company profiles
-            </h2>
+            <div class="eyebrow">CANONICAL COMPANY UNIVERSE</div>
+            <h2>Company profiles</h2>
         </div>
 
         <div class="section-meta">
-            {{ companies|length }} result{% if companies|length != 1 %}s{% endif %}
+            {{ company_rows|length }} result{% if company_rows|length != 1 %}s{% endif %}
         </div>
     </div>
 
-    {% if companies %}
-        <div class="entity-directory">
-            {% for company in companies %}
+    {% if company_rows %}
+        <div class="entity-directory metric-directory">
+            <div class="entity-directory-heading company-directory-grid">
+                <span>Company</span>
+                <span>Sector</span>
+                <span>Financing events</span>
+                <span></span>
+            </div>
+
+            {% for item in company_rows %}
+                {% set company = item.company %}
+
                 <a
                     href="{{ url_for('company_profile', company_id=company.id) }}"
-                    class="entity-directory-row"
+                    class="entity-directory-row company-directory-grid"
                 >
                     <div>
-                        <h3>
-                            {{ company.name }}
-                        </h3>
-
+                        <h3>{{ company.name }}</h3>
                         <div class="entity-directory-meta">
-                            {% if company.sector %}
-                                <span>{{ company.sector }}</span>
-                            {% endif %}
-
-                            {% if company.country %}
-                                <span>{{ company.country }}</span>
-                            {% endif %}
-
-                            {% if company.founded_year %}
-                                <span>Founded {{ company.founded_year }}</span>
-                            {% endif %}
-
-                            {% if not company.sector and not company.country and not company.founded_year %}
-                                <span>Canonical company</span>
-                            {% endif %}
+                            {% if company.country %}<span>{{ company.country }}</span>{% endif %}
+                            {% if company.founded_year %}<span>Founded {{ company.founded_year }}</span>{% endif %}
+                            {% if not company.country and not company.founded_year %}<span>Company profile</span>{% endif %}
                         </div>
                     </div>
 
-                    <span class="entity-directory-action">
-                        View company →
-                    </span>
+                    <span class="directory-secondary">{{ item.sector or "Unclassified" }}</span>
+                    <strong class="directory-metric">{{ item.funding_count }}</strong>
+                    <span class="entity-directory-action">View company →</span>
                 </a>
             {% endfor %}
         </div>
     {% else %}
         <div class="empty-state">
             <h3>No matching companies</h3>
-            <p>Try a broader name search.</p>
+            <p>Broaden or reset the current filters.</p>
         </div>
     {% endif %}
 </section>

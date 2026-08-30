@@ -24,6 +24,65 @@ Funding Intelligence · Vantage
 </section>
 
 
+<section class="explorer-controls">
+    <form method="GET" class="explorer-form funding-explorer-form">
+        <div class="explorer-search">
+            <label for="funding-search">Company or investor</label>
+            <input
+                id="funding-search"
+                type="search"
+                name="q"
+                value="{{ search_query }}"
+                placeholder="Search company or investor..."
+            >
+        </div>
+
+        <div>
+            <label for="funding-stage">Stage</label>
+            <select id="funding-stage" name="stage">
+                <option value="">All stages</option>
+                {% for stage in stage_options %}
+                    <option value="{{ stage }}" {% if stage_filter == stage %}selected{% endif %}>{{ stage }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="funding-sector">Sector</label>
+            <select id="funding-sector" name="sector">
+                <option value="">All sectors</option>
+                {% for sector in sector_options %}
+                    <option value="{{ sector }}" {% if sector_filter == sector %}selected{% endif %}>{{ sector }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="funding-currency">Currency</label>
+            <select id="funding-currency" name="currency">
+                <option value="">All currencies</option>
+                {% for currency in currency_options %}
+                    <option value="{{ currency }}" {% if currency_filter == currency %}selected{% endif %}>{{ currency }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="funding-sort">Sort</label>
+            <select id="funding-sort" name="sort">
+                <option value="newest" {% if sort_by == "newest" %}selected{% endif %}>Newest first</option>
+                <option value="oldest" {% if sort_by == "oldest" %}selected{% endif %}>Oldest first</option>
+                <option value="company" {% if sort_by == "company" %}selected{% endif %}>Company A–Z</option>
+            </select>
+        </div>
+
+        <div class="explorer-actions">
+            <button type="submit">Apply</button>
+            <a href="{{ url_for('funding') }}">Reset</a>
+        </div>
+    </form>
+</section>
+
 <div class="section-header">
 
     <div>

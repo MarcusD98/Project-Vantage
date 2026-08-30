@@ -7,83 +7,113 @@ Investors · Vantage
 {% block content %}
 
 <section class="hero compact">
-    <div class="eyebrow">
-        INVESTOR DIRECTORY
-    </div>
-
-    <h1>
-        Investors
-    </h1>
-
+    <div class="eyebrow">INVESTOR DISCOVERY</div>
+    <h1>Investors</h1>
     <p class="hero-description">
-        Find investors in Vantage's observed knowledge base and open their behavioural intelligence profiles.
+        Explore investors by observed activity and open evidence-backed behavioural intelligence profiles.
     </p>
 </section>
 
-<section class="directory-controls">
-    <form method="GET" class="directory-search-form">
-        <input
-            type="search"
-            name="q"
-            value="{{ search_query }}"
-            placeholder="Search investors..."
-            aria-label="Search investors"
-        >
+<section class="explorer-controls">
+    <form method="GET" class="explorer-form">
+        <div class="explorer-search">
+            <label for="investor-search">Investor</label>
+            <input
+                id="investor-search"
+                type="search"
+                name="q"
+                value="{{ search_query }}"
+                placeholder="Search by name..."
+            >
+        </div>
 
-        <button type="submit">
-            Search
-        </button>
+        <div>
+            <label for="investor-location">Headquarters</label>
+            <select id="investor-location" name="location">
+                <option value="">All locations</option>
+                {% for location in location_options %}
+                    <option
+                        value="{{ location }}"
+                        {% if location_filter == location %}selected{% endif %}
+                    >
+                        {{ location }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="investor-activity">Activity</label>
+            <select id="investor-activity" name="activity">
+                <option value="" {% if not activity_filter %}selected{% endif %}>All investors</option>
+                <option value="observed" {% if activity_filter == "observed" %}selected{% endif %}>With observed investments</option>
+                <option value="lead" {% if activity_filter == "lead" %}selected{% endif %}>With lead activity</option>
+            </select>
+        </div>
+
+        <div>
+            <label for="investor-sort">Sort</label>
+            <select id="investor-sort" name="sort">
+                <option value="activity" {% if sort_by == "activity" %}selected{% endif %}>Most observed activity</option>
+                <option value="leads" {% if sort_by == "leads" %}selected{% endif %}>Most lead activity</option>
+                <option value="name" {% if sort_by == "name" %}selected{% endif %}>Name A–Z</option>
+                <option value="name_desc" {% if sort_by == "name_desc" %}selected{% endif %}>Name Z–A</option>
+            </select>
+        </div>
+
+        <div class="explorer-actions">
+            <button type="submit">Apply</button>
+            <a href="{{ url_for('investors') }}">Reset</a>
+        </div>
     </form>
 </section>
 
 <section>
     <div class="section-header">
         <div>
-            <div class="eyebrow">
-                OBSERVED ENTITIES
-            </div>
-
-            <h2>
-                Investor profiles
-            </h2>
+            <div class="eyebrow">OBSERVED INVESTOR UNIVERSE</div>
+            <h2>Investor profiles</h2>
         </div>
 
         <div class="section-meta">
-            {{ investors|length }} result{% if investors|length != 1 %}s{% endif %}
+            {{ investor_rows|length }} result{% if investor_rows|length != 1 %}s{% endif %}
         </div>
     </div>
 
-    {% if investors %}
-        <div class="entity-directory">
-            {% for investor in investors %}
+    {% if investor_rows %}
+        <div class="entity-directory metric-directory">
+            <div class="entity-directory-heading investor-directory-grid">
+                <span>Investor</span>
+                <span>Observed investments</span>
+                <span>Lead events</span>
+                <span></span>
+            </div>
+
+            {% for item in investor_rows %}
+                {% set investor = item.investor %}
+
                 <a
                     href="{{ url_for('investor_profile', investor_id=investor.id) }}"
-                    class="entity-directory-row"
+                    class="entity-directory-row investor-directory-grid"
                 >
                     <div>
-                        <h3>
-                            {{ investor.name }}
-                        </h3>
-
+                        <h3>{{ investor.name }}</h3>
                         <div class="entity-directory-meta">
-                            {% if investor.headquarters %}
-                                {{ investor.headquarters }}
-                            {% else %}
-                                Observed investor
-                            {% endif %}
+                            {{ investor.headquarters or "Headquarters not recorded" }}
                         </div>
                     </div>
 
-                    <span class="entity-directory-action">
-                        Investigate →
-                    </span>
+                    <strong class="directory-metric">{{ item.investment_count }}</strong>
+                    <strong class="directory-metric">{{ item.lead_count }}</strong>
+
+                    <span class="entity-directory-action">Investigate →</span>
                 </a>
             {% endfor %}
         </div>
     {% else %}
         <div class="empty-state">
             <h3>No matching investors</h3>
-            <p>Try a broader name search.</p>
+            <p>Broaden or reset the current filters.</p>
         </div>
     {% endif %}
 </section>

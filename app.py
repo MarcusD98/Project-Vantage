@@ -212,27 +212,142 @@ def investors():
         .strip()
     )
 
-    query = Investor.query
-
-    if search_query:
-        query = query.filter(
-            Investor.name.ilike(
-                f"%{search_query}%"
-            )
+    location_filter = (
+        request.args.get(
+            "location",
+            "",
         )
+        .strip()
+    )
 
-    investor_rows = (
-        query
-        .order_by(
-            Investor.name.asc()
+    activity_filter = (
+        request.args.get(
+            "activity",
+            "",
         )
+        .strip()
+    )
+
+    sort_by = (
+        request.args.get(
+            "sort",
+            "activity",
+        )
+        .strip()
+    )
+
+    all_investors = (
+        Investor.query
         .all()
     )
 
+    location_options = sorted(
+        {
+            investor.headquarters.strip()
+            for investor in all_investors
+            if investor.headquarters
+            and investor.headquarters.strip()
+        },
+        key=str.casefold,
+    )
+
+    investor_rows = []
+
+    for investor in all_investors:
+        if (
+            search_query
+            and search_query.casefold()
+            not in investor.name.casefold()
+        ):
+            continue
+
+        if (
+            location_filter
+            and (
+                not investor.headquarters
+                or investor.headquarters
+                != location_filter
+            )
+        ):
+            continue
+
+        investment_count = len(
+            investor.funding_rounds
+        )
+        lead_count = len(
+            investor.led_funding_rounds
+        )
+
+        if (
+            activity_filter == "observed"
+            and investment_count == 0
+        ):
+            continue
+
+        if (
+            activity_filter == "lead"
+            and lead_count == 0
+        ):
+            continue
+
+        investor_rows.append(
+            {
+                "investor": investor,
+                "investment_count": investment_count,
+                "lead_count": lead_count,
+            }
+        )
+
+    if sort_by == "name":
+        investor_rows.sort(
+            key=lambda item: (
+                item["investor"]
+                .name
+                .casefold()
+            )
+        )
+
+    elif sort_by == "name_desc":
+        investor_rows.sort(
+            key=lambda item: (
+                item["investor"]
+                .name
+                .casefold()
+            ),
+            reverse=True,
+        )
+
+    elif sort_by == "leads":
+        investor_rows.sort(
+            key=lambda item: (
+                -item["lead_count"],
+                -item["investment_count"],
+                item["investor"]
+                .name
+                .casefold(),
+            )
+        )
+
+    else:
+        sort_by = "activity"
+        investor_rows.sort(
+            key=lambda item: (
+                -item["investment_count"],
+                -item["lead_count"],
+                item["investor"]
+                .name
+                .casefold(),
+            )
+        )
+
     return render_template(
         "investors.html",
-        investors=investor_rows,
+        investor_rows=investor_rows,
         search_query=search_query,
+        location_filter=location_filter,
+        location_options=location_options,
+        activity_filter=activity_filter,
+        sort_by=sort_by,
     )
 
 
@@ -250,27 +365,133 @@ def companies():
         .strip()
     )
 
-    query = Company.query
-
-    if search_query:
-        query = query.filter(
-            Company.name.ilike(
-                f"%{search_query}%"
-            )
+    sector_filter = (
+        request.args.get(
+            "sector",
+            "",
         )
+        .strip()
+    )
 
-    company_rows = (
-        query
-        .order_by(
-            Company.name.asc()
+    country_filter = (
+        request.args.get(
+            "country",
+            "",
         )
+        .strip()
+    )
+
+    sort_by = (
+        request.args.get(
+            "sort",
+            "funding",
+        )
+        .strip()
+    )
+
+    all_companies = (
+        Company.query
         .all()
     )
 
+    sector_options = sorted(
+        {
+            (company.canonical_sector or company.sector).strip()
+            for company in all_companies
+            if (company.canonical_sector or company.sector)
+            and (company.canonical_sector or company.sector).strip()
+        },
+        key=str.casefold,
+    )
+
+    country_options = sorted(
+        {
+            company.country.strip()
+            for company in all_companies
+            if company.country
+            and company.country.strip()
+        },
+        key=str.casefold,
+    )
+
+    company_rows = []
+
+    for company in all_companies:
+        company_sector = (
+            company.canonical_sector
+            or company.sector
+            or ""
+        )
+
+        if (
+            search_query
+            and search_query.casefold()
+            not in company.name.casefold()
+        ):
+            continue
+
+        if (
+            sector_filter
+            and company_sector != sector_filter
+        ):
+            continue
+
+        if (
+            country_filter
+            and (
+                not company.country
+                or company.country != country_filter
+            )
+        ):
+            continue
+
+        company_rows.append(
+            {
+                "company": company,
+                "sector": company_sector,
+                "funding_count": len(company.funding_rounds),
+            }
+        )
+
+    if sort_by == "name":
+        company_rows.sort(
+            key=lambda item: (
+                item["company"]
+                .name
+                .casefold()
+            )
+        )
+
+    elif sort_by == "name_desc":
+        company_rows.sort(
+            key=lambda item: (
+                item["company"]
+                .name
+                .casefold()
+            ),
+            reverse=True,
+        )
+
+    else:
+        sort_by = "funding"
+        company_rows.sort(
+            key=lambda item: (
+                -item["funding_count"],
+                item["company"]
+                .name
+                .casefold(),
+            )
+        )
+
     return render_template(
         "companies.html",
-        companies=company_rows,
+        company_rows=company_rows,
         search_query=search_query,
+        sector_filter=sector_filter,
+        sector_options=sector_options,
+        country_filter=country_filter,
+        country_options=country_options,
+        sort_by=sort_by,
     )
 
 
@@ -307,19 +528,167 @@ def sources():
 
 @app.route("/funding")
 def funding():
-    funding_rounds = (
-        FundingRound.query
-        .order_by(
-            FundingRound
-            .announced_at
-            .desc()
+    search_query = (
+        request.args.get(
+            "q",
+            "",
         )
-        .all()
+        .strip()
     )
+
+    stage_filter = (
+        request.args.get(
+            "stage",
+            "",
+        )
+        .strip()
+    )
+
+    sector_filter = (
+        request.args.get(
+            "sector",
+            "",
+        )
+        .strip()
+    )
+
+    currency_filter = (
+        request.args.get(
+            "currency",
+            "",
+        )
+        .strip()
+    )
+
+    sort_by = (
+        request.args.get(
+            "sort",
+            "newest",
+        )
+        .strip()
+    )
+
+    all_rounds = FundingRound.query.all()
+
+    stage_options = sorted(
+        {
+            (round.canonical_round_type or round.round_type).strip()
+            for round in all_rounds
+            if (round.canonical_round_type or round.round_type)
+            and (round.canonical_round_type or round.round_type).strip()
+        },
+        key=str.casefold,
+    )
+
+    sector_options = sorted(
+        {
+            (round.company.canonical_sector or round.company.sector).strip()
+            for round in all_rounds
+            if (round.company.canonical_sector or round.company.sector)
+            and (round.company.canonical_sector or round.company.sector).strip()
+        },
+        key=str.casefold,
+    )
+
+    currency_options = sorted(
+        {
+            round.currency.strip()
+            for round in all_rounds
+            if round.currency
+            and round.currency.strip()
+        }
+    )
+
+    funding_rounds = []
+
+    for round in all_rounds:
+        round_stage = (
+            round.canonical_round_type
+            or round.round_type
+            or ""
+        )
+        round_sector = (
+            round.company.canonical_sector
+            or round.company.sector
+            or ""
+        )
+
+        if search_query:
+            search_haystack = " ".join(
+                [
+                    round.company.name,
+                    *[
+                        investor.name
+                        for investor in round.investors
+                    ],
+                ]
+            )
+
+            if (
+                search_query.casefold()
+                not in search_haystack.casefold()
+            ):
+                continue
+
+        if (
+            stage_filter
+            and round_stage != stage_filter
+        ):
+            continue
+
+        if (
+            sector_filter
+            and round_sector != sector_filter
+        ):
+            continue
+
+        if (
+            currency_filter
+            and round.currency != currency_filter
+        ):
+            continue
+
+        funding_rounds.append(round)
+
+    if sort_by == "oldest":
+        funding_rounds.sort(
+            key=lambda round: (
+                round.announced_at is None,
+                round.announced_at,
+                round.id,
+            )
+        )
+
+    elif sort_by == "company":
+        funding_rounds.sort(
+            key=lambda round: (
+                round.company.name.casefold(),
+                -round.id,
+            )
+        )
+
+    else:
+        sort_by = "newest"
+        funding_rounds.sort(
+            key=lambda round: (
+                round.announced_at is not None,
+                round.announced_at,
+                round.id,
+            ),
+            reverse=True,
+        )
 
     return render_template(
         "funding.html",
         funding_rounds=funding_rounds,
+        search_query=search_query,
+        stage_filter=stage_filter,
+        stage_options=stage_options,
+        sector_filter=sector_filter,
+        sector_options=sector_options,
+        currency_filter=currency_filter,
+        currency_options=currency_options,
+        sort_by=sort_by,
     )
 
 
