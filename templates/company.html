@@ -7,6 +7,12 @@
 
 {% block content %}
 
+<nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="{{ url_for('companies') }}">Companies</a>
+    <span>›</span>
+    <span>{{ company.name }}</span>
+</nav>
+
 <section class="profile-header">
 
     <div class="entity-avatar">
@@ -25,9 +31,9 @@
 
         <div class="profile-meta">
 
-            {% if company.sector %}
+            {% if company.canonical_sector or company.sector %}
                 <span>
-                    {{ company.sector }}
+                    {{ company.canonical_sector or company.sector }}
                 </span>
             {% endif %}
 

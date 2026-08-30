@@ -255,3 +255,48 @@ def test_productisation_investigation_flow():
         db.session.remove()
         db.drop_all()
         db.engine.dispose()
+
+
+
+def test_profile_consolidation_hides_empty_managed_funds():
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.create_all()
+
+        investor = Investor(
+            name="No Fund Capital",
+            headquarters="London",
+        )
+
+        company = Company(
+            name="Profile Co",
+            sector="Software",
+            canonical_sector="Enterprise Software",
+            country="United Kingdom",
+        )
+
+        db.session.add_all([investor, company])
+        db.session.commit()
+
+        client = app.test_client()
+
+        investor_response = client.get(
+            f"/investor/{investor.id}"
+        )
+
+        assert investor_response.status_code == 200
+        assert b"Investors" in investor_response.data
+        assert b"Managed funds" not in investor_response.data
+
+        company_response = client.get(
+            f"/company/{company.id}"
+        )
+
+        assert company_response.status_code == 200
+        assert b"Companies" in company_response.data
+        assert b"Enterprise Software" in company_response.data
+
+        db.session.remove()
+        db.drop_all()
+        db.engine.dispose()
