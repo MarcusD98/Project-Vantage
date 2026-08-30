@@ -414,16 +414,40 @@ Intelligence · Vantage
                                 Current canonical events
                             </span>
 
-                            <div class="event-id-list">
+                            <div class="event-reference-list">
 
                                 {% for event_id in item.current_event_ids %}
+                                    {% set event = event_lookup.get(event_id) %}
+
                                     <a
                                         href="{{ url_for(
                                             'funding_event',
                                             funding_round_id=event_id
                                         ) }}"
+                                        class="event-reference-row"
                                     >
-                                        #{{ event_id }}
+                                        <span>
+                                            <strong>
+                                                {% if event %}
+                                                    {{ event.company.name }}
+                                                {% else %}
+                                                    Financing event
+                                                {% endif %}
+                                            </strong>
+
+                                            {% if event %}
+                                                <small>
+                                                    {{ event.canonical_round_type or event.round_type or "Financing" }}
+                                                    {% if event.announced_at %}
+                                                        · {{ event.announced_at.strftime("%d %b %Y") }}
+                                                    {% endif %}
+                                                </small>
+                                            {% endif %}
+                                        </span>
+
+                                        <span class="event-reference-id">
+                                            #{{ event_id }} →
+                                        </span>
                                     </a>
                                 {% endfor %}
 
@@ -442,16 +466,40 @@ Intelligence · Vantage
                                 Previous canonical events
                             </span>
 
-                            <div class="event-id-list">
+                            <div class="event-reference-list">
 
                                 {% for event_id in item.previous_event_ids %}
+                                    {% set event = event_lookup.get(event_id) %}
+
                                     <a
                                         href="{{ url_for(
                                             'funding_event',
                                             funding_round_id=event_id
                                         ) }}"
+                                        class="event-reference-row"
                                     >
-                                        #{{ event_id }}
+                                        <span>
+                                            <strong>
+                                                {% if event %}
+                                                    {{ event.company.name }}
+                                                {% else %}
+                                                    Financing event
+                                                {% endif %}
+                                            </strong>
+
+                                            {% if event %}
+                                                <small>
+                                                    {{ event.canonical_round_type or event.round_type or "Financing" }}
+                                                    {% if event.announced_at %}
+                                                        · {{ event.announced_at.strftime("%d %b %Y") }}
+                                                    {% endif %}
+                                                </small>
+                                            {% endif %}
+                                        </span>
+
+                                        <span class="event-reference-id">
+                                            #{{ event_id }} →
+                                        </span>
                                     </a>
                                 {% endfor %}
 
@@ -732,18 +780,30 @@ Intelligence · Vantage
 
                         </span>
 
+                        <div class="link-cluster">
 
-                        {% if round.article %}
+                            {% if round.article %}
+                                <a
+                                    href="{{ round.article.url }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="secondary-link"
+                                >
+                                    Primary evidence ↗
+                                </a>
+                            {% endif %}
 
                             <a
-                                href="{{ round.article.url }}"
-                                target="_blank"
+                                href="{{ url_for(
+                                    'funding_event',
+                                    funding_round_id=round.id
+                                ) }}"
                                 class="text-link"
                             >
-                                Primary evidence ↗
+                                View financing →
                             </a>
 
-                        {% endif %}
+                        </div>
 
                     </div>
 

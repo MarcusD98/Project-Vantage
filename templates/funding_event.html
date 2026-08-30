@@ -9,6 +9,24 @@
 
 {% set round = event.funding_round %}
 
+<nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="{{ url_for('funding') }}">
+        Financing
+    </a>
+
+    <span>›</span>
+
+    <a href="{{ url_for('company_profile', company_id=event.company.id) }}">
+        {{ event.company.name }}
+    </a>
+
+    <span>›</span>
+
+    <span>
+        Event #{{ round.id }}
+    </span>
+</nav>
+
 <section class="hero compact">
 
     <div class="eyebrow">

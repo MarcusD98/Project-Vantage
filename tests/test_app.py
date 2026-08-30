@@ -189,3 +189,69 @@ def test_productisation_explorer_filters():
         db.session.remove()
         db.drop_all()
         db.engine.dispose()
+
+
+
+def test_productisation_investigation_flow():
+    """
+    Entity pages should lead into canonical financing investigation,
+    and the canonical event page should orient the user back to the
+    company and financing explorer.
+    """
+
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.create_all()
+
+        investor = Investor(
+            name="Flow Ventures",
+            headquarters="London",
+        )
+        company = Company(
+            name="Flow Systems",
+            sector="Enterprise Software",
+            canonical_sector="Enterprise Software",
+            country="United Kingdom",
+        )
+        funding_round = FundingRound(
+            company=company,
+            round_type="Seed",
+            canonical_round_type="Seed",
+            currency="USD",
+            event_evidence="Flow Systems announced a seed financing.",
+        )
+        funding_round.investors.append(investor)
+
+        db.session.add_all(
+            [
+                investor,
+                company,
+                funding_round,
+            ]
+        )
+        db.session.commit()
+
+        client = app.test_client()
+
+        company_response = client.get(
+            f"/company/{company.id}"
+        )
+        assert company_response.status_code == 200
+        assert b"View financing" in company_response.data
+        assert (
+            f"/funding/event/{funding_round.id}".encode()
+            in company_response.data
+        )
+
+        event_response = client.get(
+            f"/funding/event/{funding_round.id}"
+        )
+        assert event_response.status_code == 200
+        assert b"Financing" in event_response.data
+        assert b"Flow Systems" in event_response.data
+        assert b"Supporting evidence" in event_response.data
+
+        db.session.remove()
+        db.drop_all()
+        db.engine.dispose()

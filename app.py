@@ -121,10 +121,48 @@ def _render_intelligence_page():
         get_product_intelligence_summary()
     )
 
+    event_ids = set()
+
+    for signal in (
+        product_intelligence
+        .get("sector_momentum", {})
+        .get("signals", [])
+    ):
+        event_ids.update(
+            signal.get(
+                "current_event_ids",
+                [],
+            )
+        )
+        event_ids.update(
+            signal.get(
+                "previous_event_ids",
+                [],
+            )
+        )
+
+    event_lookup = {}
+
+    if event_ids:
+        event_lookup = {
+            funding_round.id:
+                funding_round
+            for funding_round in (
+                FundingRound.query
+                .filter(
+                    FundingRound.id.in_(
+                        event_ids
+                    )
+                )
+                .all()
+            )
+        }
+
     return render_template(
         "intelligence.html",
         summary=summary,
         product=product_intelligence,
+        event_lookup=event_lookup,
     )
 
 

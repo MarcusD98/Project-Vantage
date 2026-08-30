@@ -877,7 +877,7 @@
                                 ) }}"
                                 class="text-link"
                             >
-                                Event #{{ item.funding_round_id }} →
+                                View financing →
                             </a>
                         </div>
 
@@ -1219,17 +1219,30 @@
 
                         </span>
 
-                        {% if round.article %}
+                        <div class="link-cluster">
+
+                            {% if round.article %}
+                                <a
+                                    href="{{ round.article.url }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="secondary-link"
+                                >
+                                    Primary evidence ↗
+                                </a>
+                            {% endif %}
 
                             <a
-                                href="{{ round.article.url }}"
-                                target="_blank"
+                                href="{{ url_for(
+                                    'funding_event',
+                                    funding_round_id=round.id
+                                ) }}"
                                 class="text-link"
                             >
-                                Source ↗
+                                View financing →
                             </a>
 
-                        {% endif %}
+                        </div>
 
                     </div>
 
