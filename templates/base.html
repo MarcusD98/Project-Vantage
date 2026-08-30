@@ -39,13 +39,27 @@
             </a>
 
 
-            <nav class="main-nav">
+            <nav class="main-nav" aria-label="Primary navigation">
 
                 <a
                     href="{{ url_for('home') }}"
-                    class="{% if request.path == '/' %}active{% endif %}"
+                    class="{% if request.path == '/' or request.path.startswith('/intelligence') %}active{% endif %}"
                 >
-                    News
+                    Intelligence
+                </a>
+
+                <a
+                    href="{{ url_for('investors') }}"
+                    class="{% if request.path.startswith('/investor') %}active{% endif %}"
+                >
+                    Investors
+                </a>
+
+                <a
+                    href="{{ url_for('companies') }}"
+                    class="{% if request.path.startswith('/compan') %}active{% endif %}"
+                >
+                    Companies
                 </a>
 
                 <a
@@ -56,25 +70,35 @@
                 </a>
 
                 <a
-                    href="{{ url_for('intelligence') }}"
-                    class="{% if request.path.startswith('/intelligence') %}active{% endif %}"
+                    href="{{ url_for('evidence') }}"
+                    class="{% if request.path.startswith('/evidence') %}active{% endif %}"
                 >
-                    Intelligence
+                    Evidence
                 </a>
 
-                <a
-                    href="{{ url_for('sources') }}"
-                    class="{% if request.path.startswith('/sources') %}active{% endif %}"
+                <details
+                    class="system-menu {% if request.path.startswith('/sources') or request.path.startswith('/data-quality') %}active{% endif %}"
                 >
-                    Sources
-                </a>
+                    <summary>
+                        System
+                    </summary>
 
-                <a
-                    href="{{ url_for('data_quality') }}"
-                    class="{% if request.path.startswith('/data-quality') %}active{% endif %}"
-                >
-                    Data Quality
-                </a>
+                    <div class="system-menu-panel">
+                        <a
+                            href="{{ url_for('sources') }}"
+                            class="{% if request.path.startswith('/sources') %}active{% endif %}"
+                        >
+                            Source coverage
+                        </a>
+
+                        <a
+                            href="{{ url_for('data_quality') }}"
+                            class="{% if request.path.startswith('/data-quality') %}active{% endif %}"
+                        >
+                            Data quality
+                        </a>
+                    </div>
+                </details>
 
             </nav>
 

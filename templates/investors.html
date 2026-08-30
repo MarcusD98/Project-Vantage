@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}
+Investors · Vantage
+{% endblock %}
+
+{% block content %}
+
+<section class="hero compact">
+    <div class="eyebrow">
+        INVESTOR DIRECTORY
+    </div>
+
+    <h1>
+        Investors
+    </h1>
+
+    <p class="hero-description">
+        Find investors in Vantage's observed knowledge base and open their behavioural intelligence profiles.
+    </p>
+</section>
+
+<section class="directory-controls">
+    <form method="GET" class="directory-search-form">
+        <input
+            type="search"
+            name="q"
+            value="{{ search_query }}"
+            placeholder="Search investors..."
+            aria-label="Search investors"
+        >
+
+        <button type="submit">
+            Search
+        </button>
+    </form>
+</section>
+
+<section>
+    <div class="section-header">
+        <div>
+            <div class="eyebrow">
+                OBSERVED ENTITIES
+            </div>
+
+            <h2>
+                Investor profiles
+            </h2>
+        </div>
+
+        <div class="section-meta">
+            {{ investors|length }} result{% if investors|length != 1 %}s{% endif %}
+        </div>
+    </div>
+
+    {% if investors %}
+        <div class="entity-directory">
+            {% for investor in investors %}
+                <a
+                    href="{{ url_for('investor_profile', investor_id=investor.id) }}"
+                    class="entity-directory-row"
+                >
+                    <div>
+                        <h3>
+                            {{ investor.name }}
+                        </h3>
+
+                        <div class="entity-directory-meta">
+                            {% if investor.headquarters %}
+                                {{ investor.headquarters }}
+                            {% else %}
+                                Observed investor
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <span class="entity-directory-action">
+                        Investigate →
+                    </span>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h3>No matching investors</h3>
+            <p>Try a broader name search.</p>
+        </div>
+    {% endif %}
+</section>
+
+{% endblock %}

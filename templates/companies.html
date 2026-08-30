@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}
+Companies · Vantage
+{% endblock %}
+
+{% block content %}
+
+<section class="hero compact">
+    <div class="eyebrow">
+        COMPANY DIRECTORY
+    </div>
+
+    <h1>
+        Companies
+    </h1>
+
+    <p class="hero-description">
+        Find companies represented in Vantage's canonical financing history.
+    </p>
+</section>
+
+<section class="directory-controls">
+    <form method="GET" class="directory-search-form">
+        <input
+            type="search"
+            name="q"
+            value="{{ search_query }}"
+            placeholder="Search companies..."
+            aria-label="Search companies"
+        >
+
+        <button type="submit">
+            Search
+        </button>
+    </form>
+</section>
+
+<section>
+    <div class="section-header">
+        <div>
+            <div class="eyebrow">
+                CANONICAL ENTITIES
+            </div>
+
+            <h2>
+                Company profiles
+            </h2>
+        </div>
+
+        <div class="section-meta">
+            {{ companies|length }} result{% if companies|length != 1 %}s{% endif %}
+        </div>
+    </div>
+
+    {% if companies %}
+        <div class="entity-directory">
+            {% for company in companies %}
+                <a
+                    href="{{ url_for('company_profile', company_id=company.id) }}"
+                    class="entity-directory-row"
+                >
+                    <div>
+                        <h3>
+                            {{ company.name }}
+                        </h3>
+
+                        <div class="entity-directory-meta">
+                            {% if company.sector %}
+                                <span>{{ company.sector }}</span>
+                            {% endif %}
+
+                            {% if company.country %}
+                                <span>{{ company.country }}</span>
+                            {% endif %}
+
+                            {% if company.founded_year %}
+                                <span>Founded {{ company.founded_year }}</span>
+                            {% endif %}
+
+                            {% if not company.sector and not company.country and not company.founded_year %}
+                                <span>Canonical company</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <span class="entity-directory-action">
+                        View company →
+                    </span>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h3>No matching companies</h3>
+            <p>Try a broader name search.</p>
+        </div>
+    {% endif %}
+</section>
+
+{% endblock %}

@@ -109,11 +109,36 @@ migrate = Migrate(
 
 
 # ---------------------------------------------------------
-# Home
+# Product intelligence home
 # ---------------------------------------------------------
+
+def _render_intelligence_page():
+    summary = (
+        get_intelligence_summary()
+    )
+
+    product_intelligence = (
+        get_product_intelligence_summary()
+    )
+
+    return render_template(
+        "intelligence.html",
+        summary=summary,
+        product=product_intelligence,
+    )
+
 
 @app.route("/")
 def home():
+    return _render_intelligence_page()
+
+
+# ---------------------------------------------------------
+# Evidence feed
+# ---------------------------------------------------------
+
+@app.route("/evidence")
+def evidence():
     search_query = (
         request.args.get(
             "q",
@@ -170,6 +195,82 @@ def home():
         source_filter=source_filter,
         sources=SOURCES,
         category_filter=category_filter,
+    )
+
+
+# ---------------------------------------------------------
+# Investor directory
+# ---------------------------------------------------------
+
+@app.route("/investors")
+def investors():
+    search_query = (
+        request.args.get(
+            "q",
+            "",
+        )
+        .strip()
+    )
+
+    query = Investor.query
+
+    if search_query:
+        query = query.filter(
+            Investor.name.ilike(
+                f"%{search_query}%"
+            )
+        )
+
+    investor_rows = (
+        query
+        .order_by(
+            Investor.name.asc()
+        )
+        .all()
+    )
+
+    return render_template(
+        "investors.html",
+        investors=investor_rows,
+        search_query=search_query,
+    )
+
+
+# ---------------------------------------------------------
+# Company directory
+# ---------------------------------------------------------
+
+@app.route("/companies")
+def companies():
+    search_query = (
+        request.args.get(
+            "q",
+            "",
+        )
+        .strip()
+    )
+
+    query = Company.query
+
+    if search_query:
+        query = query.filter(
+            Company.name.ilike(
+                f"%{search_query}%"
+            )
+        )
+
+    company_rows = (
+        query
+        .order_by(
+            Company.name.asc()
+        )
+        .all()
+    )
+
+    return render_template(
+        "companies.html",
+        companies=company_rows,
+        search_query=search_query,
     )
 
 
@@ -415,19 +516,7 @@ def reject_entity_review(
 
 @app.route("/intelligence")
 def intelligence():
-    summary = (
-        get_intelligence_summary()
-    )
-
-    product_intelligence = (
-        get_product_intelligence_summary()
-    )
-
-    return render_template(
-        "intelligence.html",
-        summary=summary,
-        product=product_intelligence,
-    )
+    return _render_intelligence_page()
 
 
 # ---------------------------------------------------------
